@@ -23,7 +23,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={location.pathname === '/login' ? 'app-shell app-shell--login' : 'app-shell'}>
       {location.pathname !== '/login' ? <BrandHeader /> : null}
       <main>
         <Routes>

@@ -27,11 +27,14 @@ function Login() {
   };
 
   return (
-    <div className="container">
-      <div className="card">
-        <h1 className="page-title">Přihlášení</h1>
-        <p className="section-title">Zadejte účet traktoristy nebo schvalovatele.</p>
-        <form onSubmit={handleSubmit} className="field-grid">
+    <div className="login-screen">
+      <div className="card login-card">
+        <div>
+          <p className="eyebrow">ADW aplikace</p>
+          <h1 className="page-title">Přihlášení</h1>
+          <p className="section-title">Zadejte účet nebo pokračujte v offline demo režimu.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="field-row">
             <label htmlFor="email">Email</label>
             <input id="email" type="email" placeholder="jmeno@firma.cz" value={email} onChange={(event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)} required />
@@ -40,7 +43,7 @@ function Login() {
             <label htmlFor="password">Heslo</label>
             <input id="password" type="password" placeholder="••••••••" value={password} onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)} required />
           </div>
-          {message && <p>{message}</p>}
+          {message && <p className="form-message">{message}</p>}
           <button type="submit" className="primary">Přihlásit se</button>
           <button type="button" className="secondary" onClick={useDemoAdmin}>Pokračovat jako Ing. Martina Novotná</button>
         </form>

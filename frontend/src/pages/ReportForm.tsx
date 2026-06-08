@@ -14,10 +14,15 @@ function getFieldArea(fields: FieldRecord[], fieldId?: number) {
   return Number(field?.area ?? 0);
 }
 
+function calculateProcessedArea(fields: FieldRecord[], fieldId: number | undefined, processedPercent: number) {
+  return Number((getFieldArea(fields, fieldId) * processedPercent / 100).toFixed(2));
+}
+
 interface FieldEntry {
   id: number;
   fieldId?: number;
   amountHa: number;
+  processedPercent: number;
 }
 
 interface AttachmentEntry {
@@ -26,6 +31,7 @@ interface AttachmentEntry {
 }
 
 const serviceCenters = ['Rostlinná výroba', 'Živočišná výroba', 'Mechanizace', 'BPS', 'Stavební skupina', 'Mini mlékárna'];
+const processedPercentOptions = [25, 50, 75, 100];
 const attachmentOptions = [
   'Bez přípojného zařízení',
   'Podv. Panav Dolly',
@@ -62,7 +68,7 @@ function ReportForm() {
   const [timeStart, setTimeStart] = useState('07:00');
   const [timeEnd, setTimeEnd] = useState('15:00');
   const [serviceCenter, setServiceCenter] = useState(serviceCenters[0]);
-  const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0 }]);
+  const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
   const [fuelLiters, setFuelLiters] = useState(0);
   const [notes, setNotes] = useState('');
@@ -91,7 +97,7 @@ function ReportForm() {
         setFields(loadedFields);
         if (loadedFields.length > 0) {
           const firstFieldId = loadedFields[0].id;
-          setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(loadedFields, firstFieldId) }]);
+          setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(loadedFields, firstFieldId), processedPercent: 100 }]);
         }
       } else {
         console.error(fieldResponse.reason);
@@ -135,7 +141,8 @@ function ReportForm() {
         field_id: entry.fieldId,
         field_name: field?.field_name ?? '',
         field_code: field?.field_code ?? '',
-        amount_ha: entry.amountHa
+        amount_ha: entry.amountHa,
+        processed_percent: entry.processedPercent
       };
     });
     const attachmentSummary = attachmentEntries
@@ -184,7 +191,7 @@ function ReportForm() {
   };
   const addFieldEntry = () => {
     const firstFieldId = fields[0]?.id;
-    setFieldEntries((entries) => [...entries, { id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId) }]);
+    setFieldEntries((entries) => [...entries, { id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
   };
   const removeFieldEntry = (entryId: number) => {
     setFieldEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
@@ -274,7 +281,10 @@ function ReportForm() {
                       value={entry.fieldId ?? ''}
                       onChange={(event: ChangeEvent<HTMLSelectElement>) => {
                         const fieldId = Number(event.target.value);
-                        updateFieldEntry(entry.id, { fieldId, amountHa: getFieldArea(fields, fieldId) });
+                        updateFieldEntry(entry.id, {
+                          fieldId,
+                          amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
+                        });
                       }}
                     >
                       {metadataLoading && <option value="">Načítám pole...</option>}
@@ -285,16 +295,26 @@ function ReportForm() {
                     </select>
                   </div>
                   <div className="field-row field-row--compact">
-                    <label htmlFor={`amount-${entry.id}`}>Počet ha</label>
-                    <input
-                      id={`amount-${entry.id}`}
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={entry.amountHa}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => updateFieldEntry(entry.id, { amountHa: Number(event.target.value) })}
-                    />
+                    <label htmlFor={`percent-${entry.id}`}>Zpracováno</label>
+                    <select
+                      id={`percent-${entry.id}`}
+                      value={entry.processedPercent}
+                      onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                        const processedPercent = Number(event.target.value);
+                        updateFieldEntry(entry.id, {
+                          processedPercent,
+                          amountHa: calculateProcessedArea(fields, entry.fieldId, processedPercent)
+                        });
+                      }}
+                    >
+                      {processedPercentOptions.map((option) => (
+                        <option key={option} value={option}>{option} %</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field-row field-row--area">
+                    <label>Výměra</label>
+                    <strong>{entry.amountHa.toFixed(2)} ha</strong>
                   </div>
                   <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
                 </div>

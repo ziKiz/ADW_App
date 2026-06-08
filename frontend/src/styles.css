@@ -46,9 +46,20 @@ textarea {
   grid-template-columns: 228px minmax(0, 1fr);
 }
 
+.app-shell--login {
+  display: block;
+}
+
 main {
   min-width: 0;
   padding: 28px;
+}
+
+.app-shell--login main {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
 }
 
 .app-sidebar {
@@ -208,6 +219,30 @@ main {
   border-radius: 8px;
   padding: 28px;
   box-shadow: 0 18px 50px rgba(17, 24, 21, 0.08);
+}
+
+.login-screen {
+  width: min(100%, 430px);
+}
+
+.login-card {
+  display: grid;
+  gap: 22px;
+  padding: 30px;
+}
+
+.login-form {
+  display: grid;
+  gap: 14px;
+}
+
+.login-form .primary,
+.login-form .secondary {
+  width: 100%;
+  min-height: 46px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .page-heading {
@@ -449,7 +484,7 @@ label,
 }
 
 .repeat-row--field {
-  grid-template-columns: 32px minmax(0, 1fr) 150px auto;
+  grid-template-columns: 32px minmax(0, 1fr) 130px 110px auto;
 }
 
 .repeat-row--attachment {
@@ -496,6 +531,18 @@ label,
 
 .field-row--compact {
   max-width: 190px;
+}
+
+.field-row--area strong {
+  display: grid;
+  align-items: center;
+  min-height: 42px;
+  border: 1px solid #d8dfdc;
+  border-radius: 6px;
+  background: #f3f7f4;
+  color: var(--adw-green-dark);
+  padding: 10px 12px;
+  font-size: 0.95rem;
 }
 
 .form-message,
@@ -1236,6 +1283,14 @@ label,
 
   main {
     padding: 18px;
+  }
+
+  .app-shell--login main {
+    padding: 14px;
+  }
+
+  .login-card {
+    padding: 24px;
   }
 
   .filter-bar,
