@@ -73,6 +73,7 @@ function ReportForm() {
   const [fuelLiters, setFuelLiters] = useState(0);
   const [notes, setNotes] = useState('');
   const user = getUser();
+  const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
 
   useEffect(() => {
     const loadMetadata = async () => {
@@ -209,12 +210,17 @@ function ReportForm() {
 
   return (
     <div className="container">
-      <div className="card">
+      <div className="card report-card">
         <div className="page-heading">
           <div>
             <p className="eyebrow">Výkazy</p>
             <h1 className="page-title">Nový pracovní výkaz</h1>
           </div>
+        </div>
+        <div className="report-summary-strip">
+          <span>{date}</span>
+          <strong>{totalArea.toFixed(2)} ha</strong>
+          <span>{timeStart}-{timeEnd}</span>
         </div>
         <form onSubmit={handleSubmit} className="report-form">
           <section className="report-section">
