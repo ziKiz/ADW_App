@@ -55,6 +55,26 @@ Když databáze neběží, backend pro rozbalovací seznamy použije stejná dat
    npm run dev
    ```
 
+## GitHub Pages
+
+Frontend je připravený pro GitHub Pages na adrese:
+
+```text
+https://zikiz.github.io/ADW_App/
+```
+
+Deploy zajišťuje GitHub Actions workflow `.github/workflows/deploy-pages.yml`.
+
+V GitHub repozitáři je potřeba jednorázově nastavit:
+
+1. `Settings` → `Pages`
+2. `Build and deployment`
+3. `Source` = `GitHub Actions`
+
+Po každém `git push` do větve `main` se frontend automaticky sestaví a publikuje.
+
+Poznámka: GitHub Pages hostuje pouze statický frontend. Backend API na Expressu tam nepoběží. Pro plný provoz bude později potřeba samostatný server pro backend a databázi.
+
 ## Lokální demo databáze
 
 Když PostgreSQL neběží, backend používá lokální JSON data v `backend/local-data/`. Tato data zůstávají uložená i po vypnutí editoru nebo vývojového serveru.
