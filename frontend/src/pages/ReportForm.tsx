@@ -245,7 +245,7 @@ function ReportForm() {
 
           <section className="report-section">
             <h2>Středisko</h2>
-            <div className="field-row mobile-only">
+            <div className="field-row">
               <label htmlFor="serviceCenter">Středisko</label>
               <select
                 id="serviceCenter"
@@ -256,18 +256,6 @@ function ReportForm() {
                   <option key={center} value={center}>{center}</option>
                 ))}
               </select>
-            </div>
-            <div className="segmented-control desktop-only">
-              {serviceCenters.map((center) => (
-                <button
-                  key={center}
-                  type="button"
-                  className={serviceCenter === center ? 'active' : ''}
-                  onClick={() => setServiceCenter(center)}
-                >
-                  {center}
-                </button>
-              ))}
             </div>
           </section>
 

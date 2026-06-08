@@ -434,14 +434,6 @@ label,
   display: none;
 }
 
-.mobile-only {
-  display: none;
-}
-
-.desktop-only {
-  display: initial;
-}
-
 .report-section {
   display: grid;
   gap: 14px;
@@ -1595,14 +1587,6 @@ label,
   }
 
   .report-summary-strip {
-    display: none;
-  }
-
-  .mobile-only {
-    display: grid;
-  }
-
-  .desktop-only {
     display: none;
   }
 
