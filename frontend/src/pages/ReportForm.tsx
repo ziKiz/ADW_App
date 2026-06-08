@@ -195,6 +195,7 @@ function ReportForm() {
     setFieldEntries((entries) => [...entries, { id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
   };
   const removeFieldEntry = (entryId: number) => {
+    if (!window.confirm('Opravdu chcete odebrat tento pozemek z výkazu?')) return;
     setFieldEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
   };
   const updateAttachmentEntry = (entryId: number, name: string) => {
@@ -205,6 +206,7 @@ function ReportForm() {
     setAttachmentEntries((entries) => [...entries, { id: Date.now(), name: attachmentOptions[0] }]);
   };
   const removeAttachmentEntry = (entryId: number) => {
+    if (!window.confirm('Opravdu chcete odebrat toto přípojné zařízení z výkazu?')) return;
     setAttachmentEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
   };
 
@@ -243,7 +245,19 @@ function ReportForm() {
 
           <section className="report-section">
             <h2>Středisko</h2>
-            <div className="segmented-control">
+            <div className="field-row mobile-only">
+              <label htmlFor="serviceCenter">Středisko</label>
+              <select
+                id="serviceCenter"
+                value={serviceCenter}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) => setServiceCenter(event.target.value)}
+              >
+                {serviceCenters.map((center) => (
+                  <option key={center} value={center}>{center}</option>
+                ))}
+              </select>
+            </div>
+            <div className="segmented-control desktop-only">
               {serviceCenters.map((center) => (
                 <button
                   key={center}
@@ -274,7 +288,6 @@ function ReportForm() {
           <section className="report-section">
             <div className="section-line">
               <h2>Pozemky</h2>
-              <button type="button" className="secondary" onClick={addFieldEntry}>Přidat pole</button>
             </div>
             <div className="repeat-list">
               {fieldEntries.map((entry, index) => (
@@ -326,6 +339,7 @@ function ReportForm() {
                 </div>
               ))}
             </div>
+            <button type="button" className="secondary add-row-button" onClick={addFieldEntry}>Přidat pole</button>
           </section>
 
           <section className="report-section">
@@ -361,9 +375,6 @@ function ReportForm() {
           <section className="report-section">
             <div className="section-line">
               <h2>Přípojné zařízení</h2>
-              <button type="button" className="secondary" onClick={addAttachmentEntry} disabled={attachmentEntries.length >= 3}>
-                Přidat zařízení
-              </button>
             </div>
             <div className="repeat-list">
               {attachmentEntries.map((entry, index) => (
@@ -383,6 +394,9 @@ function ReportForm() {
                 </div>
               ))}
             </div>
+            <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={attachmentEntries.length >= 3}>
+              Přidat zařízení
+            </button>
             <p className="field-hint">Lze přidat maximálně 3 přípojná zařízení.</p>
           </section>
 
