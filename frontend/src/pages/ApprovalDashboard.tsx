@@ -40,6 +40,15 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('cs-CZ').format(new Date(value));
 }
 
+function calculateFieldPercent(report: EditableReport | null, fields: FieldRecord[]) {
+  if (!report?.field_id) return null;
+  const field = fields.find((item) => Number(item.id) === Number(report.field_id));
+  const fieldArea = Number(field?.area ?? 0);
+  const reportArea = Number(report.amount_ha ?? 0);
+  if (!fieldArea || !reportArea) return null;
+  return Math.round((reportArea / fieldArea) * 100);
+}
+
 interface ApprovalDashboardProps {
   status?: 'pending' | 'approved';
 }
@@ -118,6 +127,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const employeeOptions = [...new Set(reports.map((report) => report.employee_name ?? report.report_number))]
     .sort((first, second) => first.localeCompare(second, 'cs'));
+  const selectedFieldPercent = calculateFieldPercent(selectedReport, fields);
 
   const openReportDetail = async (reportId: number) => {
     try {
@@ -262,7 +272,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         )}
         {selectedReport ? (
           <div className="modal-backdrop" role="presentation">
-            <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle">
+            <div className="modal-panel approval-detail-modal" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle">
               <div className="modal-heading">
                 <div>
                   <p className="eyebrow">Detail výkazu</p>
@@ -297,7 +307,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     ))}
                   </select>
                 </label>
-                <label>Počet ha<input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} onChange={handleDetailNumberChange('amount_ha')} /></label>
+                <label>
+                  Počet ha
+                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} onChange={handleDetailNumberChange('amount_ha')} />
+                  {selectedFieldPercent !== null ? <small className="field-hint field-hint--inline">Odpovídá cca {selectedFieldPercent} % výměry pozemku.</small> : null}
+                </label>
                 <label>Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
                 <label>Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>

@@ -546,6 +546,14 @@ label,
   font-weight: 700;
 }
 
+.field-hint--inline {
+  display: block;
+  margin-top: -2px;
+  color: #6f7b74;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .form-footer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
@@ -1914,19 +1922,66 @@ label,
 
   .modal-backdrop {
     align-items: end;
-    padding: 10px;
+    justify-items: stretch;
+    padding: 0;
+    background: rgba(5, 22, 19, 0.3);
   }
 
   .modal-panel {
     width: 100%;
-    max-height: calc(100svh - 20px);
-    border-radius: 10px;
-    padding: 16px;
+    max-width: 100%;
+    max-height: 100svh;
+    min-height: min(100svh, 620px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-heading {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: -16px -14px 14px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.98);
+    padding: 14px;
+  }
+
+  .modal-heading h2 {
+    font-size: 1.1rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .detail-grid__wide {
+    grid-column: auto;
   }
 
   .modal-actions {
     display: grid;
     grid-template-columns: 1fr;
+    gap: 9px;
+    margin-top: 16px;
+  }
+
+  .modal-actions .primary,
+  .modal-actions .secondary {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .approval-detail-modal .approve-large {
+    min-width: 0;
+    min-height: 54px;
+    font-size: 1rem;
   }
 }
 
