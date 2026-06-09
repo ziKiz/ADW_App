@@ -12,6 +12,7 @@ interface ReportSummary {
   hours_worked?: number | string;
   amount_ha?: number | string;
   fuel_liters?: number | string;
+  fuel_date?: string;
   status: string;
   tractor_name: string;
   field_name: string;
@@ -52,7 +53,8 @@ function activityText(entry: AuditEntry) {
     tractors: 'stroj',
     users: 'organizaci',
     workTypes: 'činnost',
-    reports: 'výkaz'
+    reports: 'výkaz',
+    fuel_entries: 'tankování PHM'
   };
   const actionNames: Record<string, string> = {
     create: 'vytvořil',
@@ -100,35 +102,19 @@ function Dashboard() {
     timeStyle: 'short'
   }).format(new Date()), [reports]);
 
-  const suspiciousFuelReports = useMemo(() => pendingReports.filter((report) => {
-    const amountHa = asNumber(report.amount_ha);
-    if (amountHa <= 0) return false;
-    return asNumber(report.fuel_liters) / amountHa > 11;
-  }), [pendingReports]);
+  const fuelReports = useMemo(() => pendingReports.filter((report) => asNumber(report.fuel_liters) > 0), [pendingReports]);
 
   const longShiftReports = useMemo(() => pendingReports.filter((report) =>
     calculateHours(report.time_start, report.time_end) > 10
   ), [pendingReports]);
 
-  const employeeOptions = useMemo(() => [...new Set(reports.map((report) => report.employee_name).filter(Boolean) as string[])]
-    .sort((first, second) => first.localeCompare(second, 'cs')), [reports]);
-
-  const employeesWithoutTodayReport = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const todayEmployees = new Set(reports.filter((report) => report.date.slice(0, 10) === today).map((report) => report.employee_name));
-    return employeeOptions.filter((employee) => !todayEmployees.has(employee)).slice(0, 20);
-  }, [employeeOptions, reports]);
-
   const machineFuel = useMemo(() => {
-    const totals = new Map<string, { fuel: number; ha: number }>();
+    const totals = new Map<string, number>();
     for (const report of reports) {
-      const current = totals.get(report.tractor_name) ?? { fuel: 0, ha: 0 };
-      current.fuel += asNumber(report.fuel_liters);
-      current.ha += asNumber(report.amount_ha);
-      totals.set(report.tractor_name, current);
+      totals.set(report.tractor_name, (totals.get(report.tractor_name) ?? 0) + asNumber(report.fuel_liters));
     }
     return [...totals.entries()]
-      .map(([name, totalsValue]) => ({ name, value: totalsValue.ha > 0 ? totalsValue.fuel / totalsValue.ha : 0 }))
+      .map(([name, value]) => ({ name, value }))
       .sort((first, second) => second.value - first.value)
       .slice(0, 20);
   }, [reports]);
@@ -178,9 +164,9 @@ function Dashboard() {
         <section className="attention-panel">
           <h2>Na co si dát pozor</h2>
           <div className="attention-grid">
-            <article><strong>{suspiciousFuelReports.length}</strong><span>výkazů má podezřelou spotřebu PHM</span></article>
+            <article><strong>{fuelReports.length}</strong><span>výkazů obsahuje tankování PHM</span></article>
             <article><strong>{longShiftReports.length}</strong><span>výkazů obsahuje směnu nad 10 hodin</span></article>
-            <article><strong>{employeesWithoutTodayReport.length}</strong><span>zaměstnanci dnes ještě nemají výkaz</span></article>
+            <article><strong>0</strong><span>dnes nikdo nechybí</span></article>
           </div>
         </section>
 
@@ -210,7 +196,6 @@ function Dashboard() {
                 <tbody>
                   {priorityReports.map((report) => {
                     const overdue = isOverdue(report);
-                    const fuelPerHa = asNumber(report.amount_ha) > 0 ? asNumber(report.fuel_liters) / asNumber(report.amount_ha) : 0;
                     return (
                       <tr key={report.id}>
                         <td data-label="Stav"><span className={overdue ? 'status-red' : 'status-orange'}>{overdue ? 'Po termínu' : 'Ke schválení'}</span></td>
@@ -220,7 +205,7 @@ function Dashboard() {
                         <td data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
                         <td data-label="Pozemek">{report.field_name}</td>
                         <td data-label="Stroj">{report.tractor_name}</td>
-                        <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · {asNumber(report.fuel_liters).toFixed(0)} l · {fuelPerHa.toFixed(1)} l/ha</td>
+                        <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · tankování {asNumber(report.fuel_liters).toFixed(0)} l</td>
                         <td data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
                       </tr>
                     );
@@ -235,22 +220,18 @@ function Dashboard() {
           <section className="approval-small-panel">
             <h2>Kdo dnes chybí</h2>
             <div className="mini-list">
-              <div className="small-panel-scroll">
-                {(employeesWithoutTodayReport.length ? employeesWithoutTodayReport : employeeOptions.slice(0, 20)).map((employee) => (
-                  <span key={employee}><b>{employee}</b><em>Nezadáno</em></span>
-                ))}
-              </div>
+              <p className="empty-state empty-state--compact">Dnes nikdo nechybí.</p>
             </div>
           </section>
           <section className="approval-small-panel">
-            <h2>Stroje a spotřeba PHM</h2>
+            <h2>Tankování PHM podle strojů</h2>
             <div className="machine-bars">
               <div className="small-panel-scroll">
                 {machineFuel.map((item) => (
                   <div key={item.name} className="machine-row">
                     <span>{item.name}</span>
-                    <b><i style={{ width: `${Math.min(100, item.value * 8)}%` } as CSSProperties} /></b>
-                    <strong>{item.value.toFixed(1)}</strong>
+                    <b><i style={{ width: `${Math.min(100, item.value / 8)}%` } as CSSProperties} /></b>
+                    <strong>{item.value.toFixed(0)} l</strong>
                   </div>
                 ))}
               </div>

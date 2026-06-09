@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { documentTractors, extractDocumentFields, fallbackWorkTypes } from './documentData';
+import { replaceLocalFuelEntryForReport, summarizeFuelEntries } from './localFuelEntries';
 import { appendLocalAuditLog } from './localAdminData';
 import { departments, employees } from './organizationData';
 
@@ -20,6 +21,13 @@ export interface LocalReportInput {
   hours_worked: number;
   amount_ha: number;
   fuel_liters: number;
+  fuel_entry?: {
+    date: string;
+    tractor_id: number;
+    user_id: number;
+    liters: number;
+    note?: string;
+  };
   attachments?: Array<Record<string, unknown>>;
   notes?: string;
 }
@@ -47,7 +55,7 @@ const demoNotes = [
   'Dobré podmínky, pole suché.',
   'Mírně podmáčený okraj pozemku.',
   'Kontrola stroje po směně.',
-  'Doplněno PHM na konci směny.'
+  'Tankování PHM zadáno za daný den.'
 ];
 
 const demoDateRange = {
@@ -183,9 +191,11 @@ function decorateReport(report: LocalReport) {
   const tractor = documentTractors[report.tractor_id - 1];
   const field = extractDocumentFields()[report.field_id - 1];
   const workType = fallbackWorkTypes.find((item) => item.id === report.work_type_id);
+  const fuelSummary = summarizeFuelEntries(report.id, report.fuel_liters);
 
   return {
     ...report,
+    ...fuelSummary,
     employee_name: report.employee_name ?? `Zaměstnanec ${report.user_id}`,
     tractor_name: tractor?.name ?? `Traktor ${report.tractor_id}`,
     field_name: field?.name ?? `Pole ${report.field_id}`,
@@ -209,8 +219,9 @@ export function seedLocalReports() {
 export function createLocalReport(input: LocalReportInput) {
   const reports = readReports();
   const now = new Date().toISOString();
+  const { fuel_entry, ...reportInput } = input;
   const report: LocalReport = {
-    ...input,
+    ...reportInput,
     id: reports.reduce((maxId, item) => Math.max(maxId, item.id), 0) + 1,
     status: 'pending',
     created_at: now,
@@ -219,6 +230,7 @@ export function createLocalReport(input: LocalReportInput) {
 
   reports.push(report);
   writeReports(reports);
+  replaceLocalFuelEntryForReport(report.id, fuel_entry);
   appendLocalAuditLog('reports', report.id, 'create', null, report, {
     userId: String(input.user_id),
     userName: report.employee_name ?? `Zaměstnanec ${input.user_id}`
@@ -252,9 +264,10 @@ export function updateLocalReport(id: number, input: Partial<LocalReportInput>) 
   const report = reports.find((item) => item.id === id);
   if (!report) return null;
   const before = { ...report };
+  const { fuel_entry, ...reportInput } = input;
 
   Object.assign(report, {
-    ...input,
+    ...reportInput,
     tractor_id: input.tractor_id !== undefined ? Number(input.tractor_id) : report.tractor_id,
     user_id: input.user_id !== undefined ? Number(input.user_id) : report.user_id,
     field_id: input.field_id !== undefined ? Number(input.field_id) : report.field_id,
@@ -266,6 +279,9 @@ export function updateLocalReport(id: number, input: Partial<LocalReportInput>) 
     updated_at: new Date().toISOString()
   });
   writeReports(reports);
+  if ('fuel_entry' in input) {
+    replaceLocalFuelEntryForReport(id, fuel_entry);
+  }
   appendLocalAuditLog('reports', id, 'update', before, report, {
     userId: String(report.user_id),
     userName: report.employee_name ?? `Zaměstnanec ${report.user_id}`

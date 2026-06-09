@@ -137,6 +137,18 @@ CREATE TABLE IF NOT EXISTS reports (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS fuel_entries (
+  id SERIAL PRIMARY KEY,
+  report_id INT REFERENCES reports(id),
+  date DATE NOT NULL,
+  tractor_id INT REFERENCES tractors(id),
+  user_id INT REFERENCES users(id),
+  liters DECIMAL(10,2) NOT NULL DEFAULT 0,
+  note TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS approvals (
   id SERIAL PRIMARY KEY,
   report_id INT REFERENCES reports(id),

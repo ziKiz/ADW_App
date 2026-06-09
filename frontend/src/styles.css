@@ -469,6 +469,10 @@ label,
 
 .add-row-button {
   justify-self: start;
+  border-color: #9fd0ad;
+  background: var(--adw-green-soft);
+  color: var(--adw-green-dark);
+  font-weight: 900;
 }
 
 .segmented-control {
@@ -547,6 +551,28 @@ label,
   grid-template-columns: minmax(0, 1fr) minmax(220px, 1fr);
   align-items: center;
   gap: 16px;
+}
+
+.form-footer .primary {
+  min-height: 48px;
+  font-size: 1rem;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  border: 1px solid #cfe5d5;
+  border-radius: 8px;
+  background: var(--adw-green-soft);
+  padding: 10px 12px;
+  color: var(--adw-green-dark);
+}
+
+.toggle-row input {
+  width: 18px;
+  min-height: 18px;
 }
 
 .field-row {
@@ -868,6 +894,10 @@ label,
   scrollbar-color: #98aaa1 #edf2ef;
   scrollbar-width: thin;
   padding-right: 4px;
+}
+
+.empty-state--compact {
+  margin: 0;
 }
 
 .approval-table-scroll::-webkit-scrollbar,
@@ -1610,9 +1640,10 @@ label,
   }
 
   .small-panel-scroll {
-    max-height: none;
-    overflow: visible;
-    padding-right: 0;
+    max-height: 168px;
+    overflow-y: auto;
+    padding-right: 4px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .repeat-row--field {
@@ -1686,6 +1717,8 @@ label,
   }
 
   .time-grid input {
+    justify-self: center;
+    width: min(100%, 280px);
     min-height: 48px;
     padding: 8px;
     text-align: center;
@@ -1787,7 +1820,7 @@ label,
 
   .add-row-button {
     width: 100%;
-    min-height: 48px;
+    min-height: 50px;
     border-color: #8ac79c;
     background: var(--adw-green-soft);
     color: var(--adw-green-dark);
@@ -1810,8 +1843,8 @@ label,
 
   .form-footer .primary {
     width: 100%;
-    min-height: 50px;
-    font-size: 1rem;
+    min-height: 58px;
+    font-size: 1.08rem;
   }
 
   .approval-table {

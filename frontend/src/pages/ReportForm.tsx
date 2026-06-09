@@ -70,10 +70,15 @@ function ReportForm() {
   const [serviceCenter, setServiceCenter] = useState(serviceCenters[0]);
   const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
+  const [fuelEnabled, setFuelEnabled] = useState(false);
+  const [fuelDate, setFuelDate] = useState(getLocalTodayDate);
+  const [fuelTractorId, setFuelTractorId] = useState<number | undefined>(undefined);
   const [fuelLiters, setFuelLiters] = useState(0);
+  const [fuelNote, setFuelNote] = useState('');
   const [notes, setNotes] = useState('');
   const user = getUser();
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
+  const canAddAttachment = attachmentEntries.length < 3 && attachmentEntries[attachmentEntries.length - 1]?.name !== attachmentOptions[0];
 
   useEffect(() => {
     const loadMetadata = async () => {
@@ -88,6 +93,7 @@ function ReportForm() {
         setTractors(tractorResponse.value.data);
         if (tractorResponse.value.data.length > 0) {
           setSelectedTractor(tractorResponse.value.data[0].id);
+          setFuelTractorId(tractorResponse.value.data[0].id);
         }
       } else {
         console.error(tractorResponse.reason);
@@ -153,6 +159,7 @@ function ReportForm() {
       `Středisko: ${serviceCenter}`,
       `Pozemky: ${fieldSummary.map((item) => `${item.field_name} (${item.field_code}) - ${item.amount_ha} ha`).join('; ')}`,
       `Přípojné zařízení: ${attachmentSummary.length ? attachmentSummary.map((item) => item.name).join('; ') : 'bez přípojného zařízení'}`,
+      fuelEnabled && fuelLiters > 0 ? `Tankování PHM: ${fuelLiters} l dne ${fuelDate}` : '',
       notes ? `Poznámka: ${notes}` : ''
     ].filter(Boolean).join('\n');
 
@@ -171,7 +178,14 @@ function ReportForm() {
         break_hours: 0,
         hours_worked: Math.max(0, (Number(timeEnd.slice(0, 2)) + Number(timeEnd.slice(3, 5)) / 60) - (Number(timeStart.slice(0, 2)) + Number(timeStart.slice(3, 5)) / 60)),
         amount_ha: fieldSummary.reduce((sum, item) => sum + Number(item.amount_ha || 0), 0),
-        fuel_liters: fuelLiters,
+        fuel_liters: 0,
+        fuel_entry: fuelEnabled && fuelLiters > 0 ? {
+          date: fuelDate,
+          tractor_id: fuelTractorId ?? selectedTractor,
+          user_id: user?.id ?? 1,
+          liters: fuelLiters,
+          note: fuelNote
+        } : undefined,
         attachments: attachmentSummary,
         notes: extendedNotes
       });
@@ -183,7 +197,9 @@ function ReportForm() {
   };
 
   const handleSelectTractor = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedTractor(Number(event.target.value));
+    const tractorId = Number(event.target.value);
+    setSelectedTractor(tractorId);
+    setFuelTractorId(tractorId);
   };
 
   const handleSelectWorkType = (event: ChangeEvent<HTMLSelectElement>) => setSelectedWorkType(Number(event.target.value));
@@ -202,7 +218,7 @@ function ReportForm() {
     setAttachmentEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, name } : entry));
   };
   const addAttachmentEntry = () => {
-    if (attachmentEntries.length >= 3) return;
+    if (!canAddAttachment) return;
     setAttachmentEntries((entries) => [...entries, { id: Date.now(), name: attachmentOptions[0] }]);
   };
   const removeAttachmentEntry = (entryId: number) => {
@@ -230,7 +246,15 @@ function ReportForm() {
             <div className="time-grid">
               <div className="field-row">
                 <label htmlFor="date">Datum</label>
-                <input id="date" type="date" value={date} onChange={(event: ChangeEvent<HTMLInputElement>) => setDate(event.target.value)} />
+                <input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                    setDate(event.target.value);
+                    setFuelDate(event.target.value);
+                  }}
+                />
               </div>
               <div className="field-row">
                 <label htmlFor="from">Od</label>
@@ -345,19 +369,49 @@ function ReportForm() {
                   ))}
                 </select>
               </div>
-              <div className="field-row field-row--compact">
-                <label htmlFor="fuelLiters">PHM (l)</label>
-                <input
-                  id="fuelLiters"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  inputMode="decimal"
-                  value={fuelLiters}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelLiters(Number(event.target.value))}
-                />
-              </div>
             </div>
+          </section>
+
+          <section className="report-section">
+            <h2>Tankování PHM</h2>
+            <label className="toggle-row">
+              <input type="checkbox" checked={fuelEnabled} onChange={(event) => setFuelEnabled(event.target.checked)} />
+              Dnes proběhlo tankování
+            </label>
+            {fuelEnabled ? (
+              <div className="field-grid">
+                <div className="field-row">
+                  <label htmlFor="fuelDate">Datum tankování</label>
+                  <input id="fuelDate" type="date" value={fuelDate} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelDate(event.target.value)} />
+                </div>
+                <div className="field-row">
+                  <label htmlFor="fuelTractor">Stroj</label>
+                  <select id="fuelTractor" value={fuelTractorId ?? selectedTractor ?? ''} onChange={(event: ChangeEvent<HTMLSelectElement>) => setFuelTractorId(Number(event.target.value))}>
+                    {tractors.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field-row field-row--compact">
+                  <label htmlFor="fuelLiters">Natankováno (l)</label>
+                  <input
+                    id="fuelLiters"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    inputMode="decimal"
+                    value={fuelLiters}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelLiters(Number(event.target.value))}
+                  />
+                </div>
+                <div className="field-row">
+                  <label htmlFor="fuelNote">Poznámka k tankování</label>
+                  <input id="fuelNote" value={fuelNote} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelNote(event.target.value)} />
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="report-section">
@@ -382,9 +436,11 @@ function ReportForm() {
                 </div>
               ))}
             </div>
-            <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={attachmentEntries.length >= 3}>
-              Přidat zařízení
-            </button>
+            {attachmentEntries.length < 3 ? (
+              <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={!canAddAttachment}>
+                Přidat zařízení
+              </button>
+            ) : null}
             <p className="field-hint">Lze přidat maximálně 3 přípojná zařízení.</p>
           </section>
 

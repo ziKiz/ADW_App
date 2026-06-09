@@ -16,9 +16,15 @@ router.get('/', async (req, res) => {
     }
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
     const result = await pool.query(
-      `SELECT r.id, r.report_number, r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha, r.fuel_liters, r.notes, r.status,
+      `SELECT r.id, r.report_number, r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
+        COALESCE(fe.fuel_liters, r.fuel_liters, 0) AS fuel_liters, fe.fuel_date, fe.fuel_note, r.notes, r.status,
         COALESCE(u.full_name, u.username, 'Zaměstnanec') AS employee_name, t.tractor_name, f.field_name, w.name AS work_type
       FROM reports r
+      LEFT JOIN (
+        SELECT report_id, SUM(liters) AS fuel_liters, MIN(date) AS fuel_date, STRING_AGG(NULLIF(note, ''), '; ') AS fuel_note
+        FROM fuel_entries
+        GROUP BY report_id
+      ) fe ON fe.report_id = r.id
       LEFT JOIN users u ON r.user_id = u.id
       LEFT JOIN tractors t ON r.tractor_id = t.id
       LEFT JOIN fields f ON r.field_id = f.id
@@ -50,19 +56,38 @@ router.post('/', async (req, res) => {
     hours_worked,
     amount_ha,
     fuel_liters,
+    fuel_entry,
     attachments,
     notes
   } = req.body;
 
   try {
+    await pool.query('BEGIN');
     const result = await pool.query(
       `INSERT INTO reports (report_number, tractor_id, user_id, field_id, work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, fuel_liters, notes, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending') RETURNING id`,
-      [report_number, tractor_id, user_id, field_id, work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, fuel_liters, notes]
+      [report_number, tractor_id, user_id, field_id, work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, 0, notes]
     );
+    const reportId = result.rows[0].id;
+    if (fuel_entry && Number(fuel_entry.liters || 0) > 0) {
+      await pool.query(
+        `INSERT INTO fuel_entries (report_id, date, tractor_id, user_id, liters, note)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          reportId,
+          fuel_entry.date || date,
+          fuel_entry.tractor_id || tractor_id,
+          fuel_entry.user_id || user_id,
+          Number(fuel_entry.liters || 0),
+          fuel_entry.note || null
+        ]
+      );
+    }
+    await pool.query('COMMIT');
 
-    res.status(201).json({ id: result.rows[0].id });
+    res.status(201).json({ id: reportId });
   } catch (error) {
+    await pool.query('ROLLBACK').catch(() => undefined);
     console.error(error);
     const report = createLocalReport({
       report_number,
@@ -79,6 +104,7 @@ router.post('/', async (req, res) => {
       hours_worked: Number(hours_worked || 0),
       amount_ha: Number(amount_ha || 0),
       fuel_liters: Number(fuel_liters || 0),
+      fuel_entry,
       attachments,
       notes
     });
@@ -89,9 +115,15 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT r.*, COALESCE(u.full_name, u.username, 'Zaměstnanec') AS employee_name,
+      `SELECT r.*, COALESCE(fe.fuel_liters, r.fuel_liters, 0) AS fuel_liters, fe.fuel_date, fe.fuel_note,
+        COALESCE(u.full_name, u.username, 'Zaměstnanec') AS employee_name,
         t.tractor_name, f.field_name, w.name AS work_type
       FROM reports r
+      LEFT JOIN (
+        SELECT report_id, SUM(liters) AS fuel_liters, MIN(date) AS fuel_date, STRING_AGG(NULLIF(note, ''), '; ') AS fuel_note
+        FROM fuel_entries
+        GROUP BY report_id
+      ) fe ON fe.report_id = r.id
       LEFT JOIN users u ON r.user_id = u.id
       LEFT JOIN tractors t ON r.tractor_id = t.id
       LEFT JOIN fields f ON r.field_id = f.id
@@ -128,11 +160,13 @@ router.put('/:id', async (req, res) => {
     hours_worked,
     amount_ha,
     fuel_liters,
+    fuel_entry,
     attachments,
     notes
   } = req.body;
 
   try {
+    await pool.query('BEGIN');
     const result = await pool.query(
       `UPDATE reports
       SET tractor_id = $1, user_id = $2, field_id = $3, work_type_id = $4, date = $5, time_start = $6,
@@ -140,13 +174,31 @@ router.put('/:id', async (req, res) => {
         notes = $12, updated_at = NOW()
       WHERE id = $13
       RETURNING id`,
-      [tractor_id, user_id, field_id, work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, fuel_liters, notes, req.params.id]
+      [tractor_id, user_id, field_id, work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, 0, notes, req.params.id]
     );
     if (result.rows.length === 0) {
+      await pool.query('ROLLBACK');
       return res.status(404).json({ error: 'Výkaz nenalezen' });
     }
+    await pool.query('DELETE FROM fuel_entries WHERE report_id = $1', [req.params.id]);
+    if (fuel_entry && Number(fuel_entry.liters || 0) > 0) {
+      await pool.query(
+        `INSERT INTO fuel_entries (report_id, date, tractor_id, user_id, liters, note)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          req.params.id,
+          fuel_entry.date || date,
+          fuel_entry.tractor_id || tractor_id,
+          fuel_entry.user_id || user_id,
+          Number(fuel_entry.liters || 0),
+          fuel_entry.note || null
+        ]
+      );
+    }
+    await pool.query('COMMIT');
     res.json({ id: result.rows[0].id, message: 'Výkaz byl uložen.' });
   } catch (error) {
+    await pool.query('ROLLBACK').catch(() => undefined);
     console.error(error);
     const report = updateLocalReport(Number(req.params.id), {
       tractor_id: Number(tractor_id),
@@ -162,6 +214,7 @@ router.put('/:id', async (req, res) => {
       hours_worked: Number(hours_worked || 0),
       amount_ha: Number(amount_ha || 0),
       fuel_liters: Number(fuel_liters || 0),
+      fuel_entry,
       attachments,
       notes
     });

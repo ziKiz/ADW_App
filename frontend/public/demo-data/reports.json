@@ -99,7 +99,7 @@
     "hours_worked": 6.5,
     "amount_ha": 10.3,
     "fuel_liters": 68,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-06T12:00:00.000Z",
     "updated_at": "2026-04-06T12:00:00.000Z"
@@ -204,7 +204,7 @@
     "hours_worked": 6.5,
     "amount_ha": 4.5,
     "fuel_liters": 108.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-11T12:00:00.000Z",
     "updated_at": "2026-04-11T12:00:00.000Z"
@@ -309,7 +309,7 @@
     "hours_worked": 7.5,
     "amount_ha": 12.05,
     "fuel_liters": 66.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-17T12:00:00.000Z",
     "updated_at": "2026-04-17T12:00:00.000Z"
@@ -414,7 +414,7 @@
     "hours_worked": 8,
     "amount_ha": 6.25,
     "fuel_liters": 107,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-23T12:00:00.000Z",
     "updated_at": "2026-04-23T12:00:00.000Z"
@@ -519,7 +519,7 @@
     "hours_worked": 6,
     "amount_ha": 12.6,
     "fuel_liters": 53,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-29T12:00:00.000Z",
     "updated_at": "2026-04-29T12:00:00.000Z"
@@ -624,7 +624,7 @@
     "hours_worked": 7,
     "amount_ha": 8,
     "fuel_liters": 93.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-05T12:00:00.000Z",
     "updated_at": "2026-05-05T12:00:00.000Z"
@@ -729,7 +729,7 @@
     "hours_worked": 7.5,
     "amount_ha": 14.35,
     "fuel_liters": 51.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-11T12:00:00.000Z",
     "updated_at": "2026-05-11T12:00:00.000Z"
@@ -834,7 +834,7 @@
     "hours_worked": 7.5,
     "amount_ha": 8.55,
     "fuel_liters": 92,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-16T12:00:00.000Z",
     "updated_at": "2026-05-16T12:00:00.000Z"
@@ -938,7 +938,7 @@
     "hours_worked": 6.5,
     "amount_ha": 16.1,
     "fuel_liters": 38,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-22T12:00:00.000Z",
     "updated_at": "2026-05-22T12:00:00.000Z"
@@ -1042,7 +1042,7 @@
     "hours_worked": 7,
     "amount_ha": 10.3,
     "fuel_liters": 78.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-28T12:00:00.000Z",
     "updated_at": "2026-05-28T12:00:00.000Z"
@@ -1146,7 +1146,7 @@
     "hours_worked": 7,
     "amount_ha": 4.5,
     "fuel_liters": 119,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-03T12:00:00.000Z",
     "updated_at": "2026-04-03T12:00:00.000Z"
@@ -1251,7 +1251,7 @@
     "hours_worked": 8,
     "amount_ha": 12.05,
     "fuel_liters": 77,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-09T12:00:00.000Z",
     "updated_at": "2026-04-09T12:00:00.000Z"
@@ -1356,7 +1356,7 @@
     "hours_worked": 6.5,
     "amount_ha": 6.25,
     "fuel_liters": 105.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-15T12:00:00.000Z",
     "updated_at": "2026-04-15T12:00:00.000Z"
@@ -1461,7 +1461,7 @@
     "hours_worked": 6.5,
     "amount_ha": 12.6,
     "fuel_liters": 63.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-21T12:00:00.000Z",
     "updated_at": "2026-04-21T12:00:00.000Z"
@@ -1566,7 +1566,7 @@
     "hours_worked": 7.5,
     "amount_ha": 8,
     "fuel_liters": 104,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-27T12:00:00.000Z",
     "updated_at": "2026-04-27T12:00:00.000Z"
@@ -1671,7 +1671,7 @@
     "hours_worked": 8,
     "amount_ha": 14.35,
     "fuel_liters": 62,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-02T12:00:00.000Z",
     "updated_at": "2026-05-02T12:00:00.000Z"
@@ -1776,7 +1776,7 @@
     "hours_worked": 6,
     "amount_ha": 8.55,
     "fuel_liters": 90.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-08T12:00:00.000Z",
     "updated_at": "2026-05-08T12:00:00.000Z"
@@ -1881,7 +1881,7 @@
     "hours_worked": 7,
     "amount_ha": 16.1,
     "fuel_liters": 48.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-14T12:00:00.000Z",
     "updated_at": "2026-05-14T12:00:00.000Z"
@@ -1985,7 +1985,7 @@
     "hours_worked": 7.5,
     "amount_ha": 10.3,
     "fuel_liters": 89,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-20T12:00:00.000Z",
     "updated_at": "2026-05-20T12:00:00.000Z"
@@ -2089,7 +2089,7 @@
     "hours_worked": 7.5,
     "amount_ha": 4.5,
     "fuel_liters": 47,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-05-26T12:00:00.000Z",
     "updated_at": "2026-05-26T12:00:00.000Z"
@@ -2193,7 +2193,7 @@
     "hours_worked": 6.5,
     "amount_ha": 12.05,
     "fuel_liters": 75.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-01T12:00:00.000Z",
     "updated_at": "2026-04-01T12:00:00.000Z"
@@ -2298,7 +2298,7 @@
     "hours_worked": 7,
     "amount_ha": 6.25,
     "fuel_liters": 116,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-07T12:00:00.000Z",
     "updated_at": "2026-04-07T12:00:00.000Z"
@@ -2403,7 +2403,7 @@
     "hours_worked": 7,
     "amount_ha": 12.6,
     "fuel_liters": 74,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-13T12:00:00.000Z",
     "updated_at": "2026-04-13T12:00:00.000Z"
@@ -2508,7 +2508,7 @@
     "hours_worked": 8,
     "amount_ha": 8,
     "fuel_liters": 114.5,
-    "notes": "Doplněno PHM na konci směny.",
+    "notes": "Tankování PHM zadáno za daný den.",
     "status": "rejected",
     "created_at": "2026-04-18T12:00:00.000Z",
     "updated_at": "2026-04-18T12:00:00.000Z"

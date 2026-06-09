@@ -19,6 +19,8 @@ interface PendingReport {
   work_type: string;
   amount_ha?: number | string;
   fuel_liters?: number | string;
+  fuel_date?: string;
+  fuel_note?: string;
   status: string;
 }
 
@@ -157,7 +159,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         break_hours: 0,
         hours_worked: calculateHours(selectedReport.time_start, selectedReport.time_end),
         amount_ha: Number(selectedReport.amount_ha ?? 0),
-        fuel_liters: Number(selectedReport.fuel_liters ?? 0),
+        fuel_liters: 0,
+        fuel_entry: Number(selectedReport.fuel_liters ?? 0) > 0 ? {
+          date: selectedReport.fuel_date ?? selectedReport.date,
+          tractor_id: selectedReport.tractor_id,
+          user_id: selectedReport.user_id ?? user?.id ?? 1,
+          liters: Number(selectedReport.fuel_liters ?? 0),
+          note: selectedReport.fuel_note ?? ''
+        } : undefined,
         notes: selectedReport.notes ?? ''
       });
       setMessage('Výkaz byl uložen.');
@@ -226,7 +235,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <th>Pozemek</th>
                 <th>Stroj</th>
                 <th>Ha</th>
-                <th>PHM</th>
+                <th>Tankování</th>
                 <th>Stav</th>
                 <th>Akce</th>
               </tr>
@@ -241,7 +250,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   <td data-label="Pozemek">{report.field_name}</td>
                   <td data-label="Stroj">{report.tractor_name}</td>
                   <td data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
-                  <td data-label="PHM">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
+                  <td data-label="Tankování">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
                   <td data-label="Stav"><span className={statusMeta[status].className}>{statusMeta[status].label}</span></td>
                   <td data-label="Akce">
                     <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
@@ -289,7 +298,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </select>
                 </label>
                 <label>Počet ha<input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} onChange={handleDetailNumberChange('amount_ha')} /></label>
-                <label>PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
+                <label>Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
+                <label>Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               <div className="modal-actions">
