@@ -88,13 +88,13 @@ function UsersView() {
           <tbody>
             {filteredUsers.map((user) => (
               <tr key={user.id}>
-                <td>{user.full_name}</td>
-                <td>{user.department_name ?? '-'}</td>
-                <td>{user.position ?? '-'}</td>
-                <td>{user.manager_name || '-'}</td>
-                <td><span className="status-green">{user.role_name ?? user.role_code ?? user.role}</span></td>
-                <td>{user.scope_department ?? '-'}</td>
-                <td>{formatAuditDate(user.updated_at)}</td>
+                <td data-label="Jméno">{user.full_name}</td>
+                <td data-label="Středisko">{user.department_name ?? '-'}</td>
+                <td data-label="Pozice">{user.position ?? '-'}</td>
+                <td data-label="Nadřízený">{user.manager_name || '-'}</td>
+                <td data-label="Role"><span className="status-green">{user.role_name ?? user.role_code ?? user.role}</span></td>
+                <td data-label="Rozsah">{user.scope_department ?? '-'}</td>
+                <td data-label="Poslední úprava">{formatAuditDate(user.updated_at)}</td>
               </tr>
             ))}
           </tbody>

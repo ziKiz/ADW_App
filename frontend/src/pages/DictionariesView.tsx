@@ -207,14 +207,14 @@ function DictionariesView() {
               <tbody>
                 {filteredFields.slice(0, 120).map((field) => (
                   <tr key={field.id}>
-                    <td>{field.field_code}</td>
-                    <td>{field.field_name}</td>
-                    <td>{field.area ? `${field.area} ha` : '-'}</td>
-                    <td>{field.culture ?? '-'}</td>
-                    <td>{field.crop ?? '-'}</td>
-                    <td>{formatAuditDate(field.updated_at)}</td>
-                    <td>{field.updated_by ?? '-'}</td>
-                    {isAdmin ? <td><button className="edit-action" type="button" onClick={() => setEdited({ kind: 'fields', item: field })}>Upravit</button></td> : null}
+                    <td data-label="Kód">{field.field_code}</td>
+                    <td data-label="Název pozemku">{field.field_name}</td>
+                    <td data-label="Výměra">{field.area ? `${field.area} ha` : '-'}</td>
+                    <td data-label="Kultura">{field.culture ?? '-'}</td>
+                    <td data-label="Plodina">{field.crop ?? '-'}</td>
+                    <td data-label="Poslední úprava">{formatAuditDate(field.updated_at)}</td>
+                    <td data-label="Upravil">{field.updated_by ?? '-'}</td>
+                    {isAdmin ? <td data-label="Akce"><button className="edit-action" type="button" onClick={() => setEdited({ kind: 'fields', item: field })}>Upravit</button></td> : null}
                   </tr>
                 ))}
               </tbody>
@@ -237,12 +237,12 @@ function DictionariesView() {
             <tbody>
               {filteredTractors.map((tractor) => (
                 <tr key={tractor.id}>
-                  <td>{tractor.tractor_code}</td>
-                  <td>{tractor.tractor_name}</td>
-                  <td>{tractor.vehicle_type ?? '-'}</td>
-                  <td>{formatAuditDate(tractor.updated_at)}</td>
-                  <td>{tractor.updated_by ?? '-'}</td>
-                  {isAdmin ? <td><button className="edit-action" type="button" onClick={() => setEdited({ kind: 'tractors', item: tractor })}>Upravit</button></td> : null}
+                  <td data-label="Kód">{tractor.tractor_code}</td>
+                  <td data-label="Název stroje">{tractor.tractor_name}</td>
+                  <td data-label="Typ">{tractor.vehicle_type ?? '-'}</td>
+                  <td data-label="Poslední úprava">{formatAuditDate(tractor.updated_at)}</td>
+                  <td data-label="Upravil">{tractor.updated_by ?? '-'}</td>
+                  {isAdmin ? <td data-label="Akce"><button className="edit-action" type="button" onClick={() => setEdited({ kind: 'tractors', item: tractor })}>Upravit</button></td> : null}
                 </tr>
               ))}
             </tbody>

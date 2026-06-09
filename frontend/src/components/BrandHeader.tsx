@@ -34,7 +34,7 @@ function BrandHeader() {
           <span>Rolnická společnost<br />Lesonice a.s.</span>
         </NavLink>
       </div>
-      <nav className="brand-nav" aria-label="Hlavní navigace">
+      <nav className="brand-nav desktop-nav" aria-label="Hlavní navigace">
         <NavLink to="/dashboard" end>Přehled</NavLink>
         <div className="nav-group">
           <NavLink to="/report" end className="nav-group__parent">Výkazy</NavLink>
@@ -44,6 +44,13 @@ function BrandHeader() {
           </div>
         </div>
         <NavLink to="/users" end>Organizace</NavLink>
+        <NavLink to="/dictionaries" end>Číselníky</NavLink>
+        <NavLink to="/export" end>Exporty</NavLink>
+      </nav>
+      <nav className="mobile-bottom-nav" aria-label="Mobilní navigace">
+        <NavLink to="/dashboard" end>Přehled</NavLink>
+        <NavLink to="/report" end>Výkaz</NavLink>
+        <NavLink to="/approvals">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
         <NavLink to="/dictionaries" end>Číselníky</NavLink>
         <NavLink to="/export" end>Exporty</NavLink>
       </nav>

@@ -61,18 +61,18 @@ function ExportView() {
           </thead>
           <tbody>
             <tr>
-              <td>25. 5. 2026 10:15</td>
-              <td>Květen 2026</td>
-              <td>Vše</td>
-              <td>Vykazy_2026_05.xlsx</td>
-              <td><span className="status-green">Stáhnout</span></td>
+              <td data-label="Datum exportu">25. 5. 2026 10:15</td>
+              <td data-label="Období">Květen 2026</td>
+              <td data-label="Středisko">Vše</td>
+              <td data-label="Soubor">Vykazy_2026_05.xlsx</td>
+              <td data-label="Stav"><span className="status-green">Stáhnout</span></td>
             </tr>
             <tr>
-              <td>30. 4. 2026 09:20</td>
-              <td>Duben 2026</td>
-              <td>Vše</td>
-              <td>Vykazy_2026_04.xlsx</td>
-              <td><span className="status-green">Stáhnout</span></td>
+              <td data-label="Datum exportu">30. 4. 2026 09:20</td>
+              <td data-label="Období">Duben 2026</td>
+              <td data-label="Středisko">Vše</td>
+              <td data-label="Soubor">Vykazy_2026_04.xlsx</td>
+              <td data-label="Stav"><span className="status-green">Stáhnout</span></td>
             </tr>
           </tbody>
         </table>

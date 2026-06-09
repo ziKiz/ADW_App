@@ -25,7 +25,6 @@ body,
 #root {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
 }
 
 body {
@@ -127,6 +126,10 @@ main {
 .brand-nav {
   display: grid;
   gap: 5px;
+}
+
+.mobile-bottom-nav {
+  display: none;
 }
 
 .brand-nav a,
@@ -1357,18 +1360,36 @@ label,
   html,
   body,
   #root {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    overflow-x: clip;
   }
 
   body {
     background: #f5f6f4;
+    overscroll-behavior-y: auto;
+  }
+
+  .app-shell {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100svh;
+    overflow: visible;
   }
 
   main {
     width: 100%;
-    max-width: 100vw;
-    padding: 12px;
+    max-width: 100%;
+    min-width: 0;
+    padding: 14px 12px calc(92px + env(safe-area-inset-bottom));
+    overflow: visible;
+  }
+
+  .app-shell--login main {
+    min-height: 100svh;
+    padding: 14px;
   }
 
   .container,
@@ -1387,26 +1408,27 @@ label,
   }
 
   .app-sidebar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
+    position: relative;
+    z-index: 25;
     width: 100%;
-    max-width: 100vw;
+    max-width: 100%;
     min-width: 0;
-    gap: 10px;
-    padding: 12px 14px 10px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
-    overflow: hidden;
+    display: grid;
+    gap: 0;
+    padding: 12px 14px;
+    box-shadow: none;
+    overflow: visible;
   }
 
   .app-sidebar__brand {
-    padding: 0 0 10px;
+    padding: 0;
+    border-bottom: 0;
     min-width: 0;
   }
 
   .brand-logo {
-    grid-template-columns: 64px 1fr;
-    gap: 9px;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 10px;
     font-size: 0.58rem;
     min-width: 0;
   }
@@ -1416,67 +1438,72 @@ label,
   }
 
   .brand-logo svg {
-    width: 64px;
+    width: 58px;
   }
 
   .brand-logo text {
     font-size: 42px;
   }
 
-  .brand-nav {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .brand-nav::-webkit-scrollbar {
+  .desktop-nav {
     display: none;
   }
 
-  .brand-nav a,
-  .nav-group__parent {
-    flex: 0 0 auto;
-    max-width: calc(100vw - 28px);
-    min-height: 34px;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 7px 10px;
-    font-size: 0.82rem;
-    white-space: nowrap;
+  .mobile-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(5, 39, 45, 0.97);
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 26px rgba(0, 0, 0, 0.2);
   }
 
-  .nav-group {
-    display: flex;
-    flex: 0 0 auto;
-    gap: 8px;
+  .mobile-bottom-nav a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 48px;
+    border-radius: 8px;
+    color: #dce9e5;
+    padding: 5px 4px;
+    font-size: 0.66rem;
+    font-weight: 900;
+    line-height: 1.08;
+    text-align: center;
   }
 
-  .nav-children {
-    display: flex;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    border-left: 0;
+  .mobile-bottom-nav a.active {
+    background: var(--adw-green);
+    color: #ffffff;
   }
 
-  .nav-children a {
-    max-width: calc(100vw - 28px);
-    min-height: 34px;
-    padding: 7px 10px;
-    font-size: 0.82rem;
+  .mobile-bottom-nav b {
+    position: absolute;
+    top: 4px;
+    right: 7px;
+    min-width: 18px;
+    border-radius: 999px;
+    background: var(--warning);
+    color: #ffffff;
+    font-size: 0.62rem;
+    line-height: 17px;
+    text-align: center;
   }
 
   .brand-user {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    padding: 9px 0 0;
+    margin-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 10px 0 0;
     font-size: 0.82rem;
   }
 
@@ -1502,6 +1529,11 @@ label,
   .page-heading {
     gap: 8px;
     margin-bottom: 14px;
+  }
+
+  .page-heading .primary,
+  .page-heading button.primary {
+    width: 100%;
   }
 
   .page-title {
@@ -1547,7 +1579,12 @@ label,
     padding: 12px;
   }
 
+  .approval-workspace {
+    gap: 12px;
+  }
+
   .attention-grid {
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 
@@ -1557,15 +1594,25 @@ label,
   }
 
   .approval-table-scroll {
-    max-height: 310px;
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .approval-table-scroll .approval-table th {
+    position: static;
   }
 
   .approval-bottom-grid {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
   .small-panel-scroll {
-    max-height: 180px;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 
   .repeat-row--field {
@@ -1753,21 +1800,100 @@ label,
   }
 
   .form-footer {
-    position: sticky;
-    bottom: 0;
-    z-index: 15;
     grid-template-columns: 1fr;
-    margin: 0 -14px -14px;
-    border-top: 1px solid var(--line);
-    background: rgba(245, 246, 244, 0.96);
-    padding: 12px 14px;
-    backdrop-filter: blur(8px);
+    margin: 0;
+    border-top: 0;
+    background: transparent;
+    padding: 0;
+    backdrop-filter: none;
   }
 
   .form-footer .primary {
     width: 100%;
     min-height: 50px;
     font-size: 1rem;
+  }
+
+  .approval-table {
+    display: grid;
+    gap: 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 0.86rem;
+    white-space: normal;
+  }
+
+  .approval-table thead {
+    display: none;
+  }
+
+  .approval-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .approval-table tr {
+    display: grid;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 12px;
+    box-shadow: 0 8px 22px rgba(17, 24, 21, 0.06);
+  }
+
+  .approval-table th,
+  .approval-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #edf1ee;
+    padding: 0 0 8px;
+    text-align: right;
+    white-space: normal;
+  }
+
+  .approval-table td:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .approval-table td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 900;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .approval-table td:empty {
+    display: none;
+  }
+
+  .approval-table .edit-action {
+    width: auto;
+    min-height: 36px;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .modal-panel {
+    width: 100%;
+    max-height: calc(100svh - 20px);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }
 

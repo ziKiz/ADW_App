@@ -213,15 +213,15 @@ function Dashboard() {
                     const fuelPerHa = asNumber(report.amount_ha) > 0 ? asNumber(report.fuel_liters) / asNumber(report.amount_ha) : 0;
                     return (
                       <tr key={report.id}>
-                        <td><span className={overdue ? 'status-red' : 'status-orange'}>{overdue ? 'Po termínu' : 'Ke schválení'}</span></td>
-                        <td>{report.employee_name ?? report.report_number}</td>
-                        <td>{formatDate(report.date)}</td>
-                        <td>{report.work_type}</td>
-                        <td>{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
-                        <td>{report.field_name}</td>
-                        <td>{report.tractor_name}</td>
-                        <td>{asNumber(report.amount_ha).toFixed(1)} ha · {asNumber(report.fuel_liters).toFixed(0)} l · {fuelPerHa.toFixed(1)} l/ha</td>
-                        <td><Link className="edit-action" to="/approvals">Otevřít</Link></td>
+                        <td data-label="Stav"><span className={overdue ? 'status-red' : 'status-orange'}>{overdue ? 'Po termínu' : 'Ke schválení'}</span></td>
+                        <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
+                        <td data-label="Datum">{formatDate(report.date)}</td>
+                        <td data-label="Činnost">{report.work_type}</td>
+                        <td data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
+                        <td data-label="Pozemek">{report.field_name}</td>
+                        <td data-label="Stroj">{report.tractor_name}</td>
+                        <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · {asNumber(report.fuel_liters).toFixed(0)} l · {fuelPerHa.toFixed(1)} l/ha</td>
+                        <td data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
                       </tr>
                     );
                   })}

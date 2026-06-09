@@ -234,16 +234,16 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
             <tbody>
               {filteredReports.map((report) => (
                 <tr key={report.id}>
-                  <td>{report.employee_name ?? report.report_number}</td>
-                  <td>{formatDate(report.date)}</td>
-                  <td>{report.work_type}</td>
-                  <td>{report.time_start.slice(0, 5)} h</td>
-                  <td>{report.field_name}</td>
-                  <td>{report.tractor_name}</td>
-                  <td>{Number(report.amount_ha ?? 0).toFixed(2)}</td>
-                  <td>{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
-                  <td><span className={statusMeta[status].className}>{statusMeta[status].label}</span></td>
-                  <td>
+                  <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
+                  <td data-label="Datum">{formatDate(report.date)}</td>
+                  <td data-label="Činnost">{report.work_type}</td>
+                  <td data-label="Čas">{report.time_start.slice(0, 5)} h</td>
+                  <td data-label="Pozemek">{report.field_name}</td>
+                  <td data-label="Stroj">{report.tractor_name}</td>
+                  <td data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
+                  <td data-label="PHM">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
+                  <td data-label="Stav"><span className={statusMeta[status].className}>{statusMeta[status].label}</span></td>
+                  <td data-label="Akce">
                     <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
                   </td>
                 </tr>
