@@ -1749,6 +1749,55 @@ label,
     font-size: 1rem;
   }
 
+  input[type="date"],
+  input[type="time"] {
+    display: block;
+    box-sizing: border-box;
+    text-align: center;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .filter-bar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .filter-bar label {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    justify-items: center;
+  }
+
+  .filter-bar input,
+  .filter-bar select {
+    justify-self: center;
+    width: min(100%, 280px);
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .dictionary-filter label:first-child,
+  .dictionary-filter label:first-child input {
+    justify-items: stretch;
+    justify-self: stretch;
+    width: 100%;
+    text-align: left;
+  }
+
+  .filter-result {
+    justify-self: stretch;
+    text-align: center;
+  }
+
   .field-row {
     min-width: 0;
   }
