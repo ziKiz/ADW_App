@@ -30,8 +30,20 @@ interface AttachmentEntry {
   name: string;
 }
 
+interface ReportTimeEntry {
+  id?: number;
+  user_id?: number | string;
+  employee_name?: string;
+  date?: string;
+  time_start?: string;
+  time_end?: string;
+  created_at?: string;
+}
+
 const serviceCenters = ['Rostlinná výroba', 'Živočišná výroba', 'Mechanizace', 'BPS', 'Stavební skupina', 'Mini mlékárna'];
 const processedPercentOptions = [25, 50, 75, 100];
+const defaultStartTime = '07:00';
+const followUpDurationMinutes = 60;
 const attachmentOptions = [
   'Bez přípojného zařízení',
   'Podv. Panav Dolly',
@@ -56,16 +68,65 @@ const attachmentOptions = [
   'JOSKIN - přepr. dob.'
 ];
 
+function normalizeClockTime(value?: string) {
+  return value ? value.slice(0, 5) : '';
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = normalizeClockTime(value).split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(minutes: number) {
+  const safeMinutes = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const restMinutes = safeMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(restMinutes).padStart(2, '0')}`;
+}
+
+function addMinutesToTime(time: string, minutes: number) {
+  return minutesToTime(timeToMinutes(time) + minutes);
+}
+
+function sameReportDate(reportDate: string | undefined, targetDate: string) {
+  return String(reportDate ?? '').slice(0, 10) === targetDate;
+}
+
+function belongsToCurrentUser(report: ReportTimeEntry, user: ReturnType<typeof getUser>) {
+  if (!user) return false;
+  if (report.user_id !== undefined && report.user_id !== null) {
+    return Number(report.user_id) === Number(user.id);
+  }
+  return report.employee_name === user.full_name;
+}
+
+function getLatestEndTimeForDate(reports: ReportTimeEntry[], targetDate: string, user: ReturnType<typeof getUser>) {
+  return reports
+    .filter((report) => sameReportDate(report.date, targetDate) && belongsToCurrentUser(report, user) && normalizeClockTime(report.time_end))
+    .map((report) => normalizeClockTime(report.time_end))
+    .sort((first, second) => timeToMinutes(second) - timeToMinutes(first))[0] ?? null;
+}
+
+function getSuggestedTimesForDate(reports: ReportTimeEntry[], targetDate: string, currentEnd: string, user: ReturnType<typeof getUser>) {
+  const suggestedStart = getLatestEndTimeForDate(reports, targetDate, user) ?? defaultStartTime;
+  const suggestedEnd = timeToMinutes(currentEnd) > timeToMinutes(suggestedStart)
+    ? normalizeClockTime(currentEnd)
+    : addMinutesToTime(suggestedStart, followUpDurationMinutes);
+  return { start: suggestedStart, end: suggestedEnd };
+}
+
 function ReportForm() {
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
+  const [reports, setReports] = useState<ReportTimeEntry[]>([]);
   const [selectedTractor, setSelectedTractor] = useState<number | undefined>(undefined);
   const [selectedWorkType, setSelectedWorkType] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState('');
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [date, setDate] = useState(getLocalTodayDate);
-  const [timeStart, setTimeStart] = useState('07:00');
+  const [timeStart, setTimeStart] = useState(defaultStartTime);
   const [timeEnd, setTimeEnd] = useState('15:00');
   const [serviceCenter, setServiceCenter] = useState(serviceCenters[0]);
   const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
@@ -83,10 +144,11 @@ function ReportForm() {
   useEffect(() => {
     const loadMetadata = async () => {
       setMetadataLoading(true);
-      const [tractorResponse, fieldResponse, workTypeResponse] = await Promise.allSettled([
+      const [tractorResponse, fieldResponse, workTypeResponse, reportResponse] = await Promise.allSettled([
         client.get('/tractors'),
         client.get('/fields'),
-        client.get('/work-types')
+        client.get('/work-types'),
+        client.get('/reports')
       ]);
 
       if (tractorResponse.status === 'fulfilled') {
@@ -119,6 +181,16 @@ function ReportForm() {
         console.error(workTypeResponse.reason);
       }
 
+      if (reportResponse.status === 'fulfilled') {
+        const loadedReports = reportResponse.value.data as ReportTimeEntry[];
+        const suggestedTimes = getSuggestedTimesForDate(loadedReports, date, timeEnd, user);
+        setReports(loadedReports);
+        setTimeStart(suggestedTimes.start);
+        setTimeEnd(suggestedTimes.end);
+      } else {
+        console.error(reportResponse.reason);
+      }
+
       if (
         tractorResponse.status === 'rejected' ||
         fieldResponse.status === 'rejected' ||
@@ -132,6 +204,15 @@ function ReportForm() {
     };
     loadMetadata();
   }, []);
+
+  const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextDate = event.target.value;
+    const suggestedTimes = getSuggestedTimesForDate(reports, nextDate, timeEnd, user);
+    setDate(nextDate);
+    setFuelDate(nextDate);
+    setTimeStart(suggestedTimes.start);
+    setTimeEnd(suggestedTimes.end);
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -164,7 +245,7 @@ function ReportForm() {
     ].filter(Boolean).join('\n');
 
     try {
-      await client.post('/reports', {
+      const response = await client.post('/reports', {
         report_number: `RPT-${Date.now()}`,
         tractor_id: selectedTractor,
         user_id: user?.id ?? 1,
@@ -189,7 +270,21 @@ function ReportForm() {
         attachments: attachmentSummary,
         notes: extendedNotes
       });
-      setMessage('Výkaz byl uložen.');
+      const nextStart = normalizeClockTime(timeEnd);
+      const nextEnd = addMinutesToTime(nextStart, followUpDurationMinutes);
+      const submittedReport: ReportTimeEntry = {
+        id: response.data?.id,
+        user_id: user?.id ?? 1,
+        employee_name: user?.full_name,
+        date,
+        time_start: `${normalizeClockTime(timeStart)}:00`,
+        time_end: `${nextStart}:00`,
+        created_at: new Date().toISOString()
+      };
+      setReports((items) => [...items, submittedReport]);
+      setTimeStart(nextStart);
+      setTimeEnd(nextEnd);
+      setMessage(`Výkaz byl uložen. Další práce navazuje od ${nextStart}.`);
     } catch (error) {
       console.error(error);
       setMessage('Chyba při ukládání výkazu.');
@@ -250,10 +345,7 @@ function ReportForm() {
                   id="date"
                   type="date"
                   value={date}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                    setDate(event.target.value);
-                    setFuelDate(event.target.value);
-                  }}
+                  onChange={handleDateChange}
                 />
               </div>
               <div className="field-row">

@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
     }
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
     const result = await pool.query(
-      `SELECT r.id, r.report_number, r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
+      `SELECT r.id, r.report_number, r.user_id, r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
         COALESCE(fe.fuel_liters, r.fuel_liters, 0) AS fuel_liters, fe.fuel_date, fe.fuel_note, r.notes, r.status,
         COALESCE(u.full_name, u.username, 'Zaměstnanec') AS employee_name, t.tractor_name, f.field_name, w.name AS work_type
       FROM reports r
