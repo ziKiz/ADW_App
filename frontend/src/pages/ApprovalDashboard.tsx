@@ -281,23 +281,23 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <button className="icon-action view" type="button" aria-label="Zavřít" onClick={() => setSelectedReport(null)}>×</button>
               </div>
               <div className="detail-grid">
-                <label>Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
-                <label>Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
-                <label>Od<input type="time" value={selectedReport.time_start} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /></label>
-                <label>Do<input type="time" value={selectedReport.time_end} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /></label>
-                <label>
+                <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
+                <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
+                <label className="detail-field">Od<input type="time" value={selectedReport.time_start} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /></label>
+                <label className="detail-field">Do<input type="time" value={selectedReport.time_end} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /></label>
+                <label className="detail-field">
                   Činnost
                   <select value={selectedReport.work_type_id ?? ''} onChange={handleDetailNumberChange('work_type_id')}>
                     {workTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </label>
-                <label>
+                <label className="detail-field">
                   Pozemek
                   <select value={selectedReport.field_id ?? ''} onChange={handleDetailNumberChange('field_id')}>
                     {fields.map((item) => <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>)}
                   </select>
                 </label>
-                <label>
+                <label className="detail-field">
                   Stroj
                   <select value={selectedReport.tractor_id ?? ''} onChange={handleDetailNumberChange('tractor_id')}>
                     {tractors.map((item) => (
@@ -307,14 +307,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     ))}
                   </select>
                 </label>
-                <label>
+                <label className="detail-field">
                   Počet ha
                   <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} onChange={handleDetailNumberChange('amount_ha')} />
                   {selectedFieldPercent !== null ? <small className="field-hint field-hint--inline">Odpovídá cca {selectedFieldPercent} % výměry pozemku.</small> : null}
                 </label>
-                <label>Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
-                <label>Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
-                <label className="detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
+                <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
+                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
+                <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               <div className="modal-actions">
                 <button className="secondary" type="button" onClick={() => setSelectedReport(null)}>Zavřít</button>
