@@ -1785,6 +1785,24 @@ label,
     text-align: center;
   }
 
+  .filter-bar--compact-approval {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-bar--compact-approval label:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar--compact-approval label:nth-child(2),
+  .filter-bar--compact-approval label:nth-child(3) {
+    justify-items: stretch;
+  }
+
+  .filter-bar--compact-approval label:nth-child(2) input,
+  .filter-bar--compact-approval label:nth-child(3) input {
+    width: 100%;
+  }
+
   .dictionary-filter label:first-child,
   .dictionary-filter label:first-child input {
     justify-items: stretch;
