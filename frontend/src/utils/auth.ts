@@ -13,45 +13,45 @@ const LOGGED_OUT_STORAGE_KEY = 'adw_logged_out';
 
 export const DEMO_ADMIN_USER: AppUser = {
   id: 21,
-  username: 'martina.novotna',
-  email: 'martina.novotna@lesonice.local',
+  username: 'demo.admin',
+  email: 'demo.admin@example.local',
   role: 'admin',
-  full_name: 'Ing. Martina Novotná',
+  full_name: 'Demo Admin',
   department_name: 'Mechanizace',
   scope_department: 'Mechanizace'
 };
 
 export const DEMO_TRACTOR_OPERATOR_USER: AppUser = {
   id: 5,
-  username: 'jan.novak',
-  email: 'jan.novak@lesonice.local',
+  username: 'demo.traktorista',
+  email: 'demo.traktorista@example.local',
   role: 'traktorista',
-  full_name: 'Jan Novák',
+  full_name: 'Demo Traktorista',
   department_name: 'Rostlinná výroba',
   scope_department: 'Rostlinná výroba'
 };
 
-export const DEMO_LEOS_SKUCIUS_USER: AppUser = {
+export const DEMO_SECOND_OPERATOR_USER: AppUser = {
   id: 16,
-  username: 'leos.skucius',
-  email: 'leos.skucius@lesonice.local',
+  username: 'demo.pracovnik',
+  email: 'demo.pracovnik@example.local',
   role: 'traktorista',
-  full_name: 'Leoš Skucius',
+  full_name: 'Demo Pracovník 12',
   department_name: 'Rostlinná výroba',
   scope_department: 'Rostlinná výroba'
 };
 
 export const DEMO_AGRONOM_USER: AppUser = {
   id: 3,
-  username: 'filip.danhel',
-  email: 'filip.danhel@lesonice.local',
+  username: 'demo.agronom',
+  email: 'demo.agronom@example.local',
   role: 'schvalovatel',
-  full_name: 'Ing. Filip Daňhel',
+  full_name: 'Ing. Demo Agronom',
   department_name: 'Rostlinná výroba',
   scope_department: 'Rostlinná výroba'
 };
 
-export const AVAILABLE_DEMO_USERS = [DEMO_ADMIN_USER, DEMO_TRACTOR_OPERATOR_USER, DEMO_LEOS_SKUCIUS_USER, DEMO_AGRONOM_USER];
+export const AVAILABLE_DEMO_USERS = [DEMO_ADMIN_USER, DEMO_TRACTOR_OPERATOR_USER, DEMO_SECOND_OPERATOR_USER, DEMO_AGRONOM_USER];
 
 export function saveUser(user: AppUser) {
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));

@@ -36,7 +36,7 @@ function UsersView() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<UserRecord | null>(null);
   const user = getUser();
-  const canEditOrganization = user?.role === 'admin' || user?.full_name === 'Ing. Martina Novotná';
+  const canEditOrganization = user?.role === 'admin' || user?.full_name === 'Demo Admin';
   const roleOptions = ['admin', 'reditel', 'schvalovatel', 'specialista', 'zamestnanec', 'traktorista', 'helios'];
 
   useEffect(() => {

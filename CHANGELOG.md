@@ -12,6 +12,16 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-06-27
+
+### Bezpečnost publikace
+- Z repozitáře vyřazeny lokální podklady ve složce `Documents`, aby se nepublikovaly na GitHub Pages.
+- Veřejná demo data ve `frontend/public/demo-data` byla anonymizována.
+- Demo uživatelé, kontakty a organizační seed používají fiktivní jména a e-maily.
+- Do `.gitignore` přidána pravidla pro lokální dokumenty, `.env.*` a statický mobilní export.
+- Odstraněn starý statický `ADW_mobile_demo.html` z git indexu, protože obsahoval vložená demo data.
+- Opraven kontrolní skript changelogu pro správné rozpoznání upraveného `CHANGELOG.md`.
+
 ## 2026-06-26
 
 ### Navigace a metadata
@@ -48,7 +58,7 @@ Formát:
 - Do demo přihlášení přidán pohled agronoma.
 
 ### Organizace
-- Admin a Ing. Martina Novotná mohou přepnout řádek v organizaci do editačního módu.
+- Admin a Demo Admin mohou přepnout řádek v organizaci do editačního módu.
 - Přidána možnost upravit jméno, středisko, pozici, roli a rozsah uživatele.
 
 ### Audit

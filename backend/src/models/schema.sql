@@ -281,19 +281,19 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO employees (employee_id, full_name, title, home_department_id, position, manager_employee_id, is_active, is_system_user)
 VALUES
-  (1, 'Ing. Petr Kuba', 'Ing.', 1, 'Ředitel společnosti', NULL, TRUE, TRUE),
-  (2, 'Ing. Zbyněk Pokorný', 'Ing.', 2, 'Hlavní vedoucí', 1, TRUE, TRUE),
-  (18, 'Vít Špaček', '', 3, 'Hlavní vedoucí', 1, TRUE, TRUE),
-  (21, 'Ing. Martina Novotná', 'Ing.', 4, 'Hlavní vedoucí / administrátor', 1, TRUE, TRUE),
-  (29, 'Ing. Veronika Suková', 'Ing.', 5, 'Vedoucí střediska', 1, TRUE, TRUE),
-  (33, 'Petr Hugo Solař', '', 6, 'Vedoucí střediska', 1, TRUE, TRUE),
-  (36, 'Monika Ledecká', '', 7, 'Vedoucí střediska', 1, TRUE, TRUE),
-  (37, 'Jana Bulíčková', '', NULL, 'Mzdová a personální kontrola / Helios', NULL, TRUE, TRUE)
+  (1, 'Demo Ředitel', 'Ing.', 1, 'Ředitel společnosti', NULL, TRUE, TRUE),
+  (2, 'Demo Vedoucí RV', 'Ing.', 2, 'Hlavní vedoucí', 1, TRUE, TRUE),
+  (18, 'Demo Vedoucí ŽV', '', 3, 'Hlavní vedoucí', 1, TRUE, TRUE),
+  (21, 'Demo Admin', 'Ing.', 4, 'Hlavní vedoucí / administrátor', 1, TRUE, TRUE),
+  (29, 'Demo Vedoucí BPS', 'Ing.', 5, 'Vedoucí střediska', 1, TRUE, TRUE),
+  (33, 'Demo Vedoucí stavby', '', 6, 'Vedoucí střediska', 1, TRUE, TRUE),
+  (36, 'Demo Vedoucí mlékárny', '', 7, 'Vedoucí střediska', 1, TRUE, TRUE),
+  (37, 'Demo Helios', '', NULL, 'Mzdová a personální kontrola / Helios', NULL, TRUE, TRUE)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO users (employee_id, username, email, password_hash, role, full_name)
 VALUES
-  (21, 'martina.novotna', 'martina.novotna@lesonice.local', 'changeme', 'admin', 'Ing. Martina Novotná'),
-  (1, 'petr.kuba', 'petr.kuba@lesonice.local', 'changeme', 'reditel', 'Ing. Petr Kuba'),
-  (37, 'jana.bulickova', 'jana.bulickova@lesonice.local', 'changeme', 'helios', 'Jana Bulíčková')
+  (21, 'demo.admin', 'demo.admin@example.local', 'changeme', 'admin', 'Demo Admin'),
+  (1, 'demo.reditel', 'demo.reditel@example.local', 'changeme', 'reditel', 'Demo Ředitel'),
+  (37, 'demo.helios', 'demo.helios@example.local', 'changeme', 'helios', 'Demo Helios')
 ON CONFLICT DO NOTHING;

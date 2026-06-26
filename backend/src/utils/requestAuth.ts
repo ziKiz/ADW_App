@@ -37,7 +37,7 @@ export function requireAnyRole(req: Request, res: Response, roles: string[], mes
 
 export function requireAdmin(req: Request, res: Response) {
   const user = getRequestUser(req);
-  if (user.role !== 'admin' && user.name !== 'Ing. Martina Novotná') {
+  if (user.role !== 'admin' && user.name !== 'Demo Admin') {
     res.status(403).json({ error: 'Pouze administrátor může upravovat databázi.' });
     return false;
   }

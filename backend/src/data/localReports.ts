@@ -151,7 +151,7 @@ function readReports(): LocalReport[] {
       return demoReports;
     }
 
-    const legacyEmployeeNames = new Set(['Tomáš Horák', 'Marek Svoboda', 'Zbyněk Kovář', 'Lukáš Novotný', 'Jan Veselý', 'Martin Procházka', 'Radek Černý', 'Pavel Němec', 'Michal Král']);
+    const legacyEmployeeNames = new Set(['Starý Demo 1', 'Starý Demo 2', 'Starý Demo 3', 'Starý Demo 4', 'Starý Demo 5', 'Starý Demo 6', 'Starý Demo 7', 'Starý Demo 8', 'Starý Demo 9']);
     if (reports.some((report) => legacyEmployeeNames.has(String(report.employee_name ?? '')))) {
       const demoReports = createDemoReports();
       writeReports(demoReports);

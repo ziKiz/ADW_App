@@ -6,9 +6,8 @@ function listChangedFiles() {
   const output = execSync('git status --porcelain', { encoding: 'utf8' });
   return output
     .split(/\r?\n/)
-    .map((item) => item.trim())
     .filter(Boolean)
-    .map((item) => item.replace(/^.. /, '').replace(/^"|"$/g, ''));
+    .map((item) => item.slice(3).replace(/^"|"$/g, ''));
 }
 
 const changedFiles = listChangedFiles();

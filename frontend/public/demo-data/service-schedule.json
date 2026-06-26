@@ -1,12 +1,10 @@
 [
-  {"date": "2026-06-26", "person": "Jan Novák", "role": "Traktorista", "shift": "Ranní"},
-  {"date": "2026-06-27", "person": "Pavel Dvořák", "role": "Operátor", "shift": "Odpolední"},
-  {"date": "2026-06-28", "person": "Filip Daňhel", "role": "Agronom", "shift": "Ranní"},
-  {"date": "2026-06-29", "person": "Stanislav Šťáva", "role": "Traktorista", "shift": "Celodenní"},
-  {"date": "2026-06-30", "person": "Pavel Klíma", "role": "Traktorista", "shift": "Odpolední"},
-  {"date": "2026-07-01", "person": "David Pacas", "role": "Operátor", "shift": "Ranní"},
-  {"date": "2026-07-02", "person": "Lukáš Bauer", "role": "Traktorista", "shift": "Odpolední"},
-  {"date": "2026-07-03", "person": "Bohuslav Kabelka", "role": "Traktorista", "shift": "Celodenní"},
-  {"date": "2026-07-04", "person": "Jiří Venhoda", "role": "Operátor", "shift": "Ranní"},
-  {"date": "2026-07-05", "person": "Petr Chvátal", "role": "Traktorista", "shift": "Odpolední"}
+  {
+    "id": 1,
+    "title": "Demo služba",
+    "date": "2026-06-27",
+    "service": "Pohotovost",
+    "person": "Demo služba",
+    "phone": "+420 000 000 000"
+  }
 ]

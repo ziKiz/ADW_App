@@ -3,80 +3,80 @@
     "id": 1,
     "name": "Orání",
     "description": "Příprava půdy před setím",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 2,
     "name": "Setí",
-    "description": "Založení plodiny na pole",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Založení plodiny",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 3,
     "name": "Sklizeň",
     "description": "Sklizeň úrody",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 4,
     "name": "Mulčování",
-    "description": "Odstranění porostu a údržba mezí",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Údržba porostu",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 5,
     "name": "Hnojení",
-    "description": "Aplikace hnojiva nebo živin",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Aplikace živin",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 6,
     "name": "Ostatní",
-    "description": "Ostatní práce mimo hlavní kategorie",
-    "created_at": "2026-05-30T11:44:04.202Z",
-    "created_by": "Systém",
-    "updated_at": "2026-05-30T11:44:04.202Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Ostatní práce",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 7,
     "name": "Dovolená",
-    "description": "Celodenní absence z důvodu dovolené",
-    "created_at": "2026-06-26T14:48:39.752Z",
-    "created_by": "Systém",
-    "updated_at": "2026-06-26T14:48:39.752Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Celodenní absence",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   },
   {
     "id": 8,
     "name": "Školení",
-    "description": "Účast na školení nebo interní vzdělávání",
-    "created_at": "2026-06-26T14:48:39.752Z",
-    "created_by": "Systém",
-    "updated_at": "2026-06-26T14:48:39.752Z",
-    "updated_by": "Systém",
-    "last_change": "Vytvoření záznamu"
+    "description": "Školení nebo vzdělávání",
+    "created_at": "2026-06-27T08:00:00.000Z",
+    "created_by": "Anonymní demo seed",
+    "updated_at": "2026-06-27T08:00:00.000Z",
+    "updated_by": "Anonymní demo seed",
+    "last_change": "Anonymizovaná veřejná demo data"
   }
 ]

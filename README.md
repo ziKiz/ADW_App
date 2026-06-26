@@ -115,7 +115,7 @@ node scripts/check-changelog.mjs
 
 Lokální prototyp používá demo přihlášení přes `localStorage`. Výchozí demo uživatel:
 
-- Ing. Martina Novotná, administrátor systému
+- Demo Admin, administrátor systému
 
 ## Organizační model
 
