@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
 import { FieldRecord, Tractor } from '../types';
+import { formatCzechDateTime } from '../utils/format';
 import { getUser } from '../utils/auth';
 
 type EditedDictionary =
@@ -12,10 +13,7 @@ type SortDirection = 'asc' | 'desc';
 
 function formatAuditDate(value?: string) {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('cs-CZ', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-  }).format(new Date(value));
+  return formatCzechDateTime(value);
 }
 
 function normalize(value: unknown) {
@@ -57,7 +55,7 @@ function DictionariesView() {
     if (activeTab === 'fields') {
       return [
         { value: 'field_name', label: 'Název' },
-        { value: 'field_code', label: 'Kód' },
+        { value: 'field_code', label: 'DPB' },
         { value: 'area', label: 'Výměra' },
         { value: 'culture', label: 'Kultura' },
         { value: 'crop', label: 'Plodina' },
@@ -67,7 +65,7 @@ function DictionariesView() {
     if (activeTab === 'tractors') {
       return [
         { value: 'tractor_name', label: 'Název' },
-        { value: 'tractor_code', label: 'Kód' },
+        { value: 'tractor_code', label: 'SPZ' },
         { value: 'vehicle_type', label: 'Typ' },
         { value: 'updated_at', label: 'Poslední úprava' }
       ];
@@ -168,7 +166,7 @@ function DictionariesView() {
         <div className="filter-bar dictionary-filter">
           <label>
             Hledat
-            <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Kód, název, plodina..." />
+            <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="DPB, název, plodina..." />
           </label>
           <label>
             Seřadit podle
@@ -194,7 +192,7 @@ function DictionariesView() {
             <table className="approval-table">
               <thead>
                 <tr>
-                  <th>Kód</th>
+                  <th>DPB</th>
                   <th>Název pozemku</th>
                   <th>Výměra</th>
                   <th>Kultura</th>
@@ -207,7 +205,7 @@ function DictionariesView() {
               <tbody>
                 {filteredFields.slice(0, 120).map((field) => (
                   <tr key={field.id}>
-                    <td data-label="Kód">{field.field_code}</td>
+                    <td data-label="DPB">{field.field_code}</td>
                     <td data-label="Název pozemku">{field.field_name}</td>
                     <td data-label="Výměra">{field.area ? `${field.area} ha` : '-'}</td>
                     <td data-label="Kultura">{field.culture ?? '-'}</td>
@@ -226,7 +224,7 @@ function DictionariesView() {
           <table className="approval-table">
             <thead>
               <tr>
-                <th>Kód</th>
+                <th>SPZ</th>
                 <th>Název stroje</th>
                 <th>Typ</th>
                 <th>Poslední úprava</th>
@@ -237,7 +235,7 @@ function DictionariesView() {
             <tbody>
               {filteredTractors.map((tractor) => (
                 <tr key={tractor.id}>
-                  <td data-label="Kód">{tractor.tractor_code}</td>
+                  <td data-label="SPZ">{tractor.tractor_code}</td>
                   <td data-label="Název stroje">{tractor.tractor_name}</td>
                   <td data-label="Typ">{tractor.vehicle_type ?? '-'}</td>
                   <td data-label="Poslední úprava">{formatAuditDate(tractor.updated_at)}</td>
@@ -262,7 +260,7 @@ function DictionariesView() {
               <div className="detail-grid">
                 {edited.kind === 'fields' ? (
                   <>
-                    <label>Kód<input value={edited.item.field_code} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_code: event.target.value } })} /></label>
+                    <label>DPB<input value={edited.item.field_code} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_code: event.target.value } })} /></label>
                     <label>Název pozemku<input value={edited.item.field_name} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_name: event.target.value } })} /></label>
                     <label>Výměra<input type="number" step="0.01" value={edited.item.area ?? 0} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, area: Number(event.target.value) } })} /></label>
                     <label>Kultura<input value={edited.item.culture ?? ''} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, culture: event.target.value } })} /></label>
@@ -271,7 +269,7 @@ function DictionariesView() {
                 ) : null}
                 {edited.kind === 'tractors' ? (
                   <>
-                    <label>Kód<input value={edited.item.tractor_code} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, tractor_code: event.target.value } })} /></label>
+                    <label>SPZ<input value={edited.item.tractor_code} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, tractor_code: event.target.value } })} /></label>
                     <label>Název stroje<input value={edited.item.tractor_name} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, tractor_name: event.target.value } })} /></label>
                     <label>Typ<input value={edited.item.vehicle_type ?? ''} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, vehicle_type: event.target.value } })} /></label>
                   </>

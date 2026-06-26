@@ -214,10 +214,14 @@ export function getLocalTractors() {
     id: index + 1,
     tractor_code: tractor.code,
     tractor_name: tractor.name,
+    service_centers: tractor.service_centers,
     vehicle_type: 'traktor',
     status: 'active'
   }));
-  return readLocal(tractorsFile, fallback);
+  return readLocal(tractorsFile, fallback).map((tractor: any) => ({
+    ...tractor,
+    service_centers: Array.isArray(tractor.service_centers) ? tractor.service_centers : []
+  }));
 }
 
 export function seedLocalTractorsFromDocuments(audit?: AuditInfo) {
@@ -227,17 +231,47 @@ export function seedLocalTractorsFromDocuments(audit?: AuditInfo) {
     id: index + 1,
     tractor_code: tractor.code,
     tractor_name: tractor.name,
+    service_centers: tractor.service_centers,
     vehicle_type: 'traktor',
     status: 'active',
     created_at: now,
     created_by: user,
     updated_at: now,
     updated_by: user,
-    last_change: 'Import z Documents/Seznam stroju.JPG'
+    last_change: 'Import z Documents/seznam a rozřazení strojů.xlsx'
   }));
   writeLocal(tractorsFile, rows);
-  appendAuditLog('tractors', 0, 'update', null, { imported: rows.length, source: 'Documents/Seznam stroju.JPG' }, audit);
+  appendAuditLog('tractors', 0, 'update', null, { imported: rows.length, source: 'Documents/seznam a rozřazení strojů.xlsx' }, audit);
   return rows;
+}
+
+export function isElevatedRole(role?: string) {
+  return ['admin', 'reditel'].includes(String(role ?? '').toLocaleLowerCase('cs'));
+}
+
+export function normalizeServiceCenter(value?: string) {
+  if (value === 'Bioplynová stanice') return 'BPS';
+  if (value === 'Mini Mlékárna') return 'Mini mlékárna';
+  return String(value ?? '').trim();
+}
+
+export function filterTractorsForServiceCenter<T extends { service_centers?: string[] }>(
+  tractors: T[],
+  serviceCenter?: string,
+  role?: string
+) {
+  const normalizedCenter = normalizeServiceCenter(serviceCenter);
+  if (!normalizedCenter) return tractors;
+  const elevated = isElevatedRole(role);
+  return tractors.filter((tractor) => {
+    const centers = Array.isArray(tractor.service_centers) ? tractor.service_centers : [];
+    return centers.includes(normalizedCenter) || (elevated && centers.length === 0);
+  });
+}
+
+export function canUseTractorInServiceCenter(tractorId: number, serviceCenter?: string, role?: string) {
+  return filterTractorsForServiceCenter(getLocalTractors(), serviceCenter, role)
+    .some((tractor) => Number(tractor.id) === Number(tractorId));
 }
 
 export function createLocalTractor(input: Omit<ReturnType<typeof getLocalTractors>[number], 'id'>, audit?: AuditInfo) {
@@ -249,7 +283,18 @@ export function updateLocalTractor(id: number, changes: Partial<ReturnType<typeo
 }
 
 export function getLocalWorkTypes() {
-  return readLocal(workTypesFile, fallbackWorkTypes);
+  const rows = readLocal(workTypesFile, fallbackWorkTypes);
+  const maxId = rows.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0);
+  let nextId = maxId + 1;
+  let changed = false;
+  for (const fallback of fallbackWorkTypes) {
+    if (!rows.some((row) => row.name === fallback.name)) {
+      rows.push(withInitialAudit({ ...fallback, id: fallback.id || nextId++ }, { userName: 'Systém' }));
+      changed = true;
+    }
+  }
+  if (changed) writeLocal(workTypesFile, rows);
+  return rows;
 }
 
 export function createLocalWorkType(input: Omit<(typeof fallbackWorkTypes)[number], 'id'>, audit?: AuditInfo) {

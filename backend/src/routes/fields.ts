@@ -1,23 +1,10 @@
 import { Router } from 'express';
 import pool from '../config/database';
 import { createLocalField, getLocalFields, updateLocalField } from '../data/localAdminData';
+import { writeAudit } from '../utils/audit';
+import { auditInfo, requireAdmin } from '../utils/requestAuth';
 
 const router = Router();
-
-function requireAdmin(req: any, res: any) {
-  if (req.header('x-user-role') !== 'admin') {
-    res.status(403).json({ error: 'Pouze administrátor může upravovat databázi.' });
-    return false;
-  }
-  return true;
-}
-
-function auditInfo(req: any) {
-  return {
-    userId: req.header('x-user-id'),
-    userName: req.header('x-user-name')
-  };
-}
 
 router.get('/', async (req, res) => {
   try {
@@ -39,6 +26,7 @@ router.post('/', async (req, res) => {
        RETURNING id, field_code, field_name, quadrant, area, culture, crop, erosion, created_at, created_by, updated_at, updated_by, last_change`,
       [field_code, field_name, area, culture, crop, auditInfo(req).userName || 'Systém']
     );
+    await writeAudit(pool, 'fields', Number(result.rows[0].id), 'create', null, result.rows[0], auditInfo(req));
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error(error);
@@ -59,6 +47,7 @@ router.put('/:id', async (req, res) => {
   if (!requireAdmin(req, res)) return;
   const { field_code, field_name, area, culture, crop } = req.body;
   try {
+    const before = await pool.query('SELECT * FROM fields WHERE id = $1', [req.params.id]);
     const result = await pool.query(
       `UPDATE fields
        SET field_code = $1, field_name = $2, area = $3, culture = $4, crop = $5,
@@ -68,6 +57,7 @@ router.put('/:id', async (req, res) => {
       [field_code, field_name, area, culture, crop, auditInfo(req).userName || 'Systém', req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Pozemek nenalezen' });
+    await writeAudit(pool, 'fields', Number(req.params.id), 'update', before.rows[0] ?? null, result.rows[0], auditInfo(req));
     res.json(result.rows[0]);
   } catch (error) {
     console.error(error);

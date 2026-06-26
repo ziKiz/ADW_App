@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS tractors (
   id SERIAL PRIMARY KEY,
   tractor_code VARCHAR(100) UNIQUE NOT NULL,
   tractor_name VARCHAR(200) NOT NULL,
+  service_centers TEXT[] DEFAULT '{}',
   vehicle_type VARCHAR(100),
   status VARCHAR(50) DEFAULT 'active',
   created_at TIMESTAMP DEFAULT NOW(),
@@ -236,7 +237,9 @@ VALUES
   ('Sklizeň', 'Sklizeň úrody'),
   ('Mulčování', 'Odstranění porostu a údržba mezí'),
   ('Hnojení', 'Aplikace hnojiva nebo živin'),
-  ('Ostatní', 'Ostatní práce mimo hlavní kategorie')
+  ('Ostatní', 'Ostatní práce mimo hlavní kategorie'),
+  ('Dovolená', 'Celodenní absence z důvodu dovolené'),
+  ('Školení', 'Účast na školení nebo interní vzdělávání')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO departments (department_id, name, code, parent_department_id, description)

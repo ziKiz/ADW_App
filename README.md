@@ -6,6 +6,8 @@ Toto je prototyp webové aplikace pro digitalizaci pracovních výkazů.
 
 - `backend/` - Express + TypeScript API
 - `frontend/` - React + Vite frontend
+- `CHANGELOG.md` - historie změn aplikace
+- `AGENTS.md` - pravidla pro další úpravy projektu
 
 ## Požadavky
 
@@ -28,7 +30,7 @@ Toto je prototyp webové aplikace pro digitalizaci pracovních výkazů.
 
 ### Import dat z podkladů
 
-Traktory se berou z `Documents/seznam stroju.JPG` a pole z těchto souborů:
+Stroje se berou z `Documents/seznam a rozřazení strojů.xlsx` a pole z těchto souborů:
 
 - `Documents/tisk_zem_parcel (13).xls`
 - `Documents/tisk_zem_parcel (14).xls`
@@ -97,7 +99,17 @@ cd backend
 npm run import:local-dictionaries
 ```
 
-Import načítá pozemky z `Documents/Seznam poli.xlsx` a traktory z `Documents/Seznam stroju.JPG`.
+Import načítá pozemky z `Documents/Seznam poli.xlsx` a stroje z `Documents/seznam a rozřazení strojů.xlsx`.
+
+## Changelog
+
+Každá významná změna aplikace musí být zapsaná v `CHANGELOG.md`. Pravidla pro další nástroje a AI asistenty jsou v `AGENTS.md`.
+
+Kontrola před dokončením práce:
+
+```bash
+node scripts/check-changelog.mjs
+```
 
 ## Přihlášení
 

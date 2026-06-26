@@ -1,278 +1,1814 @@
 [
   {
     "id": 1,
-    "tractor_code": "S05 0148",
-    "tractor_name": "FENDT VARIO 724",
+    "tractor_code": "EL9 29DF",
+    "tractor_name": "KIA EV9",
+    "service_centers": [],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 2,
-    "tractor_code": "S05 8924",
-    "tractor_name": "FENDT VARIO 724",
+    "tractor_code": "EL997CC",
+    "tractor_name": "Škoda Octavia III",
+    "service_centers": [],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 3,
-    "tractor_code": "S07 2384",
-    "tractor_name": "FENDT 1165 PÁSÁK",
+    "tractor_code": "7J5 1970",
+    "tractor_name": "Škoda Octavia kombi",
+    "service_centers": [],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 4,
-    "tractor_code": "S07 6568",
-    "tractor_name": "FENDT 516",
+    "tractor_code": "2AS 4384",
+    "tractor_name": "Škoda Octavia 2.0 TDI",
+    "service_centers": [],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 5,
-    "tractor_code": "S07 6551",
-    "tractor_name": "FENDT 828",
+    "tractor_code": "6J8 6673",
+    "tractor_name": "Škoda Kamiq",
+    "service_centers": [
+      "Mini mlékárna"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 6,
-    "tractor_code": "J03 7561",
-    "tractor_name": "FENDT 211",
+    "tractor_code": "7J5 2024",
+    "tractor_name": "Citroen Jumper",
+    "service_centers": [
+      "Mini mlékárna"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 7,
-    "tractor_code": "J02 2050",
-    "tractor_name": "NEW HOLLAND TS135A",
+    "tractor_code": "6J8 6672",
+    "tractor_name": "Škoda Kamiq",
+    "service_centers": [
+      "BPS"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 8,
-    "tractor_code": "J03 3668",
-    "tractor_name": "NEW HOLLAND TM155",
+    "tractor_code": "6J3 8038",
+    "tractor_name": "Ford Transit Custom",
+    "service_centers": [
+      "BPS"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 9,
-    "tractor_code": "J01 6057",
-    "tractor_name": "Challenger MT 865 C",
+    "tractor_code": "6J8 6380",
+    "tractor_name": "Ford Transit Custom",
+    "service_centers": [
+      "BPS"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 10,
-    "tractor_code": "J02 3322",
-    "tractor_name": "Challenger MT 545 B",
+    "tractor_code": "7J4 9176",
+    "tractor_name": "Škoda Fabia kombi 7863 MLÉ",
+    "service_centers": [
+      "BPS"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 11,
-    "tractor_code": "TR 25-69",
-    "tractor_name": "Zetor 3011",
+    "tractor_code": "4J5 6210",
+    "tractor_name": "Škoda Octavia kombi",
+    "service_centers": [
+      "BPS"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 12,
-    "tractor_code": "TR 38-85",
-    "tractor_name": "Zetor 4511",
+    "tractor_code": "6J8 6674",
+    "tractor_name": "Ford Transit Connect",
+    "service_centers": [
+      "Stavební skupina"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 13,
-    "tractor_code": "TR 69-74",
-    "tractor_name": "Zetor 6911",
+    "tractor_code": "4C8 8940",
+    "tractor_name": "Nissan Navara",
+    "service_centers": [
+      "Stavební skupina"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 14,
-    "tractor_code": "TR 00-42",
-    "tractor_name": "Zetor 7211",
+    "tractor_code": "5J3 8783",
+    "tractor_name": "Iveco Daily",
+    "service_centers": [
+      "Stavební skupina"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 15,
-    "tractor_code": "TRA 01-50",
-    "tractor_name": "Zetor 7711",
+    "tractor_code": "4J8 5959",
+    "tractor_name": "Volkswagen TOUAREG",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 16,
-    "tractor_code": "TRA 06-08",
-    "tractor_name": "Zetor 7711",
+    "tractor_code": "7J9 0755",
+    "tractor_name": "Škoda Karoq",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 17,
-    "tractor_code": "J02 3536",
-    "tractor_name": "Zetor 7711",
+    "tractor_code": "6J2 9708",
+    "tractor_name": "Škoda Octavia",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 18,
-    "tractor_code": "nemá - Zetor 7245",
-    "tractor_name": "Zetor 7245",
+    "tractor_code": "5J7 5540",
+    "tractor_name": "Volkswagen CADDY",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 19,
-    "tractor_code": "J03 0381",
-    "tractor_name": "Zetor 7745",
+    "tractor_code": "4J8 5769",
+    "tractor_name": "Ford Transit Connect",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 20,
-    "tractor_code": "TRA 23-73",
-    "tractor_name": "Zetor 9641",
+    "tractor_code": "4J5 5467",
+    "tractor_name": "Opel Movano",
+    "service_centers": [
+      "Mechanizace"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 21,
-    "tractor_code": "J03 3669",
-    "tractor_name": "Zetor 9540 (105)",
+    "tractor_code": "7J9 0655",
+    "tractor_name": "Škoda Karoq",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 22,
-    "tractor_code": "J02 6889",
-    "tractor_name": "Z Proxima Power",
+    "tractor_code": "6J9 8237",
+    "tractor_name": "Škoda Roomster",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   },
   {
     "id": 23,
-    "tractor_code": "nemá - Domamil",
-    "tractor_name": "Domamil",
+    "tractor_code": "7E3 1433",
+    "tractor_name": "Dacia Logan",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
     "vehicle_type": "traktor",
     "status": "active",
-    "created_at": "2026-05-30T12:13:33.919Z",
+    "created_at": "2026-06-26T16:01:54.175Z",
     "created_by": "Import z Documents",
-    "updated_at": "2026-05-30T12:13:33.919Z",
+    "updated_at": "2026-06-26T16:01:54.175Z",
     "updated_by": "Import z Documents",
-    "last_change": "Import z Documents/Seznam stroju.JPG"
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 24,
+    "tractor_code": "7J4 9087",
+    "tractor_name": "Škoda KAROQ",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 25,
+    "tractor_code": "7J4 0121",
+    "tractor_name": "Škoda KAROQ",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 26,
+    "tractor_code": "5J3 7862",
+    "tractor_name": "Škoda Fabia kombi",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 27,
+    "tractor_code": "4J5 6209",
+    "tractor_name": "Škoda Octavia kombi",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 28,
+    "tractor_code": "2J4 0075",
+    "tractor_name": "Škoda octavia",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 29,
+    "tractor_code": "6J0 4460",
+    "tractor_name": "Dacia Duster",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 30,
+    "tractor_code": "7J4 9098",
+    "tractor_name": "Ford Transit",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 31,
+    "tractor_code": "1J6 8693",
+    "tractor_name": "Přívěs valníkový Vario AK",
+    "service_centers": [],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 32,
+    "tractor_code": "5J5 5701",
+    "tractor_name": "Přívěs valníkový VEZEKO",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 33,
+    "tractor_code": "7J0 0125",
+    "tractor_name": "Přívěs s nápravami HUMBAUR",
+    "service_centers": [
+      "Mechanizace"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 34,
+    "tractor_code": "S05 0148",
+    "tractor_name": "Traktor FENDT VARIO 724",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 35,
+    "tractor_code": "S05 8924",
+    "tractor_name": "Traktor FENDT VARIO 724",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 36,
+    "tractor_code": "S07 2384",
+    "tractor_name": "Traktor FENDT 1165 PÁSÁK",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 37,
+    "tractor_code": "S07 6568",
+    "tractor_name": "Traktor FENDT 516",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 38,
+    "tractor_code": "S07 6551",
+    "tractor_name": "Traktor FENDT 828",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 39,
+    "tractor_code": "J03 7561",
+    "tractor_name": "Traktor FENDT 211",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 40,
+    "tractor_code": "J02 2050",
+    "tractor_name": "Traktor NEW HOLLAND TS135A",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 41,
+    "tractor_code": "J03 3668",
+    "tractor_name": "Traktor NEW HOLLAND TM155",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 42,
+    "tractor_code": "J01 6057",
+    "tractor_name": "Traktor Challenger MT 865 C",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 43,
+    "tractor_code": "J02 3322",
+    "tractor_name": "Traktor Challenger MT 545 B",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 44,
+    "tractor_code": "TR 25-69",
+    "tractor_name": "Traktor Zetor 3011",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 45,
+    "tractor_code": "TR 38-85",
+    "tractor_name": "Traktor Zetor 4511",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 46,
+    "tractor_code": "TR 69-74",
+    "tractor_name": "Traktor Zetor 6911",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 47,
+    "tractor_code": "TR 00-42",
+    "tractor_name": "Traktor Zetor 7211",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 48,
+    "tractor_code": "TRA 01-50",
+    "tractor_name": "Traktor Zetor 7711",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 49,
+    "tractor_code": "TRA 06-08",
+    "tractor_name": "Traktor Zetor 7711",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 50,
+    "tractor_code": "J02 3536",
+    "tractor_name": "Traktor Zetor 7711",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 51,
+    "tractor_code": "nemá",
+    "tractor_name": "Traktor Zetor 7245",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 52,
+    "tractor_code": "J03 0381",
+    "tractor_name": "Traktor Zetor 7745",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 53,
+    "tractor_code": "TRA 23-73",
+    "tractor_name": "Traktor Zetor 9641",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 54,
+    "tractor_code": "J03 3669",
+    "tractor_name": "Traktor Zetor 9540 (105)",
+    "service_centers": [
+      "Stavební skupina"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 55,
+    "tractor_code": "J02 6889",
+    "tractor_name": "Traktor Z Proxima Power",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 56,
+    "tractor_code": "nemá",
+    "tractor_name": "Traktor Domamil",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 57,
+    "tractor_code": "J04 3672",
+    "tractor_name": "Triotrac - krm.vůz - samochod",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 58,
+    "tractor_code": "bez SPZ - řádek 59",
+    "tractor_name": "Labrador - krmný vůz",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 59,
+    "tractor_code": "bez SPZ - řádek 60",
+    "tractor_name": "Cernins - krmný vůz",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 60,
+    "tractor_code": "bez SPZ - řádek 61",
+    "tractor_name": "Trioliet Solomix - tažený",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 61,
+    "tractor_code": "A01 0710",
+    "tractor_name": "Trioliet Triotrac - samochod",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 62,
+    "tractor_code": "bez SPZ - řádek 63",
+    "tractor_name": "Přepravník zvířat PZ1",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 63,
+    "tractor_code": "5000.0",
+    "tractor_name": "cisterna JOSKIN",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 64,
+    "tractor_code": "J02 6907",
+    "tractor_name": "Jansky LTA 24 L",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 65,
+    "tractor_code": "J03 4640",
+    "tractor_name": "Krone EGU 235/1",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 66,
+    "tractor_code": "J02 9039",
+    "tractor_name": "STAPEL zapravovač",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 67,
+    "tractor_code": "J04 2171",
+    "tractor_name": "MILEVSKO",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 68,
+    "tractor_code": "J04 2241",
+    "tractor_name": "MILEVSKO II.",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 69,
+    "tractor_code": "J02 6905",
+    "tractor_name": "Podv. Panav Dolly",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 70,
+    "tractor_code": "J03 8204",
+    "tractor_name": "Podv. Panav Dolly II.",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 71,
+    "tractor_code": "B03 0572",
+    "tractor_name": "METACO",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 72,
+    "tractor_code": "Z03 3960",
+    "tractor_name": "Bodex",
+    "service_centers": [
+      "BPS"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 73,
+    "tractor_code": "J03 4613",
+    "tractor_name": "PANAV NS 1 36",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 74,
+    "tractor_code": "J03 4612",
+    "tractor_name": "PANAV NS 144H",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 75,
+    "tractor_code": "J02 9047",
+    "tractor_name": "PANAV 3",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 76,
+    "tractor_code": "J03 4619",
+    "tractor_name": "SCHWARZMULLER",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 77,
+    "tractor_code": "J02 3516",
+    "tractor_name": "vyvážečka GUSTROW",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 78,
+    "tractor_code": "TR 59-95",
+    "tractor_name": "MV 2 - 022",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 79,
+    "tractor_code": "J02 3433",
+    "tractor_name": "BSS PS2 08.06 Agro",
+    "service_centers": [],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 80,
+    "tractor_code": "TR 67-41",
+    "tractor_name": "BSS PS2 08.06 Agro",
+    "service_centers": [],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 81,
+    "tractor_code": "TR 53-23",
+    "tractor_name": "BSS P 73 SH",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 82,
+    "tractor_code": "TR 73-20",
+    "tractor_name": "BSS P 73 SH",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 83,
+    "tractor_code": "TR 78-83",
+    "tractor_name": "BSS P 73 SH",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 84,
+    "tractor_code": "TR 77-02",
+    "tractor_name": "BSS PS2 09.07 Agro",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 85,
+    "tractor_code": "J01 6005",
+    "tractor_name": "BSS P93 S",
+    "service_centers": [],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 86,
+    "tractor_code": "J03 4686",
+    "tractor_name": "BSS P93 S           Z",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 87,
+    "tractor_code": "J01 6034",
+    "tractor_name": "BSS P93 S           Z",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 88,
+    "tractor_code": "TR 50-67",
+    "tractor_name": "BSS P93 S",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 89,
+    "tractor_code": "bez SPZ - řádek 90",
+    "tractor_name": "NSHR - vůz s rukou",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 90,
+    "tractor_code": "TR 60-25",
+    "tractor_name": "BSS P93 S           Z",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 91,
+    "tractor_code": "TR 63-67",
+    "tractor_name": "BSS PS2 12.09 Agro",
+    "service_centers": [],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 92,
+    "tractor_code": "J04 2329",
+    "tractor_name": "MV 2-027 (TR 76-30)",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 93,
+    "tractor_code": "J02 3537",
+    "tractor_name": "NS 900 H",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 94,
+    "tractor_code": "J01 1075",
+    "tractor_name": "MEGA 25 č.1",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 95,
+    "tractor_code": "J01 1032",
+    "tractor_name": "MEGA 20 č. 2",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 96,
+    "tractor_code": "TR 92-68",
+    "tractor_name": "MEGA 20 č.3",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 97,
+    "tractor_code": "TR 92-69",
+    "tractor_name": "ZDT NS 20 č.4",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 98,
+    "tractor_code": "J02 9042",
+    "tractor_name": "JOSKIN - přepr. dob.",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 99,
+    "tractor_code": "J02 3405",
+    "tractor_name": "Postř. Rogátor 1245",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 100,
+    "tractor_code": "J03 9978",
+    "tractor_name": "Postřik. rogátor 1300",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 101,
+    "tractor_code": "Z02 6081",
+    "tractor_name": "VREDO",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 102,
+    "tractor_code": "J03 3564",
+    "tractor_name": "ŘEZAČKA KRONE BIG",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 103,
+    "tractor_code": "J02 3533",
+    "tractor_name": "Traktorbagr JCB 3CX",
+    "service_centers": [
+      "Stavební skupina"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 104,
+    "tractor_code": "J01 5988",
+    "tractor_name": "Volvo L 150 G (nakladač)",
+    "service_centers": [
+      "BPS"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 105,
+    "tractor_code": "S05 8937",
+    "tractor_name": "WEIDEMAN 9080",
+    "service_centers": [
+      "BPS"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 106,
+    "tractor_code": "bez SPZ - řádek 107",
+    "tractor_name": "Nakladač JCB 560-80",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 107,
+    "tractor_code": "J01 6008",
+    "tractor_name": "Manitou 845 120 LSU",
+    "service_centers": [
+      "BPS"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 108,
+    "tractor_code": "J01 6077",
+    "tractor_name": "Manitou MLT 634-120",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 109,
+    "tractor_code": "J03 9125",
+    "tractor_name": "Manitou 840",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 110,
+    "tractor_code": "bez SPZ",
+    "tractor_name": "WEIDEMAN 1350",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 111,
+    "tractor_code": "J04 2530",
+    "tractor_name": "WEIDEMAN T6027",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 112,
+    "tractor_code": "S06 2913",
+    "tractor_name": "WEIDEMAN T7042",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 113,
+    "tractor_code": "bez SPZ - řádek 114",
+    "tractor_name": "Nakladač BOBEK 861 Novotný",
+    "service_centers": [
+      "Živočišná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 114,
+    "tractor_code": "bez SPZ - řádek 115",
+    "tractor_name": "VZV Desta ND9031 - žlu.",
+    "service_centers": [
+      "Mechanizace"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 115,
+    "tractor_code": "bez SPZ - řádek 116",
+    "tractor_name": "VZV Desta DVHM 3522 - čer.",
+    "service_centers": [
+      "Stavební skupina"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 116,
+    "tractor_code": "J04 1490",
+    "tractor_name": "Zameták RAVO",
+    "service_centers": [
+      "Stavební skupina"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 117,
+    "tractor_code": "TR 9631",
+    "tractor_name": "Tatra 815",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 118,
+    "tractor_code": "J04 3707",
+    "tractor_name": "Tatra T158",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 119,
+    "tractor_code": "J04 3784",
+    "tractor_name": "Tatra T158  J02 6876",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 120,
+    "tractor_code": "J02 6844",
+    "tractor_name": "Tatra T158",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 121,
+    "tractor_code": "T02 4779",
+    "tractor_name": "Tatra T158",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
+  },
+  {
+    "id": 122,
+    "tractor_code": "J02 6921",
+    "tractor_name": "Tatra Phoenix 6x6",
+    "service_centers": [
+      "Rostlinná výroba"
+    ],
+    "vehicle_type": "traktor",
+    "status": "active",
+    "created_at": "2026-06-26T16:01:54.175Z",
+    "created_by": "Import z Documents",
+    "updated_at": "2026-06-26T16:01:54.175Z",
+    "updated_by": "Import z Documents",
+    "last_change": "Import z Documents/seznam a rozřazení strojů.xlsx"
   }
 ]

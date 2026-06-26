@@ -2,6 +2,7 @@ import { ChangeEvent, useEffect, useState } from 'react';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { FieldRecord, Tractor, WorkType } from '../types';
+import { formatCzechDate } from '../utils/format';
 
 interface PendingReport {
   id: number;
@@ -12,11 +13,12 @@ interface PendingReport {
   work_type_id?: number;
   user_id?: number;
   date: string;
-  time_start: string;
-  time_end: string;
+  time_start?: string | null;
+  time_end?: string | null;
   tractor_name: string;
   field_name: string;
   work_type: string;
+  hours_worked?: number | string;
   amount_ha?: number | string;
   fuel_liters?: number | string;
   fuel_date?: string;
@@ -37,7 +39,22 @@ function calculateHours(timeStart: string, timeEnd: string) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('cs-CZ').format(new Date(value));
+  return formatCzechDate(value);
+}
+
+function normalizeTime(value?: string | null) {
+  return value ? value.slice(0, 5) : '';
+}
+
+function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
+  return report ? ['Dovolená', 'Školení'].includes(report.work_type) : false;
+}
+
+function displayTime(report: PendingReport) {
+  if (isAbsenceReport(report)) return 'celý den';
+  const start = normalizeTime(report.time_start);
+  const end = normalizeTime(report.time_end);
+  return start && end ? `${start}-${end} h` : '-';
 }
 
 function calculateFieldPercent(report: EditableReport | null, fields: FieldRecord[]) {
@@ -136,8 +153,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
       setSelectedReport({
         ...report,
         date: report.date.slice(0, 10),
-        time_start: report.time_start.slice(0, 5),
-        time_end: report.time_end.slice(0, 5)
+        time_start: normalizeTime(report.time_start),
+        time_end: normalizeTime(report.time_end)
       });
     } catch (error) {
       console.error(error);
@@ -156,21 +173,25 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const saveReportDetail = async () => {
     if (!selectedReport) return false;
+    const absence = isAbsenceReport(selectedReport);
+    const timeStart = normalizeTime(selectedReport.time_start);
+    const timeEnd = normalizeTime(selectedReport.time_end);
 
     try {
       await client.put(`/reports/${selectedReport.id}`, {
+        report_kind: absence ? (selectedReport.work_type === 'Dovolená' ? 'leave' : 'training') : 'work',
         tractor_id: selectedReport.tractor_id,
         user_id: selectedReport.user_id ?? user?.id ?? 1,
         field_id: selectedReport.field_id,
         work_type_id: selectedReport.work_type_id,
         date: selectedReport.date,
-        time_start: `${selectedReport.time_start.slice(0, 5)}:00`,
-        time_end: `${selectedReport.time_end.slice(0, 5)}:00`,
+        time_start: absence || !timeStart ? null : `${timeStart}:00`,
+        time_end: absence || !timeEnd ? null : `${timeEnd}:00`,
         break_hours: 0,
-        hours_worked: calculateHours(selectedReport.time_start, selectedReport.time_end),
+        hours_worked: absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
         amount_ha: Number(selectedReport.amount_ha ?? 0),
         fuel_liters: 0,
-        fuel_entry: Number(selectedReport.fuel_liters ?? 0) > 0 ? {
+        fuel_entry: !absence && Number(selectedReport.fuel_liters ?? 0) > 0 ? {
           date: selectedReport.fuel_date ?? selectedReport.date,
           tractor_id: selectedReport.tractor_id,
           user_id: selectedReport.user_id ?? user?.id ?? 1,
@@ -256,7 +277,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
                   <td data-label="Datum">{formatDate(report.date)}</td>
                   <td data-label="Činnost">{report.work_type}</td>
-                  <td data-label="Čas">{report.time_start.slice(0, 5)} h</td>
+                  <td data-label="Čas">{displayTime(report)}</td>
                   <td data-label="Pozemek">{report.field_name}</td>
                   <td data-label="Stroj">{report.tractor_name}</td>
                   <td data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
@@ -271,6 +292,9 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           </table>
         )}
         {selectedReport ? (
+          (() => {
+            const absence = isAbsenceReport(selectedReport);
+            return (
           <div className="modal-backdrop" role="presentation">
             <div className="modal-panel approval-detail-modal" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle">
               <div className="modal-heading">
@@ -283,8 +307,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
                 <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
-                <label className="detail-field">Od<input type="time" value={selectedReport.time_start} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /></label>
-                <label className="detail-field">Do<input type="time" value={selectedReport.time_end} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /></label>
+                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /></label>
+                <label className="detail-field">Do<input type="time" value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /></label>
                 <label className="detail-field">
                   Činnost
                   <select value={selectedReport.work_type_id ?? ''} onChange={handleDetailNumberChange('work_type_id')}>
@@ -293,13 +317,15 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 </label>
                 <label className="detail-field">
                   Pozemek
-                  <select value={selectedReport.field_id ?? ''} onChange={handleDetailNumberChange('field_id')}>
+                  <select value={selectedReport.field_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('field_id')}>
+                    {absence ? <option value="">Bez pozemku</option> : null}
                     {fields.map((item) => <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>)}
                   </select>
                 </label>
                 <label className="detail-field">
                   Stroj
-                  <select value={selectedReport.tractor_id ?? ''} onChange={handleDetailNumberChange('tractor_id')}>
+                  <select value={selectedReport.tractor_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('tractor_id')}>
+                    {absence ? <option value="">Bez stroje</option> : null}
                     {tractors.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
@@ -309,11 +335,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 </label>
                 <label className="detail-field">
                   Počet ha
-                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} onChange={handleDetailNumberChange('amount_ha')} />
+                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} disabled={absence} onChange={handleDetailNumberChange('amount_ha')} />
                   {selectedFieldPercent !== null ? <small className="field-hint field-hint--inline">Odpovídá cca {selectedFieldPercent} % výměry pozemku.</small> : null}
                 </label>
-                <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} onChange={handleDetailNumberChange('fuel_liters')} /></label>
-                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
+                <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
+                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               <div className="modal-actions">
@@ -325,6 +351,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               </div>
             </div>
           </div>
+            );
+          })()
         ) : null}
       </div>
     </div>

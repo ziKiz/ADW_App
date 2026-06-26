@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
+import { getUser } from '../utils/auth';
+import { serviceCenters } from '../utils/employeeContext';
+import { formatCzechDateTime } from '../utils/format';
 
 interface UserRecord {
   id: number;
@@ -23,16 +26,18 @@ interface UserRecord {
 
 function formatAuditDate(value?: string) {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('cs-CZ', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-  }).format(new Date(value));
+  return formatCzechDateTime(value);
 }
 
 function UsersView() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editedUser, setEditedUser] = useState<UserRecord | null>(null);
+  const user = getUser();
+  const canEditOrganization = user?.role === 'admin' || user?.full_name === 'Ing. Martina Novotná';
+  const roleOptions = ['admin', 'reditel', 'schvalovatel', 'specialista', 'zamestnanec', 'traktorista', 'helios'];
 
   useEffect(() => {
     client.get('/users')
@@ -46,6 +51,32 @@ function UsersView() {
     const role = user.role_name ?? user.role_code ?? user.role;
     return (roleFilter === 'all' || role === roleFilter) && (departmentFilter === 'all' || user.department_name === departmentFilter);
   });
+
+  const startEdit = (item: UserRecord) => {
+    setEditingId(item.id);
+    setEditedUser({ ...item });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditedUser(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editedUser) return;
+    try {
+      const response = await client.put(`/users/${editedUser.id}`, editedUser);
+      const saved = response.data as UserRecord;
+      setUsers((items) => items.map((item) => item.id === saved.id ? { ...item, ...saved, role_name: saved.role } : item));
+      cancelEdit();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const updateEdited = (changes: Partial<UserRecord>) => {
+    setEditedUser((item) => item ? { ...item, ...changes } : item);
+  };
 
   return (
     <div className="container">
@@ -83,20 +114,58 @@ function UsersView() {
               <th>Role</th>
               <th>Rozsah</th>
               <th>Poslední úprava</th>
+              {canEditOrganization ? <th>Akce</th> : null}
             </tr>
           </thead>
           <tbody>
-            {filteredUsers.map((user) => (
-              <tr key={user.id}>
-                <td data-label="Jméno">{user.full_name}</td>
-                <td data-label="Středisko">{user.department_name ?? '-'}</td>
-                <td data-label="Pozice">{user.position ?? '-'}</td>
-                <td data-label="Nadřízený">{user.manager_name || '-'}</td>
-                <td data-label="Role"><span className="status-green">{user.role_name ?? user.role_code ?? user.role}</span></td>
-                <td data-label="Rozsah">{user.scope_department ?? '-'}</td>
-                <td data-label="Poslední úprava">{formatAuditDate(user.updated_at)}</td>
-              </tr>
-            ))}
+            {filteredUsers.map((item) => {
+              const isEditing = editingId === item.id && editedUser;
+              return (
+                <tr key={item.id}>
+                  <td data-label="Jméno">
+                    {isEditing ? <input value={editedUser.full_name} onChange={(event) => updateEdited({ full_name: event.target.value })} /> : item.full_name}
+                  </td>
+                  <td data-label="Středisko">
+                    {isEditing ? (
+                      <select value={editedUser.department_name ?? ''} onChange={(event) => updateEdited({ department_name: event.target.value, scope_department: event.target.value })}>
+                        {serviceCenters.map((center) => <option key={center} value={center}>{center}</option>)}
+                      </select>
+                    ) : item.department_name ?? '-'}
+                  </td>
+                  <td data-label="Pozice">
+                    {isEditing ? <input value={editedUser.position ?? ''} onChange={(event) => updateEdited({ position: event.target.value })} /> : item.position ?? '-'}
+                  </td>
+                  <td data-label="Nadřízený">{item.manager_name || '-'}</td>
+                  <td data-label="Role">
+                    {isEditing ? (
+                      <select value={editedUser.role} onChange={(event) => updateEdited({ role: event.target.value })}>
+                        {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+                      </select>
+                    ) : <span className="status-green">{item.role_name ?? item.role_code ?? item.role}</span>}
+                  </td>
+                  <td data-label="Rozsah">
+                    {isEditing ? (
+                      <select value={editedUser.scope_department ?? editedUser.department_name ?? ''} onChange={(event) => updateEdited({ scope_department: event.target.value })}>
+                        {serviceCenters.map((center) => <option key={center} value={center}>{center}</option>)}
+                      </select>
+                    ) : item.scope_department ?? '-'}
+                  </td>
+                  <td data-label="Poslední úprava">{formatAuditDate(item.updated_at)}</td>
+                  {canEditOrganization ? (
+                    <td data-label="Akce">
+                      {isEditing ? (
+                        <div className="table-actions">
+                          <button type="button" className="edit-action" onClick={saveEdit}>Uložit</button>
+                          <button type="button" className="edit-action" onClick={cancelEdit}>Zrušit</button>
+                        </div>
+                      ) : (
+                        <button type="button" className="edit-action" onClick={() => startEdit(item)}>Upravit</button>
+                      )}
+                    </td>
+                  ) : null}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </section>

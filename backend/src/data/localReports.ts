@@ -7,11 +7,12 @@ import { departments, employees } from './organizationData';
 
 export interface LocalReportInput {
   report_number: string;
-  tractor_id: number;
+  report_kind?: 'work' | 'leave' | 'training';
+  tractor_id?: number | null;
   user_id: number;
   employee_name?: string;
   service_center?: string;
-  field_id: number;
+  field_id?: number | null;
   field_entries?: Array<Record<string, unknown>>;
   work_type_id: number;
   date: string;
@@ -49,6 +50,7 @@ function ensureLocalDataDir() {
 const reportEmployees = employees.filter((employee) => employee.position.startsWith('Zaměstnanec'));
 const demoEmployees = reportEmployees.map((employee) => employee.full_name);
 const reportDepartments = departments.filter((department) => department.department_id !== 1);
+const fieldWorkTypes = fallbackWorkTypes.filter((item) => !['Dovolená', 'Školení'].includes(item.name));
 
 const demoNotes = [
   'Práce proběhla bez závad.',
@@ -111,7 +113,7 @@ function createDemoReports(): LocalReport[] {
       employee_name: demoEmployees[index % demoEmployees.length],
       service_center: reportEmployees[index % reportEmployees.length]?.home_department ?? reportDepartments[index % reportDepartments.length]?.name ?? 'Rostlinná výroba',
       field_id: ((index * 13) % fieldsCount) + 1,
-      work_type_id: (index % fallbackWorkTypes.length) + 1,
+      work_type_id: fieldWorkTypes[index % fieldWorkTypes.length]?.id ?? 1,
       date,
       time_start: `${String(startHour).padStart(2, '0')}:00:00`,
       time_end: `${String(endHour).padStart(2, '0')}:${endMinutes}:00`,
@@ -188,8 +190,8 @@ function writeReports(reports: LocalReport[]) {
 }
 
 function decorateReport(report: LocalReport) {
-  const tractor = documentTractors[report.tractor_id - 1];
-  const field = extractDocumentFields()[report.field_id - 1];
+  const tractor = report.tractor_id ? documentTractors[report.tractor_id - 1] : null;
+  const field = report.field_id ? extractDocumentFields()[report.field_id - 1] : null;
   const workType = fallbackWorkTypes.find((item) => item.id === report.work_type_id);
   const fuelSummary = summarizeFuelEntries(report.id, report.fuel_liters);
 
@@ -197,8 +199,8 @@ function decorateReport(report: LocalReport) {
     ...report,
     ...fuelSummary,
     employee_name: report.employee_name ?? `Zaměstnanec ${report.user_id}`,
-    tractor_name: tractor?.name ?? `Traktor ${report.tractor_id}`,
-    field_name: field?.name ?? `Pole ${report.field_id}`,
+    tractor_name: tractor?.name ?? '-',
+    field_name: field?.name ?? '-',
     work_type: workType?.name ?? `Práce ${report.work_type_id}`
   };
 }

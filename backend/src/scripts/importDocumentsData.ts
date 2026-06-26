@@ -6,15 +6,16 @@ async function importData() {
 
   await pool.query('BEGIN');
   try {
+    await pool.query("ALTER TABLE tractors ADD COLUMN IF NOT EXISTS service_centers TEXT[] DEFAULT '{}'");
     await pool.query("UPDATE tractors SET status = 'inactive' WHERE vehicle_type = 'traktor'");
 
     for (const tractor of documentTractors) {
       await pool.query(
-        `INSERT INTO tractors (tractor_code, tractor_name, vehicle_type, status)
-         VALUES ($1, $2, 'traktor', 'active')
+        `INSERT INTO tractors (tractor_code, tractor_name, service_centers, vehicle_type, status)
+         VALUES ($1, $2, $3, 'traktor', 'active')
          ON CONFLICT (tractor_code)
-         DO UPDATE SET tractor_name = EXCLUDED.tractor_name, vehicle_type = EXCLUDED.vehicle_type, status = 'active'`,
-        [tractor.code, tractor.name]
+         DO UPDATE SET tractor_name = EXCLUDED.tractor_name, service_centers = EXCLUDED.service_centers, vehicle_type = EXCLUDED.vehicle_type, status = 'active'`,
+        [tractor.code, tractor.name, tractor.service_centers]
       );
     }
 

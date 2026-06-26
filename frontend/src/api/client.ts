@@ -6,6 +6,8 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
 const demoDataBase = `${import.meta.env.BASE_URL}demo-data`;
 const storedReportsKey = 'adw_demo_reports';
 const storedFuelEntriesKey = 'adw_demo_fuel_entries';
+const storedUsersKey = 'adw_demo_users';
+const storedAuditKey = 'adw_demo_audit';
 
 const client = axios.create({
   baseURL: API_BASE,
@@ -75,6 +77,42 @@ function buildReportsCsv(reports: any[]) {
   return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 }
 
+function appendDemoAudit(collection: string, recordId: number, action: string, before: unknown, after: unknown) {
+  const audit = getStoredJson<any[]>(storedAuditKey, []);
+  audit.push({
+    id: audit.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0) + 10000,
+    collection,
+    record_id: recordId,
+    action,
+    changed_at: new Date().toISOString(),
+    changed_by: getUser()?.full_name ?? 'Demo uživatel',
+    changed_by_id: getUser()?.id ?? null,
+    before,
+    after
+  });
+  setStoredJson(storedAuditKey, audit);
+}
+
+function normalizeServiceCenter(value?: string) {
+  if (value === 'Bioplynová stanice') return 'BPS';
+  if (value === 'Mini Mlékárna') return 'Mini mlékárna';
+  return String(value ?? '').trim();
+}
+
+function isElevatedRole(role?: string) {
+  return ['admin', 'reditel'].includes(String(role ?? '').toLocaleLowerCase('cs'));
+}
+
+function filterTractorsForServiceCenter(tractors: any[], serviceCenter?: string, role?: string) {
+  const normalizedCenter = normalizeServiceCenter(serviceCenter);
+  if (!normalizedCenter) return tractors;
+  const elevated = isElevatedRole(role);
+  return tractors.filter((tractor) => {
+    const centers = Array.isArray(tractor.service_centers) ? tractor.service_centers : [];
+    return centers.includes(normalizedCenter) || (elevated && centers.length === 0);
+  });
+}
+
 function decorateReports(reports: any[], fields: any[], tractors: any[], workTypes: any[], fuelEntries: any[]) {
   return reports.map((report) => {
     const field = fields.find((item) => Number(item.id) === Number(report.field_id));
@@ -88,8 +126,8 @@ function decorateReports(reports: any[], fields: any[], tractors: any[], workTyp
       fuel_liters: fuelLiters > 0 ? fuelLiters : Number(report.fuel_liters || 0),
       fuel_date: reportFuelEntries[0]?.date,
       fuel_note: reportFuelEntries[0]?.note,
-      field_name: report.field_name ?? field?.field_name ?? `Pole ${report.field_id}`,
-      tractor_name: report.tractor_name ?? tractor?.tractor_name ?? `Stroj ${report.tractor_id}`,
+      field_name: report.field_name ?? field?.field_name ?? (report.field_id ? `Pole ${report.field_id}` : '-'),
+      tractor_name: report.tractor_name ?? tractor?.tractor_name ?? (report.tractor_id ? `Stroj ${report.tractor_id}` : '-'),
       work_type: report.work_type ?? workType?.name ?? `Činnost ${report.work_type_id}`
     };
   });
@@ -109,8 +147,19 @@ async function getDemoReports() {
     .sort((first, second) => String(second.created_at ?? '').localeCompare(String(first.created_at ?? '')));
 }
 
+async function getDemoUsers() {
+  const users = await loadDemoJson<any[]>('users.json');
+  const storedUsers = getStoredJson<any[]>(storedUsersKey, []);
+  return users.map((user) => storedUsers.find((item) => Number(item.id) === Number(user.id)) ?? user);
+}
+
 async function createDemoReport(config: InternalAxiosRequestConfig) {
   const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+  const tractors = await loadDemoJson<any[]>('tractors.json');
+  const allowedTractors = filterTractorsForServiceCenter(tractors, body.service_center, getUser()?.role);
+  if ((!body.report_kind || body.report_kind === 'work') && !allowedTractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
+    throw new Error('Vybraný stroj nepatří do zvoleného střediska.');
+  }
   const existingReports = await getDemoReports();
   const storedReports = getStoredJson<any[]>(storedReportsKey, []);
   const storedFuelEntries = getStoredJson<any[]>(storedFuelEntriesKey, []);
@@ -138,7 +187,29 @@ async function createDemoReport(config: InternalAxiosRequestConfig) {
 
   setStoredJson(storedReportsKey, storedReports);
   setStoredJson(storedFuelEntriesKey, storedFuelEntries);
+  appendDemoAudit('reports', id, 'create', null, report);
   return responseFromDemo(config, { id, local: true });
+}
+
+async function updateDemoUser(config: InternalAxiosRequestConfig) {
+  const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+  const id = Number(normalizeEndpoint(config.url).split('/')[1]);
+  const users = await getDemoUsers();
+  const existing = users.find((item) => Number(item.id) === id);
+  if (!existing) throw new Error('Uživatel nenalezen');
+  const updated = {
+    ...existing,
+    ...body,
+    id,
+    updated_at: new Date().toISOString(),
+    updated_by: getUser()?.full_name ?? 'Demo uživatel',
+    last_change: 'Úprava organizace'
+  };
+  const storedUsers = getStoredJson<any[]>(storedUsersKey, []).filter((item) => Number(item.id) !== id);
+  storedUsers.push(updated);
+  setStoredJson(storedUsersKey, storedUsers);
+  appendDemoAudit('users', id, 'update', existing, updated);
+  return responseFromDemo(config, updated);
 }
 
 async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
@@ -149,16 +220,21 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
     return responseFromDemo(config, await loadDemoJson('fields.json'));
   }
   if (endpoint === 'tractors') {
-    return responseFromDemo(config, await loadDemoJson('tractors.json'));
+    const tractors = await loadDemoJson<any[]>('tractors.json');
+    return responseFromDemo(config, filterTractorsForServiceCenter(
+      tractors,
+      (config.params as any)?.service_center,
+      getUser()?.role
+    ));
   }
   if (endpoint === 'users') {
-    return responseFromDemo(config, await loadDemoJson('users.json'));
+    return responseFromDemo(config, await getDemoUsers());
   }
   if (endpoint === 'work-types') {
     return responseFromDemo(config, await loadDemoJson('work-types.json'));
   }
   if (endpoint === 'audit') {
-    const audit = await loadDemoJson<any[]>('audit-log.json');
+    const audit = [...await loadDemoJson<any[]>('audit-log.json'), ...getStoredJson<any[]>(storedAuditKey, [])];
     const limit = Number((config.params as any)?.limit ?? 50);
     return responseFromDemo(config, audit
       .sort((first, second) => String(second.changed_at ?? '').localeCompare(String(first.changed_at ?? '')))
@@ -213,6 +289,9 @@ client.interceptors.response.use(
     const endpoint = normalizeEndpoint(config.url);
     if ((config.method ?? 'get').toLowerCase() === 'post' && endpoint === 'reports') {
       return createDemoReport(config);
+    }
+    if ((config.method ?? '').toLowerCase() === 'put' && endpoint.startsWith('users/')) {
+      return updateDemoUser(config);
     }
     const demoResponse = await getDemoDataForRequest(config);
     if (demoResponse) return demoResponse;

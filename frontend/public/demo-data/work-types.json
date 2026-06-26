@@ -58,5 +58,25 @@
     "updated_at": "2026-05-30T11:44:04.202Z",
     "updated_by": "Systém",
     "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 7,
+    "name": "Dovolená",
+    "description": "Celodenní absence z důvodu dovolené",
+    "created_at": "2026-06-26T14:48:39.752Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:48:39.752Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 8,
+    "name": "Školení",
+    "description": "Účast na školení nebo interní vzdělávání",
+    "created_at": "2026-06-26T14:48:39.752Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:48:39.752Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
   }
 ]

@@ -311,5 +311,81 @@
     "updated_at": "2026-06-03T20:48:37.345Z",
     "updated_by": "Systém",
     "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 10,
+    "collection": "fields",
+    "record_id": 0,
+    "action": "update",
+    "changed_at": "2026-06-26T14:30:02.508Z",
+    "changed_by": "Import z Documents",
+    "changed_by_id": null,
+    "before": null,
+    "after": {
+      "imported": 20,
+      "source": "Documents/Seznam poli.xlsx"
+    },
+    "created_at": "2026-06-26T14:30:02.508Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:30:02.508Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 11,
+    "collection": "tractors",
+    "record_id": 0,
+    "action": "update",
+    "changed_at": "2026-06-26T14:30:02.508Z",
+    "changed_by": "Import z Documents",
+    "changed_by_id": null,
+    "before": null,
+    "after": {
+      "imported": 121,
+      "source": "Documents/seznam a rozřazení strojů.xlsx"
+    },
+    "created_at": "2026-06-26T14:32:32.462Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:32:32.462Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 12,
+    "collection": "fields",
+    "record_id": 0,
+    "action": "update",
+    "changed_at": "2026-06-26T14:32:32.462Z",
+    "changed_by": "Import z Documents",
+    "changed_by_id": null,
+    "before": null,
+    "after": {
+      "imported": 20,
+      "source": "Documents/Seznam poli.xlsx"
+    },
+    "created_at": "2026-06-26T14:32:32.463Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:32:32.463Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
+  },
+  {
+    "id": 13,
+    "collection": "tractors",
+    "record_id": 0,
+    "action": "update",
+    "changed_at": "2026-06-26T14:32:32.463Z",
+    "changed_by": "Import z Documents",
+    "changed_by_id": null,
+    "before": null,
+    "after": {
+      "imported": 122,
+      "source": "Documents/seznam a rozřazení strojů.xlsx"
+    },
+    "created_at": "2026-06-26T14:41:17.125Z",
+    "created_by": "Systém",
+    "updated_at": "2026-06-26T14:41:17.125Z",
+    "updated_by": "Systém",
+    "last_change": "Vytvoření záznamu"
   }
 ]

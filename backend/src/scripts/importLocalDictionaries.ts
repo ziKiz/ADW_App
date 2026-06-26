@@ -9,4 +9,4 @@ const tractors = seedLocalTractorsFromDocuments(audit);
 
 console.log('Lokální číselníky doplněny podle složky Documents.');
 console.log(`Pozemky: ${fields.length} z Documents/Seznam poli.xlsx`);
-console.log(`Stroje: ${tractors.length} z Documents/Seznam stroju.JPG`);
+console.log(`Stroje: ${tractors.length} z Documents/seznam a rozřazení strojů.xlsx`);

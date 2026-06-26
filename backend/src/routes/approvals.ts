@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import pool from '../config/database';
 import { updateLocalReportStatus } from '../data/localReports';
+import { writeAudit } from '../utils/audit';
+import { requireAnyRole } from '../utils/requestAuth';
 
 const router = Router();
 
@@ -24,14 +26,20 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/:id', async (req, res) => {
+  if (!requireAnyRole(req, res, ['admin', 'reditel', 'schvalovatel', 'specialista'], 'Pouze oprávněný schvalovatel může měnit stav výkazu.')) return;
   try {
     const { status, comment, approver_id } = req.body;
     const reportId = Number(req.params.id);
+    const before = await pool.query('SELECT * FROM reports WHERE id = $1', [reportId]);
     await pool.query('UPDATE reports SET status = $1, updated_at = NOW() WHERE id = $2', [status, reportId]);
     await pool.query(
       'INSERT INTO approvals (report_id, approver_id, status, comment, approved_at) VALUES ($1, $2, $3, $4, NOW())',
       [reportId, approver_id, status, comment]
     );
+    await writeAudit(pool, 'reports', reportId, 'approval', before.rows[0] ?? null, { status, comment, approver_id }, {
+      userId: req.header('x-user-id') || String(approver_id ?? ''),
+      userName: req.header('x-user-name')
+    });
     res.json({ message: 'Výkaz byl aktualizován', status });
   } catch (error) {
     console.error(error);

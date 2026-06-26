@@ -5,6 +5,7 @@ import path from 'path';
 export interface TractorSeed {
   code: string;
   name: string;
+  service_centers: string[];
 }
 
 export interface FieldSeed {
@@ -26,31 +27,19 @@ export interface WorkTypeSeed {
 
 const documentsDir = path.resolve(__dirname, '../../..', 'Documents');
 const fieldsWorkbook = 'Seznam poli.xlsx';
+const tractorsWorkbook = 'seznam a rozřazení strojů.xlsx';
 
-export const documentTractors: TractorSeed[] = [
-  { name: 'FENDT VARIO 724', code: 'S05 0148' },
-  { name: 'FENDT VARIO 724', code: 'S05 8924' },
-  { name: 'FENDT 1165 PÁSÁK', code: 'S07 2384' },
-  { name: 'FENDT 516', code: 'S07 6568' },
-  { name: 'FENDT 828', code: 'S07 6551' },
-  { name: 'FENDT 211', code: 'J03 7561' },
-  { name: 'NEW HOLLAND TS135A', code: 'J02 2050' },
-  { name: 'NEW HOLLAND TM155', code: 'J03 3668' },
-  { name: 'Challenger MT 865 C', code: 'J01 6057' },
-  { name: 'Challenger MT 545 B', code: 'J02 3322' },
-  { name: 'Zetor 3011', code: 'TR 25-69' },
-  { name: 'Zetor 4511', code: 'TR 38-85' },
-  { name: 'Zetor 6911', code: 'TR 69-74' },
-  { name: 'Zetor 7211', code: 'TR 00-42' },
-  { name: 'Zetor 7711', code: 'TRA 01-50' },
-  { name: 'Zetor 7711', code: 'TRA 06-08' },
-  { name: 'Zetor 7711', code: 'J02 3536' },
-  { name: 'Zetor 7245', code: 'nemá - Zetor 7245' },
-  { name: 'Zetor 7745', code: 'J03 0381' },
-  { name: 'Zetor 9641', code: 'TRA 23-73' },
-  { name: 'Zetor 9540 (105)', code: 'J03 3669' },
-  { name: 'Z Proxima Power', code: 'J02 6889' },
-  { name: 'Domamil', code: 'nemá - Domamil' }
+const fallbackTractors: TractorSeed[] = [
+  { name: 'FENDT VARIO 724', code: 'S05 0148', service_centers: ['Rostlinná výroba'] },
+  { name: 'FENDT VARIO 724', code: 'S05 8924', service_centers: ['Rostlinná výroba'] },
+  { name: 'FENDT 1165 PÁSÁK', code: 'S07 2384', service_centers: ['Rostlinná výroba'] },
+  { name: 'FENDT 516', code: 'S07 6568', service_centers: ['Rostlinná výroba'] },
+  { name: 'FENDT 828', code: 'S07 6551', service_centers: ['Rostlinná výroba'] },
+  { name: 'FENDT 211', code: 'J03 7561', service_centers: ['Rostlinná výroba'] },
+  { name: 'NEW HOLLAND TS135A', code: 'J02 2050', service_centers: ['Rostlinná výroba'] },
+  { name: 'NEW HOLLAND TM155', code: 'J03 3668', service_centers: ['Rostlinná výroba'] },
+  { name: 'Challenger MT 865 C', code: 'J01 6057', service_centers: ['Rostlinná výroba'] },
+  { name: 'Challenger MT 545 B', code: 'J02 3322', service_centers: ['Rostlinná výroba'] }
 ];
 
 export const fallbackWorkTypes: WorkTypeSeed[] = [
@@ -59,7 +48,9 @@ export const fallbackWorkTypes: WorkTypeSeed[] = [
   { id: 3, name: 'Sklizeň', description: 'Sklizeň úrody' },
   { id: 4, name: 'Mulčování', description: 'Odstranění porostu a údržba mezí' },
   { id: 5, name: 'Hnojení', description: 'Aplikace hnojiva nebo živin' },
-  { id: 6, name: 'Ostatní', description: 'Ostatní práce mimo hlavní kategorie' }
+  { id: 6, name: 'Ostatní', description: 'Ostatní práce mimo hlavní kategorie' },
+  { id: 7, name: 'Dovolená', description: 'Celodenní absence z důvodu dovolené' },
+  { id: 8, name: 'Školení', description: 'Účast na školení nebo interní vzdělávání' }
 ];
 
 const fallbackFields: FieldSeed[] = [
@@ -86,6 +77,13 @@ const fallbackFields: FieldSeed[] = [
 ];
 
 const excelFiles = [
+  'ADWFARM_pozemky_01062026.xls',
+  'Agro Mohelno_pozemky_01062026.xls',
+  'RSL_pozemky_01062026.xls',
+  'RSR_pozemky_01062026.xls',
+  'Archiv/tisk_zem_parcel (13).xls',
+  'Archiv/tisk_zem_parcel (14).xls',
+  'Archiv/tisk_zem_parcel (15).xls',
   'tisk_zem_parcel (13).xls',
   'tisk_zem_parcel (14).xls',
   'tisk_zem_parcel (15).xls'
@@ -124,6 +122,15 @@ const skippedText = new Set([
 ]);
 
 let cachedFields: FieldSeed[] | null = null;
+let cachedTractors: TractorSeed[] | null = null;
+
+function findDocumentFile(fileName: string) {
+  const directPath = path.join(documentsDir, fileName);
+  if (fs.existsSync(directPath)) return directPath;
+  const archivePath = path.join(documentsDir, 'Archiv', fileName);
+  if (fs.existsSync(archivePath)) return archivePath;
+  return null;
+}
 
 function decodeXml(value: string) {
   return value
@@ -147,8 +154,8 @@ function getSharedStrings(workbookPath: string) {
 function readWorkbookSheet(workbookPath: string, sheetNumber: number, sharedStrings: string[]) {
   const output = execFileSync('unzip', ['-p', workbookPath, `xl/worksheets/sheet${sheetNumber}.xml`], { encoding: 'utf8' });
   return [...output.matchAll(/<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g)].map((rowMatch) => {
-    const row: Record<string, string> = {};
-    for (const cellMatch of rowMatch[2].matchAll(/<c[^>]*r="([A-Z]+)\d+"([^>]*)>([\s\S]*?)<\/c>/g)) {
+    const row: Record<string, string> = { __row: rowMatch[1] };
+    for (const cellMatch of rowMatch[2].matchAll(/<c[^>]*r="([A-Z]+)\d+"([^>]*[^/])>([\s\S]*?)<\/c>/g)) {
       const [, column, attributes, body] = cellMatch;
       const valueMatch = body.match(/<v>([\s\S]*?)<\/v>/);
       if (!valueMatch) continue;
@@ -159,9 +166,41 @@ function readWorkbookSheet(workbookPath: string, sheetNumber: number, sharedStri
   });
 }
 
-function extractWorkbookFields(): FieldSeed[] {
-  const workbookPath = path.join(documentsDir, fieldsWorkbook);
+function normalizeServiceCenterName(value: string) {
+  if (value === 'Bioplynová stanice') return 'BPS';
+  if (value === 'Mini Mlékárna') return 'Mini mlékárna';
+  return value;
+}
+
+function isServiceCenterMark(value?: string) {
+  return ['x', '×', '1', 'ano'].includes(String(value ?? '').trim().toLocaleLowerCase('cs'));
+}
+
+function extractWorkbookTractors(): TractorSeed[] {
+  const workbookPath = path.join(documentsDir, tractorsWorkbook);
   if (!fs.existsSync(workbookPath)) return [];
+
+  const sharedStrings = getSharedStrings(workbookPath);
+  const rows = readWorkbookSheet(workbookPath, 1, sharedStrings);
+  const header = rows[0] ?? {};
+  const serviceColumns = ['C', 'D', 'E', 'F', 'G', 'H']
+    .map((column) => ({ column, name: normalizeServiceCenterName(header[column]?.trim() ?? '') }))
+    .filter((item) => item.name);
+
+  return rows.slice(1)
+    .map((row) => ({
+      name: row.A?.trim() ?? '',
+      code: row.B?.trim() || `bez SPZ - řádek ${row.__row}`,
+      service_centers: serviceColumns
+        .filter((item) => isServiceCenterMark(row[item.column]))
+        .map((item) => item.name)
+    }))
+    .filter((tractor) => tractor.name && tractor.code);
+}
+
+function extractWorkbookFields(): FieldSeed[] {
+  const workbookPath = findDocumentFile(fieldsWorkbook);
+  if (!workbookPath) return [];
 
   const sharedStrings = getSharedStrings(workbookPath);
   const fieldsByKey = new Map<string, FieldSeed>();
@@ -260,3 +299,12 @@ export function extractDocumentFields() {
   );
   return cachedFields;
 }
+
+export function extractDocumentTractors() {
+  if (cachedTractors) return cachedTractors;
+  const tractors = extractWorkbookTractors();
+  cachedTractors = tractors.length > 0 ? tractors : fallbackTractors;
+  return cachedTractors;
+}
+
+export const documentTractors = extractDocumentTractors();

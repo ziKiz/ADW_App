@@ -12,6 +12,7 @@ export interface Tractor {
   id: number;
   tractor_code: string;
   tractor_name: string;
+  service_centers?: string[];
   vehicle_type?: string;
   status?: string;
   created_at?: string;
