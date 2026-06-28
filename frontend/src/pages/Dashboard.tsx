@@ -2,7 +2,6 @@ import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
-import { vacationBalance } from '../utils/employeeContext';
 import { formatCzechDate, formatCzechDateTime } from '../utils/format';
 import { addNotice, addServiceTask, getNotices, getServiceTasks, NoticeItem, ServiceTask } from '../utils/localPanels';
 
@@ -186,6 +185,7 @@ function Dashboard() {
   const userReportDates = useMemo(() => new Set(userAllReports.map((report) => String(report.date).slice(0, 10))), [userAllReports]);
   const missingWeekdays = useMemo(() => getPreviousWeekdays(7).filter((day) => !userReportDates.has(day)), [userReportDates]);
   const returnedReports = useMemo(() => userAllReports.filter((report) => report.status === 'rejected'), [userAllReports]);
+  const needsAttentionCount = missingWeekdays.length + returnedReports.length;
   const absencesToday = useMemo(() => {
     const today = toIsoDate(new Date());
     return reports
@@ -312,41 +312,21 @@ function Dashboard() {
             <Link to="/report" className="primary">+ Nový výkaz</Link>
           </div>
 
-          <div className="approval-metrics employee-metrics">
-            <article className="approval-metric approval-metric--orange">
-              <span className="approval-metric__icon">!</span>
-              <div>
-                <span>Chybí výkazy</span>
-                <strong>{missingWeekdays.length}</strong>
-              </div>
-            </article>
-            <article className="approval-metric approval-metric--red">
-              <span className="approval-metric__icon">!</span>
-              <div>
-                <span>Vráceno k úpravě</span>
-                <strong>{returnedReports.length}</strong>
-              </div>
-            </article>
-            <article className="approval-metric approval-metric--green">
-              <span className="approval-metric__icon">D</span>
-              <div>
-                <span>Dovolená k dispozici</span>
-                <strong>{vacationBalance.daysRemaining}</strong>
-                <small>platné k {formatDate(vacationBalance.validTo)}</small>
-              </div>
-            </article>
-          </div>
-          {NoticePanel}
-
-          <section className="attention-panel employee-attention">
-            <h2>Co je potřeba dořešit</h2>
-            <div className="employee-alert-grid employee-alert-grid--single">
-              <article>
-                <strong>{missingWeekdays.length ? 'Doplnit výkaz' : 'Vše vyplněno'}</strong>
-                <span>{missingWeekdays.length ? `Chybí: ${missingWeekdays.map(formatDate).join(', ')}` : 'Za poslední všední dny nechybí žádný výkaz.'}</span>
-              </article>
+          <section className="attention-panel employee-attention employee-attention--summary">
+            <div>
+              <h2>{needsAttentionCount ? 'Vyžaduje pozornost' : 'Vše v pořádku'}</h2>
+              <p>
+                {needsAttentionCount
+                  ? [
+                      missingWeekdays.length ? `Chybí výkazy: ${missingWeekdays.map(formatDate).join(', ')}` : '',
+                      returnedReports.length ? `Vráceno k úpravě: ${returnedReports.length}` : ''
+                    ].filter(Boolean).join(' · ')
+                  : 'Za poslední všední dny nechybí žádný výkaz a nic není vráceno k úpravě.'}
+              </p>
             </div>
+            <strong>{needsAttentionCount}</strong>
           </section>
+          {NoticePanel}
           {AbsencePanel}
           {ServicePanel}
 

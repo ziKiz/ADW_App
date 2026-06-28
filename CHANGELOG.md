@@ -12,6 +12,20 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-06-28
+
+### Mobilní zobrazení
+- Zjednodušen mobilní přehled traktoristy a zaměstnance: odstraněna karta dovolené a chybějící/vrácené výkazy jsou sloučené do jednoho informačního panelu.
+- Zmenšen mobilní horní panel s uživatelem, odhlášením, verzí a platností databáze, aby nezabíral zbytečně vysokou část obrazovky.
+- Upraveny kontakty na mobilu pro všechny uživatele, aby se kategorie a ikony nepřekrývaly na malých displejích.
+
+### Výkazy
+- Rychlé volby `Dovolená` a `Školení` lze druhým klepnutím zrušit a vrátit formulář zpět na běžnou práci.
+
+### Schvalování
+- Z detailu výkazu odstraněna procentuální nápověda u výměry pozemku, protože u ochranných pásů a souvisejících pozemků působila zavádějícím dojmem.
+- Z detailu schvalování se už nezobrazuje generická poznámka `Práce proběhla bez závad.`, pokud ji výkaz obsahuje jen jako výchozí text.
+
 ## 2026-06-27
 
 ### Demo data

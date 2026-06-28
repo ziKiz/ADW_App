@@ -196,6 +196,10 @@ function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
   return workTypes.find((item) => item.name === name)?.id;
 }
 
+function findDefaultWorkTypeId(workTypes: WorkType[]) {
+  return workTypes.find((item) => !['Dovolená', 'Školení'].includes(item.name))?.id;
+}
+
 function belongsToCurrentUser(report: ReportTimeEntry, user: ReturnType<typeof getUser>) {
   if (!user) return false;
   if (report.user_id !== undefined && report.user_id !== null) {
@@ -360,6 +364,12 @@ function ReportForm() {
   };
 
   const selectReportMode = (mode: ReportMode) => {
+    if (reportMode === mode) {
+      setReportMode('work');
+      const workTypeId = findDefaultWorkTypeId(workTypes);
+      if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
+      return;
+    }
     setReportMode(mode);
     const workTypeId = findWorkTypeId(workTypes, mode);
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);

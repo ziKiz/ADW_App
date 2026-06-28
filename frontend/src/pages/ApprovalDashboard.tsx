@@ -57,13 +57,8 @@ function displayTime(report: PendingReport) {
   return start && end ? `${start}-${end} h` : '-';
 }
 
-function calculateFieldPercent(report: EditableReport | null, fields: FieldRecord[]) {
-  if (!report?.field_id) return null;
-  const field = fields.find((item) => Number(item.id) === Number(report.field_id));
-  const fieldArea = Number(field?.area ?? 0);
-  const reportArea = Number(report.amount_ha ?? 0);
-  if (!fieldArea || !reportArea) return null;
-  return Math.round((reportArea / fieldArea) * 100);
+function cleanDefaultNote(value?: string) {
+  return value?.trim() === 'Práce proběhla bez závad.' ? '' : value;
 }
 
 interface ApprovalDashboardProps {
@@ -144,7 +139,6 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const employeeOptions = [...new Set(reports.map((report) => report.employee_name ?? report.report_number))]
     .sort((first, second) => first.localeCompare(second, 'cs'));
-  const selectedFieldPercent = calculateFieldPercent(selectedReport, fields);
 
   const openReportDetail = async (reportId: number) => {
     try {
@@ -154,7 +148,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         ...report,
         date: report.date.slice(0, 10),
         time_start: normalizeTime(report.time_start),
-        time_end: normalizeTime(report.time_end)
+        time_end: normalizeTime(report.time_end),
+        notes: cleanDefaultNote(report.notes)
       });
     } catch (error) {
       console.error(error);
@@ -336,7 +331,6 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <label className="detail-field">
                   Počet ha
                   <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} disabled={absence} onChange={handleDetailNumberChange('amount_ha')} />
-                  {selectedFieldPercent !== null ? <small className="field-hint field-hint--inline">Odpovídá cca {selectedFieldPercent} % výměry pozemku.</small> : null}
                 </label>
                 <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
                 <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>

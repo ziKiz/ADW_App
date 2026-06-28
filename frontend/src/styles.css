@@ -1784,7 +1784,7 @@ label,
     min-width: 0;
     display: grid;
     gap: 0;
-    padding: 12px 14px;
+    padding: 8px 12px 14px;
     box-shadow: none;
     overflow: visible;
   }
@@ -1796,9 +1796,9 @@ label,
   }
 
   .brand-logo {
-    grid-template-columns: 58px minmax(0, 1fr);
-    gap: 10px;
-    font-size: 0.58rem;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 8px;
+    font-size: 0.52rem;
     min-width: 0;
   }
 
@@ -1807,11 +1807,11 @@ label,
   }
 
   .brand-logo svg {
-    width: 58px;
+    width: 48px;
   }
 
   .brand-logo text {
-    font-size: 42px;
+    font-size: 40px;
   }
 
   .desktop-nav {
@@ -1870,10 +1870,10 @@ label,
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
-    margin-top: 10px;
+    margin-top: 6px;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 10px 0 0;
-    font-size: 0.82rem;
+    padding: 7px 0 0;
+    font-size: 0.76rem;
   }
 
   .brand-user span {
@@ -1888,11 +1888,24 @@ label,
 
   .logout-button {
     width: auto;
-    min-height: 30px;
+    min-height: 28px;
     margin-top: 0;
-    padding: 6px 10px;
-    font-size: 0.75rem;
+    padding: 5px 9px;
+    font-size: 0.7rem;
     white-space: nowrap;
+  }
+
+  .app-sidebar__version {
+    justify-self: end;
+    gap: 1px;
+    padding: 3px 0 0;
+    font-size: 0.58rem;
+    line-height: 1.15;
+    text-align: right;
+  }
+
+  .app-sidebar__version small {
+    font-size: 0.54rem;
   }
 
   .page-heading {
@@ -1940,6 +1953,36 @@ label,
 
   .approval-metric strong {
     font-size: 1.6rem;
+  }
+
+  .employee-attention--summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .employee-attention--summary h2 {
+    margin-bottom: 4px;
+  }
+
+  .employee-attention--summary p {
+    margin: 0;
+    color: #53615a;
+    font-size: 0.86rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .employee-attention--summary > strong {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #fff7ed;
+    color: var(--warning);
+    font-size: 1.45rem;
   }
 
   .attention-panel,
@@ -2481,7 +2524,10 @@ label,
 }
 
 .contacts-main {
+  margin-left: 0;
+  padding: 0;
   min-width: 0;
+  overflow: visible;
 }
 
 .contacts-group {
@@ -2703,20 +2749,59 @@ label,
 @media (max-width: 920px) {
   .contacts-layout {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .contacts-sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--line);
     padding-right: 0;
-    padding-bottom: 12px;
+    padding-bottom: 10px;
   }
 
   .contacts-nav {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .contact-category-btn {
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: 5px;
+    min-height: 42px;
+    padding: 6px;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    text-align: left;
+  }
+
+  .category-icon {
+    font-size: 0.9rem;
+  }
+
+  .contacts-group {
+    gap: 10px;
+  }
+
+  .contacts-group h2 {
+    font-size: 1rem;
+  }
+
+  .contact-card {
+    padding: 12px;
+  }
+
+  .contact-header {
+    display: grid;
+    gap: 3px;
+    margin-bottom: 10px;
+  }
+
+  .contact-item {
+    grid-template-columns: 66px minmax(0, 1fr);
+    gap: 7px;
+    font-size: 0.78rem;
   }
 
   .service-schedule-grid {
@@ -2725,6 +2810,15 @@ label,
 }
 
 @media (max-width: 360px) {
+  .contact-category-btn {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .contact-category-btn .category-icon {
+    display: none;
+  }
+
   .approval-detail-modal .detail-field--fuel-liters,
   .approval-detail-modal .detail-field--fuel-date {
     grid-column: 1 / -1;
