@@ -14,6 +14,15 @@ Formát:
 
 ## 2026-06-27
 
+### Demo data
+- Obnovena původní reálná data, jména, pole, stroje, výkazy a lokální podklady podle stavu před anonymizací, aby aplikace znovu používala správnou databázi.
+
+### Navigace
+- Levý navigační panel na desktopu je pevně ukotvený mimo obsah stránky, aby při scrollování neujížděl a odkazy zůstaly dostupné.
+
+### Dashboard
+- Opraven pád úvodního přehledu u výkazů typu dovolená nebo školení bez vyplněného času, aby se stránka nenačetla jako bílá obrazovka.
+
 ### Bezpečnost publikace
 - Z repozitáře vyřazeny lokální podklady ve složce `Documents`, aby se nepublikovaly na GitHub Pages.
 - Veřejná demo data ve `frontend/public/demo-data` byla anonymizována.

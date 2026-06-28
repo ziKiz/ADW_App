@@ -144,9 +144,9 @@ function updateLocal<T extends { id: number } & AnyRow>(filePath: string, fallba
 
 export function getLocalUsers() {
   const rows = readLocal(usersFile, fallbackUsers);
-  const legacyNames = new Set(['Starý Demo 1', 'Starý Demo 2', 'Starý Demo 3', 'Starý Demo 4', 'Admin', 'Agronom', 'Ekonomka']);
+  const legacyNames = new Set(['Tomáš Horák', 'Marek Svoboda', 'Zbyněk Kovář', 'Lukáš Novotný', 'Admin', 'Agronom', 'Ekonomka']);
   const hasLegacyDemoUsers = rows.some((row) => legacyNames.has(String(row.full_name ?? '')));
-  const hasOrganizationUsers = rows.some((row) => row.full_name === 'Demo Admin') && rows.some((row) => row.full_name === 'Demo Ředitel');
+  const hasOrganizationUsers = rows.some((row) => row.full_name === 'Ing. Martina Novotná') && rows.some((row) => row.full_name === 'Ing. Petr Kuba');
   if (hasLegacyDemoUsers || !hasOrganizationUsers) {
     const seeded = fallbackUsers.map((row) => withInitialAudit(row, { userName: 'Import organizačního modelu' }));
     writeLocal(usersFile, seeded);

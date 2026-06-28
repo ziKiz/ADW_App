@@ -53,8 +53,7 @@ textarea {
   max-width: 100%;
   min-width: 0;
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 228px minmax(0, 1fr);
+  display: block;
   overflow-x: hidden;
 }
 
@@ -64,6 +63,7 @@ textarea {
 
 main {
   min-width: 0;
+  margin-left: 228px;
   padding: 28px;
   overflow-x: hidden;
 }
@@ -76,9 +76,13 @@ main {
 }
 
 .app-sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  z-index: 30;
+  width: 228px;
   height: 100vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -1660,6 +1664,7 @@ label,
   }
 
   main {
+    margin-left: 0;
     padding: 18px;
   }
 
@@ -1746,6 +1751,7 @@ label,
     width: 100%;
     max-width: 100%;
     min-width: 0;
+    margin-left: 0;
     padding: 14px 12px calc(92px + env(safe-area-inset-bottom));
     overflow: visible;
   }

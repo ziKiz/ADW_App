@@ -11,8 +11,8 @@ interface ReportSummary {
   report_number: string;
   employee_name?: string;
   date: string;
-  time_start: string;
-  time_end: string;
+  time_start?: string;
+  time_end?: string;
   hours_worked?: number | string;
   amount_ha?: number | string;
   fuel_liters?: number | string;
@@ -46,7 +46,7 @@ function toIsoDate(date: Date) {
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
 }
 
-function formatTime(value: string) {
+function formatTime(value?: string) {
   return value?.slice(0, 5) ?? '';
 }
 
@@ -84,7 +84,8 @@ function activityText(entry: AuditEntry) {
   return `${actor} ${actionNames[entry.action] ?? entry.action} ${collectionNames[entry.collection] ?? entry.collection}`;
 }
 
-function calculateHours(timeStart: string, timeEnd: string) {
+function calculateHours(timeStart?: string, timeEnd?: string) {
+  if (!timeStart || !timeEnd) return 0;
   return Math.max(
     0,
     (Number(timeEnd.slice(0, 2)) + Number(timeEnd.slice(3, 5)) / 60) -

@@ -25,18 +25,18 @@ function Contacts() {
       contacts: [
         {
           id: 1,
-          name: 'Demo Ředitel',
+          name: 'Ing. Petr Kuba',
           title: 'Ředitel společnosti',
           phone: '+420 603 123 456',
-          email: 'demo.reditel@example.local',
+          email: 'petr.kuba@lesonice.local',
           department: 'Ředitelství'
         },
         {
           id: 2,
-          name: 'Demo Vedoucí RV',
+          name: 'Ing. Zbyněk Pokorný',
           title: 'Vedoucí Rostlinné výroby',
           phone: '+420 604 234 567',
-          email: 'demo.vedouci.rv@example.local',
+          email: 'zbynek.pokorny@lesonice.local',
           department: 'Rostlinná výroba'
         }
       ]
@@ -50,7 +50,7 @@ function Contacts() {
           name: 'Servisní tým',
           title: 'Technická podpora',
           phone: '+420 605 345 678',
-          email: 'support@example.local',
+          email: 'support@lesonice.local',
           department: 'IT'
         },
         {
@@ -58,7 +58,7 @@ function Contacts() {
           name: 'Údržba majetku',
           title: 'Údržba a opravy',
           phone: '+420 606 456 789',
-          email: 'maintenance@example.local',
+          email: 'maintenance@lesonice.local',
           department: 'Mechanizace'
         }
       ]
@@ -72,7 +72,7 @@ function Contacts() {
           name: 'Ústředna',
           title: 'Hlavní přepážka',
           phone: '+420 562 123 456',
-          email: 'info@example.local',
+          email: 'info@lesonice.local',
           department: 'Recepce'
         },
         {
