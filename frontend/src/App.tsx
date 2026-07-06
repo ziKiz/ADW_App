@@ -18,6 +18,7 @@ function App() {
   const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
+  const canCreateReport = !canSeeApprovals;
 
   if (!user && location.pathname !== '/login') {
     return (
@@ -36,7 +37,7 @@ function App() {
           <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/report" element={<ReportForm />} />
+          <Route path="/report" element={canCreateReport ? <ReportForm /> : <Navigate to="/dashboard" replace />} />
           <Route path="/approvals" element={canSeeApprovals ? <ApprovalDashboard /> : <Navigate to="/dashboard" replace />} />
           <Route path="/approvals/approved" element={canSeeApprovals ? <ApprovalDashboard status="approved" /> : <Navigate to="/dashboard" replace />} />
           <Route path="/contacts" element={<Contacts />} />

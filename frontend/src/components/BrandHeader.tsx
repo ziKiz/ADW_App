@@ -20,6 +20,7 @@ function BrandHeader() {
   const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
+  const canCreateReport = !canSeeApprovals;
 
   const getRoleLabel = () => {
     switch(user?.role) {
@@ -56,15 +57,15 @@ function BrandHeader() {
       </div>
       <nav className="brand-nav desktop-nav" aria-label="Hlavní navigace">
         <NavLink to="/dashboard" end>Přehled</NavLink>
-        <div className="nav-group">
-          <NavLink to="/report" end className="nav-group__parent">Výkazy</NavLink>
-          {canSeeApprovals && (
+        {canCreateReport ? <NavLink to="/report" end>Výkaz</NavLink> : null}
+        {canSeeApprovals ? (
+          <div className="nav-group">
+            <NavLink to="/approvals" end className="nav-group__parent">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
             <div className="nav-children">
-              <NavLink to="/approvals" end>Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
               <NavLink to="/approvals/approved" end>Schválené</NavLink>
             </div>
-          )}
-        </div>
+          </div>
+        ) : null}
         {canSeeAdminModules && (
           <>
             {canSeeDirectorOverview ? <NavLink to="/director" end>Přehled ředitelství</NavLink> : null}
@@ -78,10 +79,11 @@ function BrandHeader() {
       </nav>
       <nav className="mobile-bottom-nav" aria-label="Mobilní navigace">
         <NavLink to="/dashboard" end>Přehled</NavLink>
-        <NavLink to="/report" end>Výkaz</NavLink>
+        {canCreateReport ? <NavLink to="/report" end>Výkaz</NavLink> : null}
         {canSeeApprovals && (
           <>
             <NavLink to="/approvals">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
+            <NavLink to="/approvals/approved">Schválené</NavLink>
             {canSeeDirectorOverview ? <NavLink to="/director" end>Ředitelství</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/dictionaries" end>Číselníky</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/export" end>Exporty</NavLink> : null}

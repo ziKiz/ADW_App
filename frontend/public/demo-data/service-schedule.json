@@ -1,12 +1,1106 @@
 [
-  {"date": "2026-06-26", "person": "Jan Novák", "role": "Traktorista", "shift": "Ranní"},
-  {"date": "2026-06-27", "person": "Pavel Dvořák", "role": "Operátor", "shift": "Odpolední"},
-  {"date": "2026-06-28", "person": "Filip Daňhel", "role": "Agronom", "shift": "Ranní"},
-  {"date": "2026-06-29", "person": "Stanislav Šťáva", "role": "Traktorista", "shift": "Celodenní"},
-  {"date": "2026-06-30", "person": "Pavel Klíma", "role": "Traktorista", "shift": "Odpolední"},
-  {"date": "2026-07-01", "person": "David Pacas", "role": "Operátor", "shift": "Ranní"},
-  {"date": "2026-07-02", "person": "Lukáš Bauer", "role": "Traktorista", "shift": "Odpolední"},
-  {"date": "2026-07-03", "person": "Bohuslav Kabelka", "role": "Traktorista", "shift": "Celodenní"},
-  {"date": "2026-07-04", "person": "Jiří Venhoda", "role": "Operátor", "shift": "Ranní"},
-  {"date": "2026-07-05", "person": "Petr Chvátal", "role": "Traktorista", "shift": "Odpolední"}
+  {
+    "date": "2026-07-01",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-02",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-03",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-07-04",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-05",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-06",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-07",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-08",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-09",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-07-10",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-11",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-12",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-13",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-14",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-15",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-07-16",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-17",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-18",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-19",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-20",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-21",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-07-22",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-23",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-24",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-25",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-26",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-07-27",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-07-28",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-07-29",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-07-30",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-07-31",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-01",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-02",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-03",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-04",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-05",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-06",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-07",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-08",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-09",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-10",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-11",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-12",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-13",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-14",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-15",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-16",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-17",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-18",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-19",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-20",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-21",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-22",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-23",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-24",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-25",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-08-26",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-08-27",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-08-28",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-08-29",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-30",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-08-31",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-01",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-02",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-03",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-04",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-09-05",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-06",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-07",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-08",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-09",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-10",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-09-11",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-12",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-13",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-14",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-15",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-16",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-09-17",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-18",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-19",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-20",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-21",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-22",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-09-23",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-24",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-09-25",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-09-26",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-27",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-09-28",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-09-29",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-09-30",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-01",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-02",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-10-03",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-04",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-05",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-06",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-07",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-08",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-10-09",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-10",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-11",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-12",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-13",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-14",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-10-15",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-16",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-17",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-18",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-19",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-20",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-10-21",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-22",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-23",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-24",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-25",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-26",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-10-27",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-10-28",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-10-29",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-10-30",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-10-31",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-01",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-02",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-03",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-04",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-05",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-06",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-07",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-08",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-09",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-10",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-11",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-12",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-13",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-14",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-15",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-16",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-17",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-18",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-19",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-20",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-21",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-22",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-23",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-24",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-11-25",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-11-26",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-11-27",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-11-28",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-29",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-11-30",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-01",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-02",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-03",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-04",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-12-05",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-06",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-07",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-08",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-09",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-10",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-12-11",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-12",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-13",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-14",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-15",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-16",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-12-17",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-18",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-19",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-20",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-21",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-22",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-12-23",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-24",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-25",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  },
+  {
+    "date": "2026-12-26",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-27",
+    "person": "Skucius",
+    "contact_name": "Martin Skucius",
+    "phone": "724974574"
+  },
+  {
+    "date": "2026-12-28",
+    "person": "Fiksa",
+    "contact_name": "Filip Fiksa",
+    "phone": "736625526"
+  },
+  {
+    "date": "2026-12-29",
+    "person": "Raab",
+    "contact_name": "Jan Raab",
+    "phone": "607007869"
+  },
+  {
+    "date": "2026-12-30",
+    "person": "Ševčík",
+    "contact_name": "David Ševčík",
+    "phone": "606023571"
+  },
+  {
+    "date": "2026-12-31",
+    "person": "Dvořak",
+    "contact_name": "Lukáš Dvořák",
+    "phone": "702016646"
+  }
 ]

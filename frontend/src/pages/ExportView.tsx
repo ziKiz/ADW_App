@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import client from '../api/client';
+import { serviceCenters } from '../utils/employeeContext';
 
 function ExportView() {
   const [status, setStatus] = useState('');
+  const [center, setCenter] = useState('all');
 
   const handleExport = async () => {
     try {
-      const response = await client.get('/export/csv', { responseType: 'blob' });
+      const response = await client.get('/export/csv', {
+        responseType: 'blob',
+        params: { center }
+      });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -41,7 +46,10 @@ function ExportView() {
           </label>
           <label>
             Středisko
-            <select defaultValue="all"><option value="all">Vše</option></select>
+            <select value={center} onChange={(event) => setCenter(event.target.value)}>
+              <option value="all">Vše</option>
+              {serviceCenters.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </label>
           <label>
             Stav výkazů

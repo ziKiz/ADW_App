@@ -77,6 +77,11 @@ function buildReportsCsv(reports: any[]) {
   return [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 }
 
+function getReportCenter(report: any) {
+  const match = String(report.notes ?? '').match(/Středisko:\s*([^\n]+)/);
+  return match?.[1]?.trim() ?? 'Rostlinná výroba';
+}
+
 function appendDemoAudit(collection: string, recordId: number, action: string, before: unknown, after: unknown) {
   const audit = getStoredJson<any[]>(storedAuditKey, []);
   audit.push({
@@ -253,7 +258,11 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
   }
   if (endpoint === 'export/csv') {
     const status = (config.params as any)?.status ?? 'approved';
-    const reports = (await getDemoReports()).filter((report) => report.status === status);
+    const center = (config.params as any)?.center ?? 'all';
+    const reports = (await getDemoReports()).filter((report) => (
+      report.status === status &&
+      (center === 'all' || getReportCenter(report) === center)
+    ));
     const csv = `\uFEFF${buildReportsCsv(reports)}`;
     const data = config.responseType === 'blob' ? new Blob([csv], { type: 'text/csv;charset=utf-8' }) : csv;
     return responseFromDemo(config, data);

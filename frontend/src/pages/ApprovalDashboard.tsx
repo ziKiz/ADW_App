@@ -61,6 +61,20 @@ function cleanDefaultNote(value?: string) {
   return value?.trim() === 'Práce proběhla bez závad.' ? '' : value;
 }
 
+function isHalfDayLeave(report: Pick<PendingReport, 'work_type' | 'hours_worked'> & { notes?: string }) {
+  return report.work_type === 'Dovolená' && (Number(report.hours_worked ?? 0) === 4 || String(report.notes ?? '').includes('Půldenní dovolená: ano'));
+}
+
+function hasCompanionWorkReport(reports: PendingReport[], report: EditableReport) {
+  const reportDate = String(report.date).slice(0, 10);
+  return reports.some((item) =>
+    item.id !== report.id &&
+    String(item.date).slice(0, 10) === reportDate &&
+    (item.employee_name ?? '') === (report.employee_name ?? '') &&
+    !['Dovolená', 'Školení'].includes(item.work_type)
+  );
+}
+
 interface ApprovalDashboardProps {
   status?: 'pending' | 'approved';
 }
@@ -72,6 +86,7 @@ const statusMeta = {
 
 function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [reports, setReports] = useState<PendingReport[]>([]);
+  const [allReports, setAllReports] = useState<PendingReport[]>([]);
   const [filteredReports, setFilteredReports] = useState<PendingReport[]>([]);
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
@@ -85,8 +100,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const loadReports = async () => {
     try {
-      const response = await client.get('/reports', { params: { status } });
+      const [response, allResponse] = await Promise.all([
+        client.get('/reports', { params: { status } }),
+        client.get('/reports')
+      ]);
       setReports(response.data as PendingReport[]);
+      setAllReports(allResponse.data as PendingReport[]);
     } catch (error) {
       console.error(error);
     }
@@ -205,13 +224,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     }
   };
 
-  const saveAndCloseReportDetail = async () => {
-    const saved = await saveReportDetail();
-    if (saved) setSelectedReport(null);
-  };
-
   const handleDetailApproval = async () => {
     if (!selectedReport) return;
+    if (isHalfDayLeave(selectedReport) && !hasCompanionWorkReport(allReports, selectedReport)) {
+      setMessage('Půldenní dovolenou nelze schválit bez pracovní činnosti ve stejný den.');
+      return;
+    }
     const saved = await saveReportDetail();
     if (!saved) return;
 
@@ -251,7 +269,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         {filteredReports.length === 0 ? (
           <p className="empty-state">{statusMeta[status].empty}</p>
         ) : (
-          <table className="approval-table">
+          <table className="approval-table approval-table--mobile-compact">
             <thead>
               <tr>
                 <th>Zaměstnanec</th>
@@ -272,11 +290,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
                   <td data-label="Datum">{formatDate(report.date)}</td>
                   <td data-label="Činnost">{report.work_type}</td>
-                  <td data-label="Čas">{displayTime(report)}</td>
-                  <td data-label="Pozemek">{report.field_name}</td>
-                  <td data-label="Stroj">{report.tractor_name}</td>
-                  <td data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
-                  <td data-label="Tankování">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
+                  <td className="mobile-hide" data-label="Čas">{displayTime(report)}</td>
+                  <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
+                  <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
+                  <td className="mobile-hide" data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
+                  <td className="mobile-hide" data-label="Tankování">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
                   <td data-label="Stav"><span className={statusMeta[status].className}>{statusMeta[status].label}</span></td>
                   <td data-label="Akce">
                     <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
@@ -318,6 +336,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </select>
                 </label>
                 <label className="detail-field">
+                  Počet ha
+                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} disabled={absence} onChange={handleDetailNumberChange('amount_ha')} />
+                </label>
+                <label className="detail-field">
                   Stroj
                   <select value={selectedReport.tractor_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('tractor_id')}>
                     {absence ? <option value="">Bez stroje</option> : null}
@@ -328,21 +350,15 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     ))}
                   </select>
                 </label>
-                <label className="detail-field">
-                  Počet ha
-                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} disabled={absence} onChange={handleDetailNumberChange('amount_ha')} />
-                </label>
                 <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
                 <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
-              <div className="modal-actions">
-                <button className="secondary" type="button" onClick={() => setSelectedReport(null)}>Zavřít</button>
-                <button className="secondary" type="button" onClick={saveAndCloseReportDetail}>Uložit změny</button>
-                {status === 'pending' ? (
+              {status === 'pending' ? (
+                <div className="modal-actions">
                   <button className="primary approve-large" type="button" onClick={handleDetailApproval}>Schválit výkaz</button>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
             );

@@ -4,8 +4,20 @@ import { formatCzechDate } from '../utils/format';
 interface ServiceEntry {
   date: string;
   person: string;
-  role: string;
-  shift: string;
+  contact_name?: string;
+  phone?: string;
+}
+
+function toLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function phoneHref(phone?: string) {
+  const normalized = String(phone ?? '').replace(/\s/g, '');
+  return normalized ? `tel:+420${normalized.replace(/^\+?420/, '')}` : '';
 }
 
 function ServiceSchedule() {
@@ -26,7 +38,7 @@ function ServiceSchedule() {
     for (let i = 0; i < 8; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toLocalDateKey(date);
 
       const serviceForDay = services.find((s) => s.date === dateStr);
       next7Days.push({
@@ -45,12 +57,6 @@ function ServiceSchedule() {
     const dayName = new Intl.DateTimeFormat('cs-CZ', { weekday: 'long' }).format(date);
     const dateNum = formatCzechDate(date);
     return { dayName, dateNum, isToday };
-  };
-
-  const shiftColors: Record<string, string> = {
-    'Ranní': '#4CAF50',
-    'Odpolední': '#2196F3',
-    'Celodenní': '#FF9800'
   };
 
   return (
@@ -85,14 +91,8 @@ function ServiceSchedule() {
 
                 {service ? (
                   <div className="day-content">
-                    <div className="service-person">{service.person}</div>
-                    <div className="service-role">{service.role}</div>
-                    <div
-                      className="service-shift"
-                      style={{ backgroundColor: shiftColors[service.shift] || '#999' }}
-                    >
-                      {service.shift}
-                    </div>
+                    <div className="service-person">{service.contact_name ?? service.person}</div>
+                    {service.phone ? <a className="call-action" href={phoneHref(service.phone)}>Volat</a> : null}
                   </div>
                 ) : (
                   <div className="day-content empty">
@@ -102,18 +102,6 @@ function ServiceSchedule() {
               </div>
             );
           })}
-        </div>
-
-        <div className="service-legend">
-          <h3>Legenda směn</h3>
-          <div className="legend-items">
-            {Object.entries(shiftColors).map(([shift, color]) => (
-              <div key={shift} className="legend-item">
-                <div className="legend-color" style={{ backgroundColor: color }}></div>
-                <span>{shift}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

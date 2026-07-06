@@ -12,6 +12,41 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-07-06
+
+### Dashboard
+- Upraven přehled podle rolí: pracovníkům se nezobrazuje panel `Kdo dnes chybí`, schvalovatelé mají sloučený počet výkazů ke schválení a adminovi s ředitelem zmizel dočasný souhrn PHM za 1 až 30 dní.
+- Zjednodušeno mobilní zobrazení posledních výkazů a výkazů ke schválení, aby karty na telefonu nezabíraly zbytečně velkou část obrazovky.
+
+### Výkazy
+- Schvalovatelům, adminům a ředitelům byla odebrána navigace na zadání nového výkazu, protože výkazy zadávají pracovníci.
+- Formulář výkazu má odstraněné duplicitní vnitřní popisky u střediska, typu práce a techniky.
+- Do dovolené byla přidána půldenní volba s kontrolou, že ve stejný den existuje také pracovní činnost.
+
+### Schvalování
+- Detail výkazu na mobilu má upravené pořadí polí a ponechává jen hlavní akci pro schválení.
+- Samotnou půldenní dovolenou bez pracovní činnosti ve stejný den nelze schválit.
+- Zvětšen zavírací křížek v detailu výkazu pro pohodlnější ovládání na telefonu.
+
+### Služby
+- Aktualizován demo rozpis služeb podle souboru `Documents/rozpis_sluzeb_do_konce_roku_2026_Dílna.xlsx`, aby aplikace zobrazovala správné služby dílny od července do konce roku 2026.
+- Opraven výpočet dne služby bez posunu časovým pásmem, odstraněna legenda směn a doplněno tlačítko pro zavolání službě podle telefonního seznamu.
+
+### Kontakty
+- Sloučeny kategorie `Služby` a `Nejčastější čísla` do první kategorie `Pracovní`, aby důležité pracovní kontakty byly dostupné hned.
+- Kontakty byly naplněny podle souboru `Documents/telefonní seznam RS Lesonice 2.2.2026.xlsx` a převedeny do kompaktního seznamu s filtrem oddělení a tlačítkem pro volání.
+- Mobilní kontakty dostaly vyhledávání podle jména, funkce, oddělení i čísla a lepší dotykové ovládání pro rychlé volání.
+
+### Servisy strojů
+- Servisní panel zobrazuje jen stroj a popis servisu, bez data dostupnosti.
+- Admin může servisní informaci archivovat, aby nezmizela bez dohledatelné historie.
+
+### Přehled ředitelství
+- Hektary za období se zobrazují jen u rostlinné výroby, protože u ostatních středisek nejsou rozhodující metrikou.
+
+### Exporty
+- Do exportů přidán výběr konkrétního střediska a CSV export podle něj filtruje výkazy.
+
 ## 2026-06-28
 
 ### Mobilní zobrazení

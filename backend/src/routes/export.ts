@@ -40,8 +40,19 @@ function sendCsv(res: any, rows: Array<Record<string, any>>) {
   res.send(`\uFEFF${buildCsv(rows)}`);
 }
 
+function getReportCenter(row: Record<string, any>) {
+  const match = String(row.notes ?? '').match(/Středisko:\s*([^\n]+)/);
+  return match?.[1]?.trim() ?? 'Rostlinná výroba';
+}
+
+function filterByCenter(rows: Array<Record<string, any>>, center: string) {
+  if (!center || center === 'all') return rows;
+  return rows.filter((row) => getReportCenter(row) === center);
+}
+
 router.get('/csv', async (req, res) => {
   const status = typeof req.query.status === 'string' ? req.query.status : 'approved';
+  const center = typeof req.query.center === 'string' ? req.query.center : 'all';
 
   try {
     const result = await pool.query(
@@ -63,10 +74,11 @@ router.get('/csv', async (req, res) => {
       [status]
     );
 
-    sendCsv(res, result.rows.length > 0 ? result.rows as Array<Record<string, any>> : listLocalReports(status));
+    const rows = result.rows.length > 0 ? result.rows as Array<Record<string, any>> : listLocalReports(status);
+    sendCsv(res, filterByCenter(rows, center));
   } catch (error) {
     console.error(error);
-    sendCsv(res, listLocalReports(status));
+    sendCsv(res, filterByCenter(listLocalReports(status), center));
   }
 });
 

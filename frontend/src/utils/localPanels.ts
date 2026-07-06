@@ -10,9 +10,11 @@ export interface ServiceTask {
   id: number;
   machine: string;
   description: string;
-  available_from: string;
+  available_from?: string;
   created_by: string;
   created_at: string;
+  archived_at?: string;
+  archived_by?: string;
 }
 
 const noticesKey = 'adw_notice_board';
@@ -55,7 +57,7 @@ export function addNotice(input: Omit<NoticeItem, 'id' | 'created_at'>) {
   return item;
 }
 
-export function getServiceTasks() {
+function getAllServiceTasks() {
   const seed: ServiceTask[] = [
     {
       id: 1,
@@ -66,11 +68,16 @@ export function getServiceTasks() {
       created_at: '2026-06-26T08:00:00.000Z'
     }
   ];
-  return readJson<ServiceTask[]>(serviceTasksKey, seed).sort((a, b) => a.available_from.localeCompare(b.available_from));
+  return readJson<ServiceTask[]>(serviceTasksKey, seed)
+    .sort((a, b) => (a.available_from ?? a.created_at).localeCompare(b.available_from ?? b.created_at));
+}
+
+export function getServiceTasks() {
+  return getAllServiceTasks().filter((item) => !item.archived_at);
 }
 
 export function addServiceTask(input: Omit<ServiceTask, 'id' | 'created_at'>) {
-  const items = getServiceTasks();
+  const items = getAllServiceTasks();
   const item = {
     ...input,
     id: items.reduce((max, value) => Math.max(max, value.id), 0) + 1,
@@ -78,4 +85,14 @@ export function addServiceTask(input: Omit<ServiceTask, 'id' | 'created_at'>) {
   };
   writeJson(serviceTasksKey, [item, ...items]);
   return item;
+}
+
+export function archiveServiceTask(id: number, archivedBy: string) {
+  const items = getAllServiceTasks();
+  const updated = items.map((item) => item.id === id
+    ? { ...item, archived_at: new Date().toISOString(), archived_by: archivedBy }
+    : item
+  );
+  writeJson(serviceTasksKey, updated);
+  return updated.filter((item) => !item.archived_at);
 }

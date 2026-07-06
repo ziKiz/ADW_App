@@ -46,6 +46,8 @@ interface ReportTimeEntry {
   date?: string;
   time_start?: string;
   time_end?: string;
+  work_type?: string;
+  status?: string;
   created_at?: string;
 }
 
@@ -223,6 +225,14 @@ function getSuggestedTimesForDate(reports: ReportTimeEntry[], targetDate: string
   return { start: suggestedStart, end: suggestedEnd };
 }
 
+function isWorkReportEntry(report: ReportTimeEntry) {
+  return !['Dovolená', 'Školení'].includes(String(report.work_type ?? ''));
+}
+
+function hasWorkReportForDate(reports: ReportTimeEntry[], targetDate: string, user: ReturnType<typeof getUser>) {
+  return reports.some((report) => sameReportDate(report.date, targetDate) && belongsToCurrentUser(report, user) && isWorkReportEntry(report));
+}
+
 function ReportForm() {
   const user = getUser();
   const lastPreferences = useMemo(getLastReportPreferences, []);
@@ -242,6 +252,7 @@ function ReportForm() {
   const [timeEnd, setTimeEnd] = useState('15:30');
   const [serviceCenter, setServiceCenter] = useState(initialServiceCenter);
   const [reportMode, setReportMode] = useState<ReportMode>('work');
+  const [halfDayLeave, setHalfDayLeave] = useState(false);
   const [absenceStart, setAbsenceStart] = useState(getLocalTodayDate);
   const [absenceEnd, setAbsenceEnd] = useState(getLocalTodayDate);
   const [absenceNote, setAbsenceNote] = useState('');
@@ -260,7 +271,8 @@ function ReportForm() {
   const [otherWorkNote, setOtherWorkNote] = useState('');
   const isOtherWorkType = workTypes.some((item) => item.id === selectedWorkType && item.name === 'Ostatní');
   const selectedModeDays = countWeekdaysInclusive(absenceStart, absenceEnd);
-  const isAbsenceOverBalance = reportMode === 'leave' && selectedModeDays > vacationBalance.daysRemaining;
+  const selectedAbsenceUnits = halfDayLeave && reportMode === 'leave' ? 0.5 : selectedModeDays;
+  const isAbsenceOverBalance = reportMode === 'leave' && selectedAbsenceUnits > vacationBalance.daysRemaining;
   const isLongAbsence = selectedModeDays > 20;
   const availableTractors = useMemo(
     () => sortTractorsForWork(filterTractorsForServiceCenter(tractors, serviceCenter, user?.role)),
@@ -366,11 +378,13 @@ function ReportForm() {
   const selectReportMode = (mode: ReportMode) => {
     if (reportMode === mode) {
       setReportMode('work');
+      setHalfDayLeave(false);
       const workTypeId = findDefaultWorkTypeId(workTypes);
       if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
       return;
     }
     setReportMode(mode);
+    if (mode !== 'leave') setHalfDayLeave(false);
     const workTypeId = findWorkTypeId(workTypes, mode);
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
   };
@@ -393,12 +407,23 @@ function ReportForm() {
         setMessage('Vyberte platné datum od a do.');
         return;
       }
+      if (reportMode === 'leave' && halfDayLeave) {
+        if (absenceStart !== absenceEnd) {
+          setMessage('Půldenní dovolená může být zadaná jen na jeden den.');
+          return;
+        }
+        if (!hasWorkReportForDate(reports, absenceStart, user)) {
+          setMessage('Půldenní dovolenou lze uložit až po zadání pracovní činnosti ve stejný den.');
+          return;
+        }
+      }
 
       const title = reportMode === 'leave' ? 'Dovolená' : 'Školení';
       const extendedNotes = [
         `Středisko: ${serviceCenter}`,
         `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
-        `Počet pracovních dní: ${selectedModeDays}`,
+        `Počet pracovních dní: ${selectedAbsenceUnits}`,
+        reportMode === 'leave' && halfDayLeave ? 'Půldenní dovolená: ano' : '',
         isLongAbsence ? 'Upozornění: nestandardně dlouhé období.' : '',
         isAbsenceOverBalance ? `Upozornění: zadáno více dní dovolené, než je aktuální zůstatek ${vacationBalance.daysRemaining}.` : '',
         absenceNote ? `Poznámka: ${absenceNote}` : ''
@@ -419,7 +444,7 @@ function ReportForm() {
           time_start: null,
           time_end: null,
           break_hours: 0,
-          hours_worked: selectedModeDays * 8,
+          hours_worked: reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
           amount_ha: 0,
           fuel_liters: 0,
           attachments: [],
@@ -430,6 +455,7 @@ function ReportForm() {
           user_id: user?.id ?? 1,
           employee_name: user?.full_name,
           date: absenceStart,
+          work_type: specialName,
           created_at: new Date().toISOString()
         };
         setReports((items) => [...items, submittedReport]);
@@ -607,8 +633,8 @@ function ReportForm() {
 
           <section className="report-section">
             <h2>Středisko</h2>
-            <div className="field-row">
-              <label htmlFor="serviceCenter">Středisko</label>
+              <div className="field-row">
+              <label className="sr-only" htmlFor="serviceCenter">Středisko</label>
                 <select
                   id="serviceCenter"
                   value={serviceCenter}
@@ -625,7 +651,7 @@ function ReportForm() {
             <h2>Typ práce</h2>
             <div className="report-mode-row">
               <div className="field-row">
-                <label htmlFor="workType">Běžná práce</label>
+                <label className="sr-only" htmlFor="workType">Typ práce</label>
                 <select
                   id="workType"
                   value={reportMode === 'work' ? selectedWorkType ?? '' : selectedWorkType ?? ''}
@@ -688,9 +714,19 @@ function ReportForm() {
                 </div>
                 <div className="absence-days-box">
                   <span>Pracovní dny</span>
-                  <strong>{selectedModeDays}</strong>
+                  <strong>{selectedAbsenceUnits}</strong>
                 </div>
               </div>
+              {reportMode === 'leave' ? (
+                <label className="toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={halfDayLeave}
+                    onChange={(event) => setHalfDayLeave(event.target.checked)}
+                  />
+                  Půldenní dovolená
+                </label>
+              ) : null}
               {(isLongAbsence || isAbsenceOverBalance) ? (
                 <div className="absence-warning">
                   {isLongAbsence ? <span>Období má {selectedModeDays} pracovních dní. To je nestandardně dlouhé, zkontrolujte prosím datum od-do.</span> : null}
@@ -782,7 +818,7 @@ function ReportForm() {
             <h2>Technika</h2>
             <div className="field-grid">
               <div className="field-row">
-                <label htmlFor="tractor">Traktor</label>
+                <label className="sr-only" htmlFor="tractor">Technika</label>
                 <select id="tractor" value={selectedTractor ?? ''} onChange={handleSelectTractor}>
                   {metadataLoading && <option value="">Načítám traktory...</option>}
                   {!metadataLoading && availableTractors.length === 0 && <option value="">Pro toto středisko není dostupná žádná technika</option>}

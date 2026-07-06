@@ -68,6 +68,7 @@ function DirectorOverview() {
     return [...rows.entries()].sort((a, b) => b[1].hectares - a[1].hectares);
   }, [centerReports]);
   const hectares = centerReports.reduce((sum, report) => sum + asNumber(report.amount_ha), 0);
+  const showHectares = selectedCenter === 'Rostlinná výroba';
 
   return (
     <div className="container approval-container">
@@ -88,10 +89,12 @@ function DirectorOverview() {
         </div>
 
         <div className="approval-metrics">
-          <article className="approval-metric approval-metric--green">
-            <span className="approval-metric__icon">ha</span>
-            <div><span>Hektary za období</span><strong>{hectares.toFixed(1)}</strong></div>
-          </article>
+          {showHectares ? (
+            <article className="approval-metric approval-metric--green">
+              <span className="approval-metric__icon">ha</span>
+              <div><span>Hektary za období</span><strong>{hectares.toFixed(1)}</strong></div>
+            </article>
+          ) : null}
           <article className="approval-metric approval-metric--orange">
             <span className="approval-metric__icon">PHM</span>
             <div><span>PHM za 10 dní</span><strong>{fuelForDays(centerReports, 10).toFixed(0)} l</strong></div>
@@ -119,7 +122,7 @@ function DirectorOverview() {
             <h2>Co dělají lidé</h2>
             <div className="mini-list">
               {people.slice(0, 12).map(([name, value]) => (
-                <span key={name}>{name}: {value.count} výkazů, {value.hectares.toFixed(1)} ha, {value.hours.toFixed(1)} h</span>
+                <span key={name}>{name}: {value.count} výkazů{showHectares ? `, ${value.hectares.toFixed(1)} ha` : ''}, {value.hours.toFixed(1)} h</span>
               ))}
             </div>
           </section>

@@ -151,6 +151,16 @@ main {
   display: none;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
 .brand-nav a,
 .nav-group__parent {
   display: flex;
@@ -1056,6 +1066,11 @@ label,
   border-radius: 8px;
   background: #fbfcfb;
   padding: 10px 12px;
+}
+
+.service-archive-action {
+  justify-self: start;
+  margin-top: 6px;
 }
 
 .notice-list strong,
@@ -2361,6 +2376,45 @@ label,
     min-height: 36px;
   }
 
+  .approval-table--mobile-compact tbody {
+    gap: 8px;
+  }
+
+  .approval-table--mobile-compact tr {
+    gap: 6px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 14px rgba(17, 24, 21, 0.05);
+  }
+
+  .approval-table--mobile-compact td {
+    align-items: center;
+    min-height: 28px;
+    padding: 0 0 5px;
+    font-size: 0.9rem;
+  }
+
+  .approval-table--mobile-compact td::before {
+    flex-basis: 34%;
+    font-size: 0.68rem;
+  }
+
+  .approval-table--mobile-compact .mobile-hide {
+    display: none;
+  }
+
+  .approval-table--employee-recent td[data-label="Datum"],
+  .approval-table--employee-recent td[data-label="Činnost"],
+  .approval-table--employee-recent td[data-label="Výkon"] {
+    display: flex;
+  }
+
+  .approval-table--approval-summary td[data-label="Stav"],
+  .approval-table--approval-summary td[data-label="Zaměstnanec"],
+  .approval-table--approval-summary td[data-label="Datum"],
+  .approval-table--approval-summary td[data-label="Činnost"] {
+    display: flex;
+  }
+
   .modal-backdrop {
     align-items: end;
     justify-items: stretch;
@@ -2395,6 +2449,12 @@ label,
 
   .modal-heading h2 {
     font-size: 1.1rem;
+  }
+
+  .modal-heading .icon-action {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.45rem;
   }
 
   .detail-grid {
@@ -2606,6 +2666,148 @@ label,
   text-decoration: underline;
 }
 
+.contacts-card {
+  display: grid;
+  gap: 16px;
+}
+
+.contacts-section-tabs {
+  margin: 0;
+}
+
+.contact-search {
+  display: grid;
+  gap: 6px;
+}
+
+.contact-search label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.contact-search > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.contact-search input {
+  min-width: 0;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.contact-search button {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.contact-filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.contact-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.contact-filter-row button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 13px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.contact-filter-row button.active {
+  border-color: var(--adw-green);
+  background: var(--adw-green);
+  color: #ffffff;
+}
+
+.compact-contact-list {
+  display: grid;
+  gap: 8px;
+}
+
+.compact-contact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 10px 12px;
+}
+
+.compact-contact-row strong,
+.compact-contact-row span,
+.compact-contact-row small {
+  display: block;
+  min-width: 0;
+}
+
+.compact-contact-row strong {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.compact-contact-row span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.compact-contact-row small {
+  margin-top: 3px;
+  color: var(--adw-green-dark);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.compact-contact-row em {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--adw-green-soft);
+  color: var(--adw-green-dark);
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.contact-result-count {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
 /* Service Schedule page styles */
 .service-schedule-grid {
   display: grid;
@@ -2696,6 +2898,26 @@ label,
   font-weight: 700;
 }
 
+.call-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 36px;
+  border-radius: 6px;
+  background: var(--adw-green);
+  color: #ffffff;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.call-action:hover {
+  background: var(--adw-green-dark);
+  text-decoration: none;
+}
+
 .service-role {
   color: var(--muted);
   font-size: 0.75rem;
@@ -2761,7 +2983,7 @@ label,
 
   .contacts-nav {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     overflow: visible;
   }
@@ -2786,6 +3008,78 @@ label,
 
   .contacts-group h2 {
     font-size: 1rem;
+  }
+
+  .contacts-card {
+    gap: 12px;
+  }
+
+  .contacts-section-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    margin: -2px -2px 0;
+    background: rgba(246, 248, 245, 0.96);
+    padding: 2px;
+    backdrop-filter: blur(10px);
+  }
+
+  .contact-search {
+    position: sticky;
+    top: 50px;
+    z-index: 2;
+    margin: 0 -2px;
+    background: rgba(246, 248, 245, 0.96);
+    padding: 2px;
+    backdrop-filter: blur(10px);
+  }
+
+  .contact-search label {
+    display: none;
+  }
+
+  .contact-search > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contact-search button {
+    display: none;
+  }
+
+  .contact-filter-row {
+    margin: 0 -2px;
+    padding: 0 2px 6px;
+  }
+
+  .contact-filter-row button {
+    min-height: 42px;
+    padding: 0 14px;
+    font-size: 0.78rem;
+  }
+
+  .compact-contact-list {
+    gap: 7px;
+  }
+
+  .compact-contact-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 9px 10px;
+  }
+
+  .compact-contact-row strong {
+    font-size: 0.9rem;
+  }
+
+  .compact-contact-row span,
+  .compact-contact-row small {
+    font-size: 0.74rem;
+  }
+
+  .compact-contact-row .call-action {
+    min-width: 58px;
+    min-height: 42px;
+    padding: 0 12px;
   }
 
   .contact-card {

@@ -2,8 +2,9 @@ import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
+import { getUserServiceCenter } from '../utils/employeeContext';
 import { formatCzechDate, formatCzechDateTime } from '../utils/format';
-import { addNotice, addServiceTask, getNotices, getServiceTasks, NoticeItem, ServiceTask } from '../utils/localPanels';
+import { addNotice, addServiceTask, archiveServiceTask, getNotices, getServiceTasks, NoticeItem, ServiceTask } from '../utils/localPanels';
 
 interface ReportSummary {
   id: number;
@@ -112,6 +113,11 @@ function getPreviousWeekdays(count: number) {
   return dates;
 }
 
+function getReportCenter(report: Pick<ReportSummary, 'notes'>) {
+  const match = String(report.notes ?? '').match(/Středisko:\s*([^\n]+)/);
+  return match?.[1]?.trim() ?? 'Rostlinná výroba';
+}
+
 function Dashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
@@ -121,7 +127,6 @@ function Dashboard() {
   const [noticeMessage, setNoticeMessage] = useState('');
   const [serviceMachine, setServiceMachine] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
-  const [serviceAvailableFrom, setServiceAvailableFrom] = useState(toIsoDate(new Date()));
   const user = getUser();
 
   useEffect(() => {
@@ -146,20 +151,28 @@ function Dashboard() {
     calculateHours(report.time_start, report.time_end) > 10
   ), [pendingReports]);
 
+  const userServiceCenter = getUserServiceCenter(user);
+  const fuelSourceReports = useMemo(() => {
+    if (user?.role === 'schvalovatel' || user?.role === 'specialista') {
+      return reports.filter((report) => getReportCenter(report) === userServiceCenter);
+    }
+    return reports;
+  }, [reports, user?.role, userServiceCenter]);
+
   const machineFuel = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const report of reports) {
+    for (const report of fuelSourceReports) {
       totals.set(report.tractor_name, (totals.get(report.tractor_name) ?? 0) + asNumber(report.fuel_liters));
     }
     return [...totals.entries()]
       .map(([name, value]) => ({ name, value }))
       .sort((first, second) => second.value - first.value)
       .slice(0, 20);
-  }, [reports]);
+  }, [fuelSourceReports]);
 
   const canManageNotices = user?.role === 'admin' || user?.role === 'reditel';
   const canManageService = user?.role === 'admin' || user?.role === 'schvalovatel';
-  const canSeeFuelOverview = user?.role === 'admin' || user?.role === 'reditel';
+  const canSeeFuelOverview = user?.role === 'schvalovatel' || user?.role === 'specialista';
   const canSeeActivity = user?.role === 'admin' || user?.role === 'reditel';
   const isTractorOperator = user?.role === 'traktorista' || user?.role === 'zamestnanec';
 
@@ -196,21 +209,16 @@ function Dashboard() {
   }, [reports]);
   const fuelOverview = useMemo(() => {
     const now = new Date();
-    const sumForDays = (days: number) => reports
+    const sumForDays = (days: number) => fuelSourceReports
       .filter((report) => {
         const reportDate = new Date(`${String(report.fuel_date || report.date).slice(0, 10)}T12:00:00`);
         return (now.getTime() - reportDate.getTime()) / (24 * 60 * 60 * 1000) <= days;
       })
       .reduce((sum, report) => sum + asNumber(report.fuel_liters), 0);
     return [
-      { label: '1 den', value: sumForDays(1) },
-      { label: '2 dny', value: sumForDays(2) },
-      { label: '3 dny', value: sumForDays(3) },
-      { label: '7 dní', value: sumForDays(7) },
-      { label: '10 dní', value: sumForDays(10) },
-      { label: '30 dní', value: sumForDays(30) }
+      { label: userServiceCenter, value: sumForDays(7) }
     ];
-  }, [reports]);
+  }, [fuelSourceReports, userServiceCenter]);
 
   const submitNotice = () => {
     if (!noticeTitle.trim() || !noticeMessage.trim()) return;
@@ -225,12 +233,15 @@ function Dashboard() {
     const item = addServiceTask({
       machine: serviceMachine.trim(),
       description: serviceDescription.trim(),
-      available_from: serviceAvailableFrom,
       created_by: user?.full_name ?? 'Admin'
     });
-    setServiceTasks((items) => [item, ...items].sort((a, b) => a.available_from.localeCompare(b.available_from)));
+    setServiceTasks((items) => [item, ...items]);
     setServiceMachine('');
     setServiceDescription('');
+  };
+
+  const archiveService = (id: number) => {
+    setServiceTasks(archiveServiceTask(id, user?.full_name ?? 'Admin'));
   };
 
   const NoticePanel = (
@@ -266,7 +277,6 @@ function Dashboard() {
         <div className="service-task-form">
           <input placeholder="Stroj" value={serviceMachine} onChange={(event) => setServiceMachine(event.target.value)} />
           <input placeholder="Popis servisu" value={serviceDescription} onChange={(event) => setServiceDescription(event.target.value)} />
-          <label>Dostupné od<input type="date" value={serviceAvailableFrom} onChange={(event) => setServiceAvailableFrom(event.target.value)} /></label>
           <button type="button" className="secondary" onClick={submitServiceTask}>Přidat servis</button>
         </div>
       ) : null}
@@ -275,7 +285,9 @@ function Dashboard() {
           <article key={task.id}>
             <strong>{task.machine}</strong>
             <span>{task.description}</span>
-            <small>Dostupné od {formatDate(task.available_from)}</small>
+            {user?.role === 'admin' ? (
+              <button type="button" className="edit-action service-archive-action" onClick={() => archiveService(task.id)}>Archivovat</button>
+            ) : null}
           </article>
         ))}
       </div>
@@ -327,7 +339,6 @@ function Dashboard() {
             <strong>{needsAttentionCount}</strong>
           </section>
           {NoticePanel}
-          {AbsencePanel}
           {ServicePanel}
 
           <section className="approval-table-panel">
@@ -338,7 +349,7 @@ function Dashboard() {
               <p className="empty-state">Žádné výkazy zatím.</p>
             ) : (
               <div className="approval-table-scroll">
-                <table className="approval-table">
+                <table className="approval-table approval-table--mobile-compact approval-table--employee-recent">
                   <thead>
                     <tr>
                       <th>Datum</th>
@@ -354,9 +365,9 @@ function Dashboard() {
                       <tr key={report.id}>
                         <td data-label="Datum">{formatDate(report.date)}</td>
                         <td data-label="Činnost">{report.work_type}</td>
-                        <td data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
-                        <td data-label="Pozemek">{report.field_name}</td>
-                        <td data-label="Stroj">{report.tractor_name}</td>
+                        <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
+                        <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
+                        <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
                         <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha</td>
                       </tr>
                     ))}
@@ -384,15 +395,8 @@ function Dashboard() {
           <article className="approval-metric approval-metric--orange">
             <span className="approval-metric__icon">!</span>
             <div>
-              <span>Ke schválení</span>
+              <span>Výkazy ke schválení</span>
               <strong>{pendingReports.length}</strong>
-            </div>
-          </article>
-          <article className="approval-metric approval-metric--red">
-            <span className="approval-metric__icon">!</span>
-            <div>
-              <span>Po termínu</span>
-              <strong>{overdueReports.length}</strong>
             </div>
           </article>
         </div>
@@ -412,7 +416,7 @@ function Dashboard() {
             <div className="fuel-overview-grid">
               {fuelOverview.map((item) => (
                 <article key={item.label}>
-                  <span>{item.label}</span>
+                  <span>{item.label} za 7 dní</span>
                   <strong>{item.value.toFixed(0)} l</strong>
                 </article>
               ))}
@@ -429,7 +433,7 @@ function Dashboard() {
             <p className="empty-state">Žádné výkazy ke schválení.</p>
           ) : (
             <div className="approval-table-scroll">
-              <table className="approval-table">
+              <table className="approval-table approval-table--mobile-compact approval-table--approval-summary">
                 <thead>
                   <tr>
                     <th>Stav</th>
@@ -452,11 +456,11 @@ function Dashboard() {
                         <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
                         <td data-label="Datum">{formatDate(report.date)}</td>
                         <td data-label="Činnost">{report.work_type}</td>
-                        <td data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
-                        <td data-label="Pozemek">{report.field_name}</td>
-                        <td data-label="Stroj">{report.tractor_name}</td>
-                        <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · tankování {asNumber(report.fuel_liters).toFixed(0)} l</td>
-                        <td data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
+                        <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
+                        <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
+                        <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
+                        <td className="mobile-hide" data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · tankování {asNumber(report.fuel_liters).toFixed(0)} l</td>
+                        <td className="mobile-hide" data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
                       </tr>
                     );
                   })}
