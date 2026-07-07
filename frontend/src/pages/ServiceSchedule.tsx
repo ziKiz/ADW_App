@@ -99,11 +99,11 @@ function ServiceSchedule() {
         <div className="page-heading">
           <div>
             <p className="eyebrow">Plánování</p>
-            <h1 className="page-title">Rozpis služeb</h1>
+            <h1 className="page-title">Přehled služeb</h1>
           </div>
         </div>
 
-        <p className="section-title">Přehled služeb na dalších 7 dní</p>
+        <p className="section-title">Dílna a BPS na dalších 7 dní</p>
 
         <div className="service-schedule-grid">
           {scheduleData.map((day) => {

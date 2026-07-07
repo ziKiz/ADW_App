@@ -2811,8 +2811,9 @@ label,
 /* Service Schedule page styles */
 .service-schedule-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: stretch;
+  gap: 14px;
   margin: 20px 0;
 }
 
@@ -2890,13 +2891,15 @@ label,
 
 .service-line {
   display: grid;
-  grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
   align-items: center;
-  gap: 8px;
+  gap: 3px 12px;
+  min-height: 58px;
   border: 1px solid #e5ede8;
   border-radius: 7px;
   background: #fbfcfb;
-  padding: 8px;
+  padding: 9px 10px;
 }
 
 .service-day-card.today .service-line {
@@ -2905,6 +2908,8 @@ label,
 }
 
 .service-line > span {
+  grid-column: 1;
+  grid-row: 1;
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 900;
@@ -2912,19 +2917,31 @@ label,
 }
 
 .service-line strong {
+  grid-column: 1;
+  grid-row: 2;
   min-width: 0;
   color: var(--ink);
-  font-size: 0.86rem;
-  line-height: 1.2;
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .service-line .call-action {
-  min-height: 32px;
-  padding: 0 10px;
-  font-size: 0.74rem;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-width: 62px;
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+}
+
+.service-line--empty {
+  grid-template-columns: 1fr;
 }
 
 .service-line--empty strong {
+  grid-column: 1;
+  grid-row: 2;
   color: var(--muted);
   font-weight: 700;
 }
@@ -3144,7 +3161,40 @@ label,
   }
 
   .service-schedule-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 14px 0 4px;
+  }
+
+  .service-day-card {
+    padding: 12px;
+  }
+
+  .day-header {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+
+  .day-label strong {
+    font-size: 0.95rem;
+  }
+
+  .date-num {
+    font-size: 0.78rem;
+  }
+
+  .service-line {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+
+  .service-line strong {
+    font-size: 0.9rem;
+  }
+
+  .service-line .call-action {
+    min-width: 64px;
+    min-height: 42px;
   }
 }
 

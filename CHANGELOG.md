@@ -12,6 +12,11 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-07-07
+
+### Služby
+- Zpřehledněno desktopové i mobilní zobrazení služeb dílny a BPS, aby se jména nepřekrývala s tlačítky pro volání a přehled byl pohodlnější na telefonu.
+
 ## 2026-07-06
 
 ### Dashboard
