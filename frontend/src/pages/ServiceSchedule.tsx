@@ -1,11 +1,17 @@
 import { useEffect, useState, useMemo } from 'react';
 import { formatCzechDate } from '../utils/format';
 
-interface ServiceEntry {
-  date: string;
+interface ServiceContact {
   person: string;
   contact_name?: string;
   phone?: string;
+}
+
+interface ServiceEntry {
+  date: string;
+  workshop?: ServiceContact | null;
+  bps_service?: ServiceContact | null;
+  bps_feeding?: ServiceContact | null;
 }
 
 function toLocalDateKey(date: Date) {
@@ -18,6 +24,34 @@ function toLocalDateKey(date: Date) {
 function phoneHref(phone?: string) {
   const normalized = String(phone ?? '').replace(/\s/g, '');
   return normalized ? `tel:+420${normalized.replace(/^\+?420/, '')}` : '';
+}
+
+function sameContact(first?: ServiceContact | null, second?: ServiceContact | null) {
+  if (!first || !second) return false;
+  return (first.phone && first.phone === second.phone) || (first.contact_name ?? first.person) === (second.contact_name ?? second.person);
+}
+
+function serviceLabel(contact?: ServiceContact | null) {
+  return contact?.contact_name ?? contact?.person ?? 'Bez služby';
+}
+
+function ServiceLine({ label, contact }: { label: string; contact?: ServiceContact | null }) {
+  if (!contact) {
+    return (
+      <div className="service-line service-line--empty">
+        <span>{label}</span>
+        <strong>Bez služby</strong>
+      </div>
+    );
+  }
+
+  return (
+    <div className="service-line">
+      <span>{label}</span>
+      <strong>{serviceLabel(contact)}</strong>
+      {contact.phone ? <a className="call-action" href={phoneHref(contact.phone)} aria-label={`Volat ${serviceLabel(contact)}`}>Volat</a> : null}
+    </div>
+  );
 }
 
 function ServiceSchedule() {
@@ -75,6 +109,7 @@ function ServiceSchedule() {
           {scheduleData.map((day) => {
             const { dayName, dateNum, isToday } = formatDate(day.dateObj, day.isToday);
             const service = day.service;
+            const singleBpsContact = service ? sameContact(service.bps_service, service.bps_feeding) : false;
 
             return (
               <div
@@ -90,9 +125,16 @@ function ServiceSchedule() {
                 </div>
 
                 {service ? (
-                  <div className="day-content">
-                    <div className="service-person">{service.contact_name ?? service.person}</div>
-                    {service.phone ? <a className="call-action" href={phoneHref(service.phone)}>Volat</a> : null}
+                  <div className="day-content service-combined-list">
+                    <ServiceLine label="Dílna" contact={service.workshop} />
+                    {singleBpsContact ? (
+                      <ServiceLine label="BPS" contact={service.bps_service} />
+                    ) : (
+                      <>
+                        <ServiceLine label="BPS služba" contact={service.bps_service} />
+                        <ServiceLine label="BPS krmení" contact={service.bps_feeding} />
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="day-content empty">

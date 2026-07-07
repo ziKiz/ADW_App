@@ -31,6 +31,7 @@ Formát:
 ### Služby
 - Aktualizován demo rozpis služeb podle souboru `Documents/rozpis_sluzeb_do_konce_roku_2026_Dílna.xlsx`, aby aplikace zobrazovala správné služby dílny od července do konce roku 2026.
 - Opraven výpočet dne služby bez posunu časovým pásmem, odstraněna legenda směn a doplněno tlačítko pro zavolání službě podle telefonního seznamu.
+- Stránka služeb nově spojuje služby dílny a BPS podle souboru `Documents/2026.II.pdf`, aby uživatel v jednom dni viděl obě pohotovosti včetně volání.
 
 ### Kontakty
 - Sloučeny kategorie `Služby` a `Nejčastější čísla` do první kategorie `Pracovní`, aby důležité pracovní kontakty byly dostupné hned.
