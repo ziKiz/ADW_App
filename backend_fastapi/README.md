@@ -1,6 +1,6 @@
 # ADW FastAPI backend
 
-Nový živý backend pro ADW. Express backend zůstává v repozitáři dočasně jako reference.
+Živý backend pro ADW. Používá PostgreSQL, Alembic migrace, JWT přihlášení a auditní stopu.
 
 ## Lokální start
 
@@ -43,4 +43,3 @@ VITE_APP_MODE=live VITE_API_BASE=http://localhost:8000/api npm run dev
 ```
 
 Statické demo pro GitHub Pages může dál používat `VITE_APP_MODE=static-demo`.
-

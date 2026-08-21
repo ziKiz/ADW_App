@@ -4,8 +4,9 @@ Toto je prototyp webové aplikace pro digitalizaci pracovních výkazů.
 
 ## Struktura
 
-- `backend/` - Express + TypeScript API
+- `backend_fastapi/` - FastAPI + PostgreSQL backend
 - `frontend/` - React + Vite frontend
+- `docker/` - Nginx a start skripty pro Docker Stack
 - `CHANGELOG.md` - historie změn aplikace
 - `AGENTS.md` - pravidla pro další úpravy projektu
 
@@ -16,9 +17,7 @@ Toto je prototyp webové aplikace pro digitalizaci pracovních výkazů.
 
 ## Backend
 
-### Nový FastAPI backend
-
-Nový hlavní směr pro živou demo/provozní verzi je `backend_fastapi/` s PostgreSQL, Alembic migracemi, JWT přihlášením a auditní stopou.
+Živá demo/provozní verze používá `backend_fastapi/` s PostgreSQL, Alembic migracemi, JWT přihlášením a auditní stopou.
 
 Lokální první spuštění:
 
@@ -43,38 +42,17 @@ VITE_APP_MODE=live VITE_API_BASE=http://localhost:8000/api npm run dev
 
 Demo heslo seednutých účtů je `demo`.
 
-### Původní Express backend
-
-Původní Express backend zůstává dočasně v `backend/` jako reference a fallback během migrace.
-
-1. Vytvořte databázi `adw` nebo nastavte proměnné v `backend/.env`.
-2. Spusťte SQL skript `backend/src/models/schema.sql` pro vytvoření tabulek a seed dat.
-3. Nainstalujte závislosti:
-   ```bash
-   cd backend
-   npm install
-   ```
-4. Spusťte server:
-   ```bash
-   npm run dev
-   ```
-
 ### Import dat z podkladů
 
-Stroje se berou z `Documents/seznam a rozřazení strojů.xlsx` a pole z těchto souborů:
-
-- `Documents/tisk_zem_parcel (13).xls`
-- `Documents/tisk_zem_parcel (14).xls`
-- `Documents/tisk_zem_parcel (15).xls`
-
-Po spuštění PostgreSQL databáze nahrajete data příkazem:
+Živý backend se plní přímo přes FastAPI seed:
 
 ```bash
-cd backend
-npm run import:documents
+cd backend_fastapi
+source .venv/bin/activate
+python -m app.seed
 ```
 
-Když databáze neběží, backend pro rozbalovací seznamy použije stejná data přímo ze souborů jako dočasnou zálohu.
+Seed načítá demo data z `frontend/public/demo-data/` a kontakty z dokumentů ve složce `Documents/`.
 
 ## Frontend
 
@@ -112,11 +90,8 @@ Nasazení bez lokálního Dockeru:
 COPYFILE_DISABLE=1 tar --no-xattrs \
   --exclude='./.git' \
   --exclude='./node_modules' \
-  --exclude='./backend/node_modules' \
   --exclude='./frontend/node_modules' \
   --exclude='./frontend/dist' \
-  --exclude='./backend/dist' \
-  --exclude='./backend/local-data' \
   --exclude='./backend_fastapi/.venv' \
   --exclude='./Documents' \
   --exclude='./screenshots' \
@@ -147,31 +122,11 @@ V GitHub repozitáři je potřeba jednorázově nastavit:
 
 Po každém `git push` do větve `main` se frontend automaticky sestaví a publikuje.
 
-Poznámka: GitHub Pages hostuje pouze statický frontend. Backend API na Expressu tam nepoběží. Pro plný provoz bude později potřeba samostatný server pro backend a databázi.
+Poznámka: GitHub Pages hostuje pouze statický frontend. Plný provoz vyžaduje FastAPI backend a PostgreSQL databázi.
 
 ## Lokální demo databáze
 
-Když PostgreSQL neběží, backend používá lokální JSON data v `backend/local-data/`. Tato data zůstávají uložená i po vypnutí editoru nebo vývojového serveru.
-
-Prototyp má připravenou fiktivní databázi pro duben a květen 2026:
-
-```bash
-cd backend
-npm run generate:demo
-```
-
-Příkaz vytvoří chybějící lokální soubory `users.json`, `fields.json`, `tractors.json`, `work-types.json` a přegeneruje `reports.json`. Výkazy lze dál upravovat přímo v aplikaci; změny se zapisují zpět do `backend/local-data/reports.json`.
-
-Číselníky v aplikaci teď slouží hlavně pro pozemky a stroje. Podporují založení nových záznamů i úpravu existujících. Každý lokální záznam obsahuje `created_at`, `created_by`, `updated_at`, `updated_by` a `last_change`. Detailní historie změn se ukládá do `backend/local-data/audit-log.json`.
-
-Číselníky lze znovu načíst z podkladů ve složce `Documents/`:
-
-```bash
-cd backend
-npm run import:local-dictionaries
-```
-
-Import načítá pozemky z `Documents/Seznam poli.xlsx` a stroje z `Documents/seznam a rozřazení strojů.xlsx`.
+Statické demo pro GitHub Pages používá JSON soubory ve `frontend/public/demo-data/` a změny v prohlížeči drží v `localStorage`. Živý lokální běh používá PostgreSQL přes `docker compose up -d db`, migrace Alembic a `python -m app.seed`.
 
 ## Changelog
 
@@ -200,9 +155,9 @@ Referenční struktura je převzatá z `Documents/ADW Databazovy model.xlsx` a v
 
 Zásadní pravidlo: finální schválení výkazu musí provést vedoucí střediska, na jehož nákladové středisko byla práce vykázána. Práce pro jiné středisko proto musí projít i cílovým střediskem.
 
-Aktuální offline krok je příprava struktury a dat. Před nasazením na server bude potřeba doplnit skutečné přihlášení, migrace databáze, validace oprávnění na backendu a exportní vazbu na Helios.
+Aktuální backend už používá JWT přihlášení, Alembic migrace, auditní stopu a serverovou kontrolu oprávnění u výkazů. Před ostrým provozem zůstává doplnit produkční integraci Helios a finální správu uživatelských hesel.
 
 ## Poznámky
 
 - `frontend` používá `localStorage` pro uchování přihlášeného uživatele.
-- `backend` zatím ukládá heslo v databázi jako prostý text pouze pro prototyp.
+- `backend_fastapi` ukládá hesla přes bcrypt a v live režimu vyžaduje vlastní silný `JWT_SECRET`.

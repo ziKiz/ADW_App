@@ -12,6 +12,12 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-08-21
+
+### Backend a bezpečnost
+- Odstraněn starý Express backend `backend/`; aplikace má jeden živý backend ve `backend_fastapi/`.
+- README a Nginx konfigurace byly vyčištěny na čistý FastAPI + PostgreSQL workflow bez starých Express importů a lokálních JSON backend dat.
+
 ## 2026-08-19
 
 ### Výkazy
