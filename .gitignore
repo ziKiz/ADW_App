@@ -6,3 +6,5 @@ backend/local-data/
 frontend/node_modules/
 backend/node_modules/
 .rostistate
+backend_fastapi/.venv/
+backups/

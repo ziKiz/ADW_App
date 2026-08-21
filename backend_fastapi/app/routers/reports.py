@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import get_current_user
+from app.security import can_access_report, get_current_user, is_elevated_user, normalize_role
 
 router = APIRouter()
 
@@ -53,6 +53,31 @@ def report_select(where: str = "") -> str:
     """
 
 
+def reports_scope_clause(user: dict[str, Any], params: dict[str, Any], *, allow_scoped_review: bool = True) -> str:
+    if is_elevated_user(user):
+        return ""
+    if allow_scoped_review and normalize_role(user.get("role")) in {"schvalovatel", "specialista"}:
+        scope = user.get("scope_department") or user.get("department_name")
+        if scope:
+            params["scope_center"] = scope
+            params["current_user_id"] = user["id"]
+            return " AND (r.user_id = :current_user_id OR r.service_center = :scope_center)"
+    params["current_user_id"] = user["id"]
+    return " AND r.user_id = :current_user_id"
+
+
+def report_identity_for_create(payload: dict[str, Any], user: dict[str, Any]) -> tuple[Any, str]:
+    if is_elevated_user(user):
+        return payload.get("user_id") or user["id"], payload.get("employee_name") or user["full_name"]
+    return user["id"], user["full_name"]
+
+
+def report_identity_for_update(payload: dict[str, Any], user: dict[str, Any], current_report: dict[str, Any]) -> tuple[Any, str]:
+    if is_elevated_user(user):
+        return payload.get("user_id") or current_report.get("user_id"), payload.get("employee_name") or current_report.get("employee_name") or user["full_name"]
+    return current_report.get("user_id"), current_report.get("employee_name") or user["full_name"]
+
+
 @router.get("")
 @router.get("/")
 async def list_reports(status: str | None = None, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
@@ -61,6 +86,7 @@ async def list_reports(status: str | None = None, session: AsyncSession = Depend
     if status:
         where += " AND r.status = :status"
         params["status"] = status
+    where += reports_scope_clause(user, params)
     result = await session.execute(text(report_select(where) + " ORDER BY r.created_at DESC"), params)
     return [dict(row) for row in result.mappings().all()]
 
@@ -103,6 +129,8 @@ async def get_report(report_id: int, session: AsyncSession = Depends(get_session
     row = result.mappings().first()
     if not row:
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
+    if not can_access_report(row, user, allow_scoped_review=True):
+        raise HTTPException(status_code=403, detail="Nemáte oprávnění k tomuto výkazu.")
     return dict(row)
 
 
@@ -114,6 +142,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    report_user_id, employee_name = report_identity_for_create(payload, user)
     result = await session.execute(
         text(
             """
@@ -134,8 +163,8 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
             "report_number": payload.get("report_number"),
             "report_kind": payload.get("report_kind") or "work",
             "tractor_id": payload.get("tractor_id") if is_work else None,
-            "user_id": payload.get("user_id") or user["id"],
-            "employee_name": payload.get("employee_name") or user["full_name"],
+            "user_id": report_user_id,
+            "employee_name": employee_name,
             "service_center": payload.get("service_center"),
             "field_id": payload.get("field_id") if is_work else None,
             "field_entries": json.dumps(payload.get("field_entries") or []),
@@ -166,7 +195,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
                 "report_id": report_id,
                 "date": parse_date_value(fuel.get("date") or payload.get("date")),
                 "tractor_id": fuel.get("tractor_id") or payload.get("tractor_id"),
-                "user_id": fuel.get("user_id") or user["id"],
+                "user_id": report_user_id,
                 "liters": fuel.get("liters") or 0,
                 "note": fuel.get("note"),
             },
@@ -179,13 +208,17 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
 @router.put("/{report_id}")
 async def update_report(report_id: int, payload: dict[str, Any], request: Request, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
-    before = (await session.execute(text("SELECT to_jsonb(reports.*) FROM reports WHERE id = :id"), {"id": report_id})).scalar_one_or_none()
-    if before is None:
+    before_row = (await session.execute(text("SELECT * FROM reports WHERE id = :id AND archived_at IS NULL"), {"id": report_id})).mappings().first()
+    if before_row is None:
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
+    if not can_access_report(before_row, user, allow_scoped_review=True):
+        raise HTTPException(status_code=403, detail="Nemáte oprávnění upravit tento výkaz.")
     is_work = payload.get("report_kind") in (None, "work")
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    before_dict = dict(before_row)
+    report_user_id, employee_name = report_identity_for_update(payload, user, before_dict)
     await session.execute(
         text(
             """
@@ -202,8 +235,8 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "id": report_id,
             "report_kind": payload.get("report_kind") or "work",
             "tractor_id": payload.get("tractor_id") if is_work else None,
-            "user_id": payload.get("user_id") or user["id"],
-            "employee_name": payload.get("employee_name") or user["full_name"],
+            "user_id": report_user_id,
+            "employee_name": employee_name,
             "service_center": payload.get("service_center"),
             "field_id": payload.get("field_id") if is_work else None,
             "field_entries": json.dumps(payload.get("field_entries") or []),
@@ -225,8 +258,8 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     if float(fuel.get("liters") or 0) > 0:
         await session.execute(
             text("INSERT INTO fuel_entries(report_id, date, tractor_id, user_id, liters, note) VALUES (:report_id, :date, :tractor_id, :user_id, :liters, :note)"),
-            {"report_id": report_id, "date": parse_date_value(fuel.get("date") or payload.get("date")), "tractor_id": fuel.get("tractor_id") or payload.get("tractor_id"), "user_id": fuel.get("user_id") or user["id"], "liters": fuel.get("liters") or 0, "note": fuel.get("note")},
+            {"report_id": report_id, "date": parse_date_value(fuel.get("date") or payload.get("date")), "tractor_id": fuel.get("tractor_id") or payload.get("tractor_id"), "user_id": report_user_id, "liters": fuel.get("liters") or 0, "note": fuel.get("note")},
         )
-    await write_app_audit(session, "reports", report_id, "save", json.dumps(before), json.dumps(payload), user, request.headers.get("x-request-id"))
+    await write_app_audit(session, "reports", report_id, "save", json.dumps(before_dict, default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
     return {"id": report_id, "message": "Výkaz byl uložen."}

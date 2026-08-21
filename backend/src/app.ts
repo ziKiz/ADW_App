@@ -14,6 +14,11 @@ import auditRouter from './routes/audit';
 
 dotenv.config();
 
+if (process.env.ADW_ENABLE_LEGACY_EXPRESS !== 'true') {
+  console.error('Legacy Express backend is disabled. Use FastAPI backend, or set ADW_ENABLE_LEGACY_EXPRESS=true for local migration work only.');
+  process.exit(1);
+}
+
 const app = express();
 const port = process.env.PORT || 4000;
 

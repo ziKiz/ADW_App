@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request, status
@@ -17,6 +18,8 @@ from app.db import get_session
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 ALGORITHM = "HS256"
+ELEVATED_ROLES = {"admin", "reditel"}
+SCOPED_REVIEW_ROLES = {"schvalovatel", "specialista"}
 
 
 def hash_password(password: str) -> str:
@@ -25,6 +28,29 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return pwd_context.verify(password, password_hash)
+
+
+def normalize_role(role: Any) -> str:
+    return str(role or "").casefold()
+
+
+def is_elevated_user(user: Mapping[str, Any]) -> bool:
+    return normalize_role(user.get("role")) in ELEVATED_ROLES
+
+
+def user_scope_center(user: Mapping[str, Any]) -> str | None:
+    center = user.get("scope_department") or user.get("department_name")
+    return str(center).strip() if center else None
+
+
+def can_access_report(report: Mapping[str, Any], user: Mapping[str, Any], *, allow_scoped_review: bool = False) -> bool:
+    if is_elevated_user(user):
+        return True
+    if report.get("user_id") == user.get("id"):
+        return True
+    if allow_scoped_review and normalize_role(user.get("role")) in SCOPED_REVIEW_ROLES:
+        return bool(report.get("service_center") and report.get("service_center") == user_scope_center(user))
+    return False
 
 
 def create_access_token(payload: dict[str, Any]) -> str:
