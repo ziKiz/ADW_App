@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { getUser } from '../utils/auth';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 export const APP_MODE = import.meta.env.VITE_APP_MODE || 'static-demo';
 export const isLiveMode = APP_MODE === 'live';
 const demoDataBase = `${import.meta.env.BASE_URL}demo-data`;
