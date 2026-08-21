@@ -16,6 +16,37 @@ Toto je prototyp webové aplikace pro digitalizaci pracovních výkazů.
 
 ## Backend
 
+### Nový FastAPI backend
+
+Nový hlavní směr pro živou demo/provozní verzi je `backend_fastapi/` s PostgreSQL, Alembic migracemi, JWT přihlášením a auditní stopou.
+
+Lokální první spuštění:
+
+```bash
+docker compose up -d db
+cd backend_fastapi
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+alembic upgrade head
+python -m app.seed
+uvicorn app.main:app --reload --port 8000
+```
+
+Frontend proti FastAPI:
+
+```bash
+cd frontend
+VITE_APP_MODE=live VITE_API_BASE=http://localhost:8000/api npm run dev
+```
+
+Demo heslo seednutých účtů je `demo`.
+
+### Původní Express backend
+
+Původní Express backend zůstává dočasně v `backend/` jako reference a fallback během migrace.
+
 1. Vytvořte databázi `adw` nebo nastavte proměnné v `backend/.env`.
 2. Spusťte SQL skript `backend/src/models/schema.sql` pro vytvoření tabulek a seed dat.
 3. Nainstalujte závislosti:
@@ -56,6 +87,47 @@ Když databáze neběží, backend pro rozbalovací seznamy použije stejná dat
    ```bash
    npm run dev
    ```
+
+## Roští Docker Stack
+
+Pilotní online verze běží na Roští Docker Stacku:
+
+```text
+https://adw-app-641.rostiapp.cz
+```
+
+Stack používá jednu veřejnou službu `app` na portu 80 a interní PostgreSQL službu `db`.
+
+- `Dockerfile` sestaví React frontend, nainstaluje FastAPI backend a spustí Nginx jako veřejný web server.
+- `docker/nginx.conf` servíruje frontend a proxyuje `/api/` na FastAPI.
+- `docker/start.sh` spustí Alembic migrace, volitelně demo seed a potom Uvicorn + Nginx.
+- `docker-compose.rosti.yml` definuje `app` a `db` pro Roští Stack.
+- `.env.production.example` ukazuje potřebné produkční proměnné.
+
+Lokální `.env` se necommituje. Pro pilot obsahuje PostgreSQL heslo, JWT secret, CORS origin a `ADW_SEED_DEMO=true`.
+
+Nasazení bez lokálního Dockeru:
+
+```bash
+COPYFILE_DISABLE=1 tar --no-xattrs \
+  --exclude='./.git' \
+  --exclude='./node_modules' \
+  --exclude='./backend/node_modules' \
+  --exclude='./frontend/node_modules' \
+  --exclude='./frontend/dist' \
+  --exclude='./backend/dist' \
+  --exclude='./backend/local-data' \
+  --exclude='./backend_fastapi/.venv' \
+  --exclude='./Documents' \
+  --exclude='./screenshots' \
+  --exclude='./ADW_mobile_demo.html' \
+  --exclude='./.DS_Store' \
+  --exclude='./._*' \
+  -czf - . | ssh -i "$HOME/Library/Application Support/rosti/ssh/id_ed25519" -p 29762 root@ssh.rosti.cz \
+  "bash -lc 'cd /srv/stack && find . -mindepth 1 -maxdepth 1 ! -name pgsql-data -exec rm -rf {} + && tar -xzf - && find . -name \"._*\" -delete && docker build -t localhost/app:latest . && docker compose -f docker-compose.rosti.yml --env-file .env up -d --remove-orphans'"
+```
+
+Pozor: `rm -rf pgsql-data` používat jen při resetu pilotní databáze. V ostrém provozu by to smazalo data.
 
 ## GitHub Pages
 

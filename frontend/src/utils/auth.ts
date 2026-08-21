@@ -6,10 +6,13 @@ export interface AppUser {
   full_name: string;
   department_name?: string;
   scope_department?: string;
+  access_token?: string;
+  token_type?: string;
 }
 
 const USER_STORAGE_KEY = 'adw_user';
 const LOGGED_OUT_STORAGE_KEY = 'adw_logged_out';
+const IS_LIVE_MODE = import.meta.env.VITE_APP_MODE === 'live';
 
 export const DEMO_ADMIN_USER: AppUser = {
   id: 21,
@@ -76,6 +79,7 @@ export function clearUser() {
 export function getOrCreateDemoUser(): AppUser | null {
   const user = getUser();
   if (user && user.full_name !== 'Admin') return user;
+  if (IS_LIVE_MODE) return null;
   if (localStorage.getItem(LOGGED_OUT_STORAGE_KEY) === '1') return null;
   saveUser(DEMO_ADMIN_USER);
   return DEMO_ADMIN_USER;

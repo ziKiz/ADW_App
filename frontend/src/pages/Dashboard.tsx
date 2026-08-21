@@ -4,7 +4,7 @@ import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { getUserServiceCenter } from '../utils/employeeContext';
 import { formatCzechDate, formatCzechDateTime } from '../utils/format';
-import { addNotice, addServiceTask, archiveServiceTask, getNotices, getServiceTasks, NoticeItem, ServiceTask } from '../utils/localPanels';
+import { NoticeItem, ServiceTask } from '../utils/localPanels';
 
 interface ReportSummary {
   id: number;
@@ -18,6 +18,7 @@ interface ReportSummary {
   fuel_liters?: number | string;
   fuel_date?: string;
   notes?: string;
+  report_kind?: string;
   status: string;
   tractor_name: string;
   field_name: string;
@@ -74,11 +75,17 @@ function activityText(entry: AuditEntry) {
     users: 'organizaci',
     workTypes: 'činnost',
     reports: 'výkaz',
-    fuel_entries: 'tankování PHM'
+    fuel_entries: 'tankování PHM',
+    notices: 'informaci na panelu',
+    machine_service_tasks: 'servis stroje'
   };
   const actionNames: Record<string, string> = {
     create: 'vytvořil',
-    update: 'upravil'
+    update: 'upravil',
+    archive: 'archivoval',
+    approval: 'schválil',
+    submit: 'odeslal',
+    save: 'uložil'
   };
   const actor = entry.changed_by || 'Systém';
   return `${actor} ${actionNames[entry.action] ?? entry.action} ${collectionNames[entry.collection] ?? entry.collection}`;
@@ -118,26 +125,50 @@ function getReportCenter(report: Pick<ReportSummary, 'notes'>) {
   return match?.[1]?.trim() ?? 'Rostlinná výroba';
 }
 
+function isAbsenceReport(report: Pick<ReportSummary, 'work_type'>) {
+  return ['Dovolená', 'Školení'].includes(report.work_type);
+}
+
+function displayReportTime(report: ReportSummary) {
+  if (isAbsenceReport(report)) return 'celý den';
+  const start = formatTime(report.time_start);
+  const end = formatTime(report.time_end);
+  return start && end ? `${start}-${end}` : '-';
+}
+
+function displayReportPerformance(report: ReportSummary) {
+  if (isAbsenceReport(report)) return '-';
+  return `${asNumber(report.amount_ha).toFixed(1)} ha`;
+}
+
 function Dashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
-  const [notices, setNotices] = useState<NoticeItem[]>(getNotices);
-  const [serviceTasks, setServiceTasks] = useState<ServiceTask[]>(getServiceTasks);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
+  const [serviceTasks, setServiceTasks] = useState<ServiceTask[]>([]);
   const [noticeTitle, setNoticeTitle] = useState('');
   const [noticeMessage, setNoticeMessage] = useState('');
   const [serviceMachine, setServiceMachine] = useState('');
   const [serviceDescription, setServiceDescription] = useState('');
+  const [panelMessage, setPanelMessage] = useState('');
+  const [selectedUserReport, setSelectedUserReport] = useState<ReportSummary | null>(null);
   const user = getUser();
 
   useEffect(() => {
     Promise.allSettled([
       client.get('/reports'),
-      client.get('/audit?limit=30')
-    ]).then(([reportsResponse, auditResponse]) => {
+      client.get('/audit?limit=30'),
+      client.get('/notices'),
+      client.get('/service-tasks')
+    ]).then(([reportsResponse, auditResponse, noticesResponse, serviceTasksResponse]) => {
       if (reportsResponse.status === 'fulfilled') setReports(reportsResponse.value.data as ReportSummary[]);
       if (auditResponse.status === 'fulfilled') setAuditEntries(auditResponse.value.data as AuditEntry[]);
+      if (noticesResponse.status === 'fulfilled') setNotices(noticesResponse.value.data as NoticeItem[]);
+      if (serviceTasksResponse.status === 'fulfilled') setServiceTasks(serviceTasksResponse.value.data as ServiceTask[]);
       if (reportsResponse.status === 'rejected') console.error(reportsResponse.reason);
       if (auditResponse.status === 'rejected') console.error(auditResponse.reason);
+      if (noticesResponse.status === 'rejected') console.error(noticesResponse.reason);
+      if (serviceTasksResponse.status === 'rejected') console.error(serviceTasksResponse.reason);
     });
   }, []);
 
@@ -171,6 +202,7 @@ function Dashboard() {
   }, [fuelSourceReports]);
 
   const canManageNotices = user?.role === 'admin' || user?.role === 'reditel';
+  const canArchiveNotices = user?.role === 'admin';
   const canManageService = user?.role === 'admin' || user?.role === 'schvalovatel';
   const canSeeFuelOverview = user?.role === 'schvalovatel' || user?.role === 'specialista';
   const canSeeActivity = user?.role === 'admin' || user?.role === 'reditel';
@@ -220,28 +252,70 @@ function Dashboard() {
     ];
   }, [fuelSourceReports, userServiceCenter]);
 
-  const submitNotice = () => {
-    if (!noticeTitle.trim() || !noticeMessage.trim()) return;
-    const item = addNotice({ title: noticeTitle.trim(), message: noticeMessage.trim(), author: user?.full_name ?? 'Admin' });
-    setNotices((items) => [item, ...items]);
-    setNoticeTitle('');
-    setNoticeMessage('');
+  const submitNotice = async () => {
+    if (!noticeTitle.trim() || !noticeMessage.trim()) {
+      setPanelMessage('Vyplňte nadpis i text informace.');
+      return;
+    }
+    try {
+      setPanelMessage('Ukládám informaci...');
+      const response = await client.post('/notices', { title: noticeTitle.trim(), message: noticeMessage.trim(), author: user?.full_name ?? 'Admin' });
+      const item = response.data as NoticeItem;
+      setNotices((items) => [item, ...items]);
+      client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      setNoticeTitle('');
+      setNoticeMessage('');
+      setPanelMessage('Informace byla přidána.');
+    } catch (error) {
+      console.error(error);
+      setPanelMessage('Informaci se nepodařilo přidat.');
+    }
   };
 
-  const submitServiceTask = () => {
-    if (!serviceMachine.trim() || !serviceDescription.trim()) return;
-    const item = addServiceTask({
-      machine: serviceMachine.trim(),
-      description: serviceDescription.trim(),
-      created_by: user?.full_name ?? 'Admin'
-    });
-    setServiceTasks((items) => [item, ...items]);
-    setServiceMachine('');
-    setServiceDescription('');
+  const archiveNotice = async (id: number) => {
+    try {
+      await client.post(`/notices/${id}/archive`);
+      setNotices((items) => items.filter((item) => item.id !== id));
+      client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      setPanelMessage('Informace byla archivována.');
+    } catch (error) {
+      console.error(error);
+      setPanelMessage('Informaci se nepodařilo archivovat.');
+    }
   };
 
-  const archiveService = (id: number) => {
-    setServiceTasks(archiveServiceTask(id, user?.full_name ?? 'Admin'));
+  const submitServiceTask = async () => {
+    if (!serviceMachine.trim() || !serviceDescription.trim()) {
+      setPanelMessage('Vyplňte stroj i popis servisu.');
+      return;
+    }
+    try {
+      setPanelMessage('Ukládám servis...');
+      const response = await client.post('/service-tasks', {
+        machine: serviceMachine.trim(),
+        description: serviceDescription.trim(),
+        created_by: user?.full_name ?? 'Admin'
+      });
+      const item = response.data as ServiceTask;
+      setServiceTasks((items) => [item, ...items]);
+      setServiceMachine('');
+      setServiceDescription('');
+      setPanelMessage('Servis byl přidán.');
+    } catch (error) {
+      console.error(error);
+      setPanelMessage('Servis se nepodařilo přidat.');
+    }
+  };
+
+  const archiveService = async (id: number) => {
+    try {
+      await client.post(`/service-tasks/${id}/archive`);
+      setServiceTasks((items) => items.filter((item) => item.id !== id));
+      setPanelMessage('Servis byl archivován.');
+    } catch (error) {
+      console.error(error);
+      setPanelMessage('Servis se nepodařilo archivovat.');
+    }
   };
 
   const NoticePanel = (
@@ -256,12 +330,16 @@ function Dashboard() {
           <button type="button" className="primary" onClick={submitNotice}>Přidat informaci</button>
         </div>
       ) : null}
+      {panelMessage ? <p className="form-message form-message--info">{panelMessage}</p> : null}
       <div className="notice-list">
         {notices.map((notice) => (
           <article key={notice.id}>
             <strong>{notice.title}</strong>
             <p>{notice.message}</p>
             <small>{notice.author} · {formatDateTime(notice.created_at)}</small>
+            {canArchiveNotices ? (
+              <button type="button" className="edit-action service-archive-action" onClick={() => archiveNotice(notice.id)}>Smazat</button>
+            ) : null}
           </article>
         ))}
       </div>
@@ -351,24 +429,26 @@ function Dashboard() {
               <div className="approval-table-scroll">
                 <table className="approval-table approval-table--mobile-compact approval-table--employee-recent">
                   <thead>
-                    <tr>
-                      <th>Datum</th>
-                      <th>Činnost</th>
-                      <th>Čas</th>
-                      <th>Pozemek</th>
-                      <th>Stroj</th>
-                      <th>Výkon</th>
-                    </tr>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Činnost</th>
+                    <th>Čas</th>
+                    <th>Pozemek</th>
+                    <th>Stroj</th>
+                    <th>Výkon</th>
+                    <th>Detail</th>
+                  </tr>
                   </thead>
                   <tbody>
                     {userReports.map((report) => (
                       <tr key={report.id}>
                         <td data-label="Datum">{formatDate(report.date)}</td>
                         <td data-label="Činnost">{report.work_type}</td>
-                        <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
-                        <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
-                        <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
-                        <td data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha</td>
+                        <td className="mobile-hide" data-label="Čas">{displayReportTime(report)}</td>
+                        <td className="mobile-hide" data-label="Pozemek">{isAbsenceReport(report) ? '-' : report.field_name}</td>
+                        <td className="mobile-hide" data-label="Stroj">{isAbsenceReport(report) ? '-' : report.tractor_name}</td>
+                        <td data-label="Výkon">{displayReportPerformance(report)}</td>
+                        <td data-label="Detail"><button className="edit-action" type="button" onClick={() => setSelectedUserReport(report)}>Detail</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -376,6 +456,30 @@ function Dashboard() {
               </div>
             )}
           </section>
+          {selectedUserReport ? (
+            <div className="modal-backdrop" role="presentation">
+              <div className="modal-panel approval-detail-modal" role="dialog" aria-modal="true" aria-labelledby="userReportDetailTitle">
+                <div className="modal-heading">
+                  <div>
+                    <p className="eyebrow">Náhled výkazu</p>
+                    <h2 id="userReportDetailTitle">{selectedUserReport.report_number}</h2>
+                  </div>
+                  <button className="icon-action view" type="button" aria-label="Zavřít" onClick={() => setSelectedUserReport(null)}>×</button>
+                </div>
+                <div className="readonly-detail-grid">
+                  <div><span>Datum</span><strong>{formatDate(selectedUserReport.date)}</strong></div>
+                  <div><span>Činnost</span><strong>{selectedUserReport.work_type}</strong></div>
+                  <div><span>Čas</span><strong>{displayReportTime(selectedUserReport)}</strong></div>
+                  <div><span>Stav</span><strong>{selectedUserReport.status}</strong></div>
+                  <div><span>Pozemek</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.field_name}</strong></div>
+                  <div><span>Stroj</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.tractor_name}</strong></div>
+                  <div><span>Výkon</span><strong>{displayReportPerformance(selectedUserReport)}</strong></div>
+                  <div><span>Tankování</span><strong>{asNumber(selectedUserReport.fuel_liters).toFixed(1)} l</strong></div>
+                  <div className="readonly-detail-grid__wide"><span>Poznámka</span><p>{selectedUserReport.notes || '-'}</p></div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       </div>
     );
@@ -459,7 +563,7 @@ function Dashboard() {
                         <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
                         <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
                         <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
-                        <td className="mobile-hide" data-label="Výkon">{asNumber(report.amount_ha).toFixed(1)} ha · tankování {asNumber(report.fuel_liters).toFixed(0)} l</td>
+                        <td className="mobile-hide" data-label="Výkon">{isAbsenceReport(report) ? '-' : `${asNumber(report.amount_ha).toFixed(1)} ha · tankování ${asNumber(report.fuel_liters).toFixed(0)} l`}</td>
                         <td className="mobile-hide" data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
                       </tr>
                     );

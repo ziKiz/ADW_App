@@ -1,0 +1,16 @@
+.git
+.rostistate
+.DS_Store
+._*
+node_modules
+backend/node_modules
+frontend/node_modules
+frontend/dist
+backend/dist
+backend/local-data
+backend_fastapi/.venv
+Documents
+screenshots
+ADW_mobile_demo.html
+*.log
+pgsql-data

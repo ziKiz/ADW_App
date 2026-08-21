@@ -12,7 +12,63 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-08-19
+
+### Výkazy
+- Po úspěšném vytvoření pracovního výkazu, dovolené nebo školení se zobrazí potvrzovací okno.
+- Pole tankování PHM už při zapnutí nezobrazuje pevnou nulu, kterou uživatel nemůže smazat; prázdné pole se ukládá jako 0 litrů.
+- V přehledu pracovníka se u dovolené a školení nezobrazuje výkon v hektarech.
+- Pracovník může otevřít pouze čtecí náhled vlastního výkazu z první stránky bez možnosti úprav.
+
+### Schvalování
+- Obrazovka schvalování má přímo nahoře přepínač `Ke schválení` / `Schválené`, takže schválené výkazy jsou dostupné ze stejného pracovního místa.
+
+### Přehled ředitelství
+- Výběr střediska je převedený na rozbalovací seznam a přibyl filtr období `7 dní`, `30 dní` a `Vše`.
+
+### Dashboard
+- Přidávání informací na informační panel a servisů strojů má viditelné stavové hlášky pro ukládání, úspěch i chybu.
+- Opraveno pořadí API routerů, kvůli kterému se `notices` a `service-tasks` chybně zpracovávaly jako obecný číselník a ukládání končilo chybou.
+- Panely tankování podle strojů a poslední aktivity mají čitelnější řádky a stabilnější vlastní scrollování.
+
+## 2026-08-18
+
+### Výkazy
+- Formulář dovolené a školení nově zobrazuje jasné stavové hlášení při kontrole, ukládání, úspěchu i chybě; hláška je vidět nahoře u formuláře i u tlačítka pro uložení.
+
+### Kontakty
+- Mobilní kontakty mají přepínač `Pracovní` / `Vedení společnosti` pevně ve dvou tlačítkách bez bočního posouvání a výběr oddělení je přes rozbalovací seznam.
+
+## 2026-08-17
+
+### Výkazy
+- U typu práce `Ostatní` už není povinný pozemek, technika ani přípojné zařízení; uživatel je může samostatně zapnout checkboxem a potom se zobrazí původní výběry.
+- Pro typ práce `Ostatní` je ve výběru techniky dostupná výchozí volba `Bez techniky` a výkaz se může uložit bez stroje, pozemku i přípojného zařízení.
+- Při uložení výkazu aplikace upozorní na datum v minulosti nebo budoucnosti a vyžádá potvrzení s počtem dní rozdílu.
+- Předvyplnění z posledního výkazu nově pracuje i s posledním pracovním výkazem bez techniky, takže typ `Ostatní` bez stroje nepřeruší historii uživatele.
+- Živý backend při ukládání výkazů převádí datumy a časy do databázových typů, aby se výkaz korektně uložil i na PostgreSQL přes Roští.
+- Doplněna databázová migrace, která po importovaných demo ID dorovná sekvence tabulek a nové výkazy už nedostanou duplicitní interní ID.
+
+### Kontakty
+- Kontakty byly aktualizovány podle souboru `Documents/telefonní seznam RS Lesonice 2.2.2026.xlsx`, doplněny do jednotného `contacts.json`, rozděleny na `Vedení společnosti` a `Pracovní` a dále do skupin ekonomické oddělení, správa majetku, rostlinná výroba, živočišná výroba, mechanizace, stavební skupina, BPS, mlékárna, vrátnice a jídelna.
+- Do kontaktů byla doplněna interní telefonní klapka a import kontroluje, aby se stejné kontakty neduplikovaly.
+
+### Roští nasazení
+- Přidána Docker konfigurace pro Roští Stack: společný produkční image s React frontendem, Nginx proxy, FastAPI backendem a PostgreSQL 16 přes `docker-compose.rosti.yml`.
+- Frontend build nově umí nastavit base path přes `VITE_BASE_PATH`, aby stejný projekt fungoval na GitHub Pages i na Roští doméně.
+- Opraven FastAPI seed pro Docker: správná cesta k demo datům, datumy a časy se předávají jako Python `date`/`time`, interní `.local` emaily projdou přihlášením a duplicitní kódy pozemků/strojů neblokují pilotní PostgreSQL seed.
+
 ## 2026-07-07
+
+### Backend a databáze
+- Přidán nový základ živého FastAPI backendu s PostgreSQL, Alembic migracemi, JWT přihlášením, Docker PostgreSQL konfigurací a auditními triggery pro dohledatelnost změn.
+- Doplněna Python závislost `greenlet`, kterou SQLAlchemy potřebuje pro async databázové operace ve FastAPI backendu.
+
+### Dashboard
+- Admin může archivovat informace z informačního panelu a tato akce se propisuje do auditu i poslední aktivity.
+
+### Výkazy
+- Nový výkaz umí převzít poslední použitou činnost, techniku a přípojné zařízení z posledního pracovního výkazu přihlášeného uživatele.
 
 ### Služby
 - Zpřehledněno desktopové i mobilní zobrazení služeb dílny a BPS, aby se jména nepřekrývala s tlačítky pro volání a přehled byl pohodlnější na telefonu.

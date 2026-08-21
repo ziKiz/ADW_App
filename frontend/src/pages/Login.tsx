@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import client from '../api/client';
+import client, { isLiveMode } from '../api/client';
 import { AVAILABLE_DEMO_USERS, saveUser } from '../utils/auth';
 
 function roleLabel(role: string) {
@@ -34,10 +34,15 @@ function Login() {
     }
   };
 
-  const loginAsUser = (username: string) => {
+  const loginAsUser = async (username: string) => {
     const user = AVAILABLE_DEMO_USERS.find((u) => u.username === username);
     if (user) {
-      saveUser(user);
+      if (isLiveMode) {
+        const response = await client.post('/auth/login', { email: user.email, password: 'demo' });
+        saveUser(response.data);
+      } else {
+        saveUser(user);
+      }
       navigate('/dashboard');
     }
   };

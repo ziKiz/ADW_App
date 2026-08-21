@@ -31,19 +31,18 @@ function topItems<T>(items: T[], key: (item: T) => string, limit = 3) {
     .slice(0, limit);
 }
 
-function fuelForDays(reports: ReportSummary[], days: number) {
+function getPeriodStart(period: string) {
+  if (period === 'all') return null;
   const now = new Date();
-  return reports
-    .filter((report) => {
-      const date = new Date(`${String(report.date).slice(0, 10)}T12:00:00`);
-      return (now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000) <= days;
-    })
-    .reduce((sum, report) => sum + asNumber(report.fuel_liters), 0);
+  now.setHours(12, 0, 0, 0);
+  now.setDate(now.getDate() - Number(period));
+  return now;
 }
 
 function DirectorOverview() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [selectedCenter, setSelectedCenter] = useState(serviceCenters[0]);
+  const [period, setPeriod] = useState('30');
 
   useEffect(() => {
     client.get('/reports')
@@ -51,7 +50,14 @@ function DirectorOverview() {
       .catch((error) => console.error(error));
   }, []);
 
-  const centerReports = useMemo(() => reports.filter((report) => getReportCenter(report) === selectedCenter), [reports, selectedCenter]);
+  const periodLabel = period === '7' ? '7 dní' : period === '30' ? '30 dní' : 'celé období';
+  const centerReports = useMemo(() => {
+    const periodStart = getPeriodStart(period);
+    return reports.filter((report) => {
+      const reportDate = new Date(`${String(report.date).slice(0, 10)}T12:00:00`);
+      return getReportCenter(report) === selectedCenter && (!periodStart || reportDate >= periodStart);
+    });
+  }, [period, reports, selectedCenter]);
   const topWork = useMemo(() => topItems(centerReports, (report) => report.work_type || '-'), [centerReports]);
   const topMachine = useMemo(() => topItems(centerReports.filter((report) => report.tractor_name !== '-'), (report) => report.tractor_name || '-')[0], [centerReports]);
   const people = useMemo(() => {
@@ -68,6 +74,7 @@ function DirectorOverview() {
     return [...rows.entries()].sort((a, b) => b[1].hectares - a[1].hectares);
   }, [centerReports]);
   const hectares = centerReports.reduce((sum, report) => sum + asNumber(report.amount_ha), 0);
+  const fuelTotal = centerReports.reduce((sum, report) => sum + asNumber(report.fuel_liters), 0);
   const showHectares = selectedCenter === 'Rostlinná výroba';
 
   return (
@@ -80,28 +87,39 @@ function DirectorOverview() {
           </div>
         </div>
 
-        <div className="segmented-control director-center-tabs">
-          {serviceCenters.map((center) => (
-            <button key={center} type="button" className={center === selectedCenter ? 'active' : ''} onClick={() => setSelectedCenter(center)}>
-              {center}
-            </button>
-          ))}
+        <div className="filter-bar director-filter-bar">
+          <label>
+            Středisko
+            <select value={selectedCenter} onChange={(event) => setSelectedCenter(event.target.value)}>
+              {serviceCenters.map((center) => (
+                <option key={center} value={center}>{center}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Období
+            <select value={period} onChange={(event) => setPeriod(event.target.value)}>
+              <option value="7">Posledních 7 dní</option>
+              <option value="30">Posledních 30 dní</option>
+              <option value="all">Vše</option>
+            </select>
+          </label>
         </div>
 
         <div className="approval-metrics">
           {showHectares ? (
             <article className="approval-metric approval-metric--green">
               <span className="approval-metric__icon">ha</span>
-              <div><span>Hektary za období</span><strong>{hectares.toFixed(1)}</strong></div>
+              <div><span>Hektary za {periodLabel}</span><strong>{hectares.toFixed(1)}</strong></div>
             </article>
           ) : null}
           <article className="approval-metric approval-metric--orange">
             <span className="approval-metric__icon">PHM</span>
-            <div><span>PHM za 10 dní</span><strong>{fuelForDays(centerReports, 10).toFixed(0)} l</strong></div>
+            <div><span>PHM za {periodLabel}</span><strong>{fuelTotal.toFixed(0)} l</strong></div>
           </article>
           <article className="approval-metric approval-metric--orange">
-            <span className="approval-metric__icon">PHM</span>
-            <div><span>PHM za 30 dní</span><strong>{fuelForDays(centerReports, 30).toFixed(0)} l</strong></div>
+            <span className="approval-metric__icon">#</span>
+            <div><span>Výkazy za {periodLabel}</span><strong>{centerReports.length}</strong></div>
           </article>
         </div>
 

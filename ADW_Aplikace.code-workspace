@@ -1,0 +1,22 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../Hasiči apikace"
+		}
+	],
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"/^cd '/Users/zikiz/Documents/Hasiči apikace' && python3 - <<'PY'\nimport os, sys\ntry:\n    from PIL import Image\nexcept Exception as e:\n    print\\('NO_PIL', e\\)\n    sys\\.exit\\(1\\)\ntry:\n    import pytesseract\nexcept Exception as e:\n    print\\('NO_TESSERACT', e\\)\n    sys\\.exit\\(1\\)\nfor name in sorted\\(os\\.listdir\\('Dokumenty'\\)\\):\n    if name\\.lower\\(\\)\\.endswith\\(\\('\\.jpg','\\.jpeg','\\.png'\\)\\):\n        path = os\\.path\\.join\\('Dokumenty', name\\)\n        try:\n            im = Image\\.open\\(path\\)\n            text = pytesseract\\.image_to_string\\(im, lang='ces\\+eng'\\)\n            print\\('FILE', name\\)\n            print\\(text\\)\n            print\\('-'\\*40\\)\n        except Exception as e:\n            print\\('ERR', name, e\\)\n            print\\('-'\\*40\\)\nPY$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^cd '/Users/zikiz/Documents/Hasiči apikace' && python3 -m pip install --user pillow pytesseract$/": {
+				"approve": true,
+				"matchCommandLine": true
+			}
+		}
+	}
+}

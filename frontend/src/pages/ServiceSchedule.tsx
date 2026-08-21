@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import client from '../api/client';
 import { formatCzechDate } from '../utils/format';
 
 interface ServiceContact {
@@ -58,9 +59,8 @@ function ServiceSchedule() {
   const [services, setServices] = useState<ServiceEntry[]>([]);
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}demo-data/service-schedule.json`)
-      .then((res) => res.json())
-      .then((data) => setServices(data))
+    client.get('/service-schedule')
+      .then((response) => setServices(response.data))
       .catch((err) => console.error('Failed to load service schedule:', err));
   }, []);
 

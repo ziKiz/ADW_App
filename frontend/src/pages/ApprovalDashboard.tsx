@@ -1,4 +1,5 @@
 import { ChangeEvent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { FieldRecord, Tractor, WorkType } from '../types';
@@ -245,6 +246,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
             <p className="eyebrow">Webová aplikace - schvalování</p>
             <h1 className="page-title">{statusMeta[status].title}</h1>
           </div>
+        </div>
+        <div className="segmented-control approval-status-tabs">
+          <Link className={status === 'pending' ? 'active' : ''} to="/approvals">Ke schválení</Link>
+          <Link className={status === 'approved' ? 'active' : ''} to="/approvals/approved">Schválené</Link>
         </div>
         <div className="filter-bar filter-bar--compact-approval">
           <label>

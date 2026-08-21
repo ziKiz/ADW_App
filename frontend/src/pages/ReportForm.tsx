@@ -39,6 +39,17 @@ interface LastReportPreferences {
   attachmentNames?: string[];
 }
 
+interface LastUsedReport {
+  report_id: number;
+  service_center?: string;
+  tractor_id?: number;
+  tractor_name?: string;
+  work_type_id?: number;
+  work_type?: string;
+  attachments?: Array<{ name?: string } | string>;
+  date?: string;
+}
+
 interface ReportTimeEntry {
   id?: number;
   user_id?: number | string;
@@ -52,11 +63,13 @@ interface ReportTimeEntry {
 }
 
 type ReportMode = 'work' | 'leave' | 'training';
+type MessageTone = 'info' | 'success' | 'error';
 
 const processedPercentOptions = [25, 50, 75, 100];
 const defaultStartTime = '07:00';
 const followUpDurationMinutes = 60;
 const lastReportPreferencesKey = 'adw_last_report_preferences';
+const noTractorLabel = 'Bez techniky';
 const attachmentOptions = [
   'Bez přípojného zařízení',
   'Podv. Panav Dolly',
@@ -202,6 +215,23 @@ function findDefaultWorkTypeId(workTypes: WorkType[]) {
   return workTypes.find((item) => !['Dovolená', 'Školení'].includes(item.name))?.id;
 }
 
+function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
+  return workTypes.some((item) => item.id === workTypeId && item.name === 'Ostatní');
+}
+
+function normalizeAttachmentNamesFromReport(attachments?: LastUsedReport['attachments']) {
+  if (!Array.isArray(attachments)) return [attachmentOptions[0]];
+  const names = attachments
+    .map((item) => typeof item === 'string' ? item : item?.name)
+    .filter((name): name is string => Boolean(name && attachmentOptions.includes(name) && name !== attachmentOptions[0]))
+    .slice(0, 3);
+  return names.length > 0 ? names : [attachmentOptions[0]];
+}
+
+function buildAttachmentEntries(names: string[]) {
+  return names.slice(0, 3).map((name, index) => ({ id: Date.now() + index + 1, name }));
+}
+
 function belongsToCurrentUser(report: ReportTimeEntry, user: ReturnType<typeof getUser>) {
   if (!user) return false;
   if (report.user_id !== undefined && report.user_id !== null) {
@@ -233,6 +263,22 @@ function hasWorkReportForDate(reports: ReportTimeEntry[], targetDate: string, us
   return reports.some((report) => sameReportDate(report.date, targetDate) && belongsToCurrentUser(report, user) && isWorkReportEntry(report));
 }
 
+function getDateOffsetDays(value: string) {
+  const today = new Date(`${getLocalTodayDate()}T12:00:00`);
+  const selected = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(selected.getTime())) return 0;
+  return Math.round((selected.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function confirmReportDate(value: string) {
+  const offsetDays = getDateOffsetDays(value);
+  if (offsetDays === 0) return true;
+  const direction = offsetDays > 0 ? 'do budoucnosti' : 'do minulosti';
+  const days = Math.abs(offsetDays);
+  const dayLabel = days === 1 ? 'den' : days >= 2 && days <= 4 ? 'dny' : 'dní';
+  return window.confirm(`Zadáváte výkaz ${direction} o ${days} ${dayLabel}. Chcete pokračovat?`);
+}
+
 function ReportForm() {
   const user = getUser();
   const lastPreferences = useMemo(getLastReportPreferences, []);
@@ -243,9 +289,11 @@ function ReportForm() {
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [reports, setReports] = useState<ReportTimeEntry[]>([]);
+  const [lastUsedReport, setLastUsedReport] = useState<LastUsedReport | null>(null);
   const [selectedTractor, setSelectedTractor] = useState<number | undefined>(undefined);
   const [selectedWorkType, setSelectedWorkType] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState<MessageTone>('info');
   const [metadataLoading, setMetadataLoading] = useState(true);
   const [date, setDate] = useState(getLocalTodayDate);
   const [timeStart, setTimeStart] = useState(defaultStartTime);
@@ -269,6 +317,9 @@ function ReportForm() {
   const [fuelNote, setFuelNote] = useState('');
   const [notes, setNotes] = useState('');
   const [otherWorkNote, setOtherWorkNote] = useState('');
+  const [otherUsesFields, setOtherUsesFields] = useState(false);
+  const [otherUsesTractor, setOtherUsesTractor] = useState(false);
+  const [otherUsesAttachments, setOtherUsesAttachments] = useState(false);
   const isOtherWorkType = workTypes.some((item) => item.id === selectedWorkType && item.name === 'Ostatní');
   const selectedModeDays = countWeekdaysInclusive(absenceStart, absenceEnd);
   const selectedAbsenceUnits = halfDayLeave && reportMode === 'leave' ? 0.5 : selectedModeDays;
@@ -280,21 +331,40 @@ function ReportForm() {
   );
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
   const canAddAttachment = attachmentEntries.length < 3 && attachmentEntries[attachmentEntries.length - 1]?.name !== attachmentOptions[0];
+  const lastAttachmentNames = useMemo(() => normalizeAttachmentNamesFromReport(lastUsedReport?.attachments), [lastUsedReport]);
+  const hasLastAttachments = lastAttachmentNames.some((name) => name !== attachmentOptions[0]);
+  const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
+  const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && workTypes.some((item) => item.id === lastUsedReport.work_type_id && !['Dovolená', 'Školení'].includes(item.name)));
+  const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
+  const fieldsRequired = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
+  const tractorRequired = reportMode === 'work' && !isOtherWorkType;
+  const showFieldSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
+  const showTractorSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesTractor);
+  const showAttachmentSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesAttachments);
+
+  const showFormMessage = (text: string, tone: MessageTone = 'info') => {
+    setMessage(text);
+    setMessageTone(tone);
+  };
 
   useEffect(() => {
     const loadMetadata = async () => {
       setMetadataLoading(true);
-      const [tractorResponse, fieldResponse, workTypeResponse, reportResponse] = await Promise.allSettled([
+      const [tractorResponse, fieldResponse, workTypeResponse, reportResponse, lastUsedResponse] = await Promise.allSettled([
         client.get('/tractors'),
         client.get('/fields'),
         client.get('/work-types'),
-        client.get('/reports')
+        client.get('/reports'),
+        client.get('/reports/last-used')
       ]);
+      const loadedTractors = tractorResponse.status === 'fulfilled' ? tractorResponse.value.data as Tractor[] : [];
+      const loadedWorkTypes = workTypeResponse.status === 'fulfilled' ? workTypeResponse.value.data as WorkType[] : [];
+      const lastUsed = lastUsedResponse.status === 'fulfilled' ? lastUsedResponse.value.data as LastUsedReport | null : null;
 
       if (tractorResponse.status === 'fulfilled') {
-        setTractors(tractorResponse.value.data);
-        if (tractorResponse.value.data.length > 0) {
-          const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(tractorResponse.value.data, initialServiceCenter, user?.role));
+        setTractors(loadedTractors);
+        if (loadedTractors.length > 0) {
+          const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
           const preferredTractorId = matchingTractors.some((tractor) => tractor.id === lastPreferences.selectedTractor)
             ? lastPreferences.selectedTractor
             : matchingTractors[0]?.id;
@@ -317,12 +387,12 @@ function ReportForm() {
       }
 
       if (workTypeResponse.status === 'fulfilled') {
-        setWorkTypes(workTypeResponse.value.data);
-        if (workTypeResponse.value.data.length > 0) {
-          const normalWorkTypes = (workTypeResponse.value.data as WorkType[]).filter((item) => !['Dovolená', 'Školení'].includes(item.name));
+        setWorkTypes(loadedWorkTypes);
+        if (loadedWorkTypes.length > 0) {
+          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení'].includes(item.name));
           const preferredWorkTypeId = normalWorkTypes.some((item) => item.id === lastPreferences.selectedWorkType)
             ? lastPreferences.selectedWorkType
-            : normalWorkTypes[0]?.id ?? workTypeResponse.value.data[0].id;
+            : normalWorkTypes[0]?.id ?? loadedWorkTypes[0].id;
           setSelectedWorkType(preferredWorkTypeId);
         }
       } else {
@@ -339,12 +409,29 @@ function ReportForm() {
         console.error(reportResponse.reason);
       }
 
+      if (lastUsed) {
+        setLastUsedReport(lastUsed);
+        const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
+        const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
+        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení'].includes(item.name));
+        if (lastTractorIsValid) {
+          setSelectedTractor(lastUsed.tractor_id);
+          setFuelTractorId(lastUsed.tractor_id);
+        }
+        if (lastWorkTypeIsValid) {
+          setSelectedWorkType(lastUsed.work_type_id);
+        }
+        setAttachmentEntries(buildAttachmentEntries(normalizeAttachmentNamesFromReport(lastUsed.attachments)));
+      } else if (lastUsedResponse.status === 'rejected') {
+        console.error(lastUsedResponse.reason);
+      }
+
       if (
         tractorResponse.status === 'rejected' ||
         fieldResponse.status === 'rejected' ||
         workTypeResponse.status === 'rejected'
       ) {
-        setMessage('Nepodařilo se načíst číselníky. Zkontrolujte prosím, že běží backend.');
+        showFormMessage('Nepodařilo se načíst číselníky. Zkontrolujte prosím, že běží backend.', 'error');
       } else {
         setMessage('');
       }
@@ -356,13 +443,33 @@ function ReportForm() {
   useEffect(() => {
     if (metadataLoading) return;
     const firstTractorId = availableTractors[0]?.id;
-    if (!availableTractors.some((tractor) => tractor.id === selectedTractor)) {
+    if (isOtherWorkType && !otherUsesTractor) {
+      setSelectedTractor(undefined);
+    } else if (!availableTractors.some((tractor) => tractor.id === selectedTractor) && !isOtherWorkType) {
       setSelectedTractor(firstTractorId);
     }
     if (!availableTractors.some((tractor) => tractor.id === fuelTractorId)) {
       setFuelTractorId(firstTractorId);
     }
-  }, [availableTractors, fuelTractorId, metadataLoading, selectedTractor]);
+  }, [availableTractors, fuelTractorId, isOtherWorkType, metadataLoading, otherUsesTractor, selectedTractor]);
+
+  useEffect(() => {
+    if (metadataLoading || fields.length === 0) return;
+    if (isOtherWorkType) {
+      setOtherUsesFields(false);
+      setOtherUsesTractor(false);
+      setOtherUsesAttachments(false);
+      setSelectedTractor(undefined);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+      setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
+      return;
+    }
+    const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
+    if (!hasSelectedField) {
+      const firstFieldId = fields[0].id;
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+    }
+  }, [fields, isOtherWorkType, metadataLoading]);
 
   const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextDate = event.target.value;
@@ -396,24 +503,29 @@ function ReportForm() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    showFormMessage('Kontroluji výkaz...', 'info');
+    if (!confirmReportDate(reportMode === 'work' ? date : absenceStart)) {
+      showFormMessage('Uložení bylo zrušeno.', 'info');
+      return;
+    }
     if (reportMode !== 'work') {
       const specialName = modeWorkTypeName(reportMode);
       const specialWorkType = workTypes.find((item) => item.name === specialName);
       if (!specialWorkType) {
-        setMessage(`Číselník neobsahuje typ práce ${specialName}.`);
+        showFormMessage(`Číselník neobsahuje typ práce ${specialName}. Kontaktujte prosím správce aplikace.`, 'error');
         return;
       }
       if (!absenceStart || !absenceEnd || selectedModeDays <= 0) {
-        setMessage('Vyberte platné datum od a do.');
+        showFormMessage('Vyberte platné datum od a do.', 'error');
         return;
       }
       if (reportMode === 'leave' && halfDayLeave) {
         if (absenceStart !== absenceEnd) {
-          setMessage('Půldenní dovolená může být zadaná jen na jeden den.');
+          showFormMessage('Půldenní dovolená může být zadaná jen na jeden den.', 'error');
           return;
         }
         if (!hasWorkReportForDate(reports, absenceStart, user)) {
-          setMessage('Půldenní dovolenou lze uložit až po zadání pracovní činnosti ve stejný den.');
+          showFormMessage('Půldenní dovolenou lze uložit až po zadání pracovní činnosti ve stejný den.', 'error');
           return;
         }
       }
@@ -430,6 +542,7 @@ function ReportForm() {
       ].filter(Boolean).join('\n');
 
       try {
+        showFormMessage(`Ukládám ${title.toLocaleLowerCase('cs-CZ')}...`, 'info');
         const response = await client.post('/reports', {
           report_number: `RPT-${Date.now()}`,
           report_kind: reportMode,
@@ -459,21 +572,22 @@ function ReportForm() {
           created_at: new Date().toISOString()
         };
         setReports((items) => [...items, submittedReport]);
-        setMessage(`${title} uložena v rozsahu ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}.`);
+        showFormMessage(`${title} byla uložena v rozsahu ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}.`, 'success');
+        window.alert(`${title} byla vytvořena.`);
       } catch (error) {
         console.error(error);
-        setMessage('Chyba při ukládání výkazu.');
+        showFormMessage(`${title} se nepodařilo uložit. Zkontrolujte datum a zkuste to znovu.`, 'error');
       }
       return;
     }
 
     const selectedFields = fieldEntries.filter((entry) => entry.fieldId);
-    if (availableTractors.length === 0 || !selectedTractor) {
-      setMessage('Pro toto středisko není dostupná žádná technika.');
+    if (tractorRequired && (availableTractors.length === 0 || !selectedTractor)) {
+      showFormMessage('Pro toto středisko není dostupná žádná technika.', 'error');
       return;
     }
-    if (selectedFields.length === 0 || !selectedWorkType) {
-      setMessage('Vyplňte prosím všechny povinné položky.');
+    if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
+      showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
     }
 
@@ -489,11 +603,12 @@ function ReportForm() {
       };
     });
     const attachmentSummary = attachmentEntries
-      .filter((entry) => entry.name && entry.name !== attachmentOptions[0])
+      .filter((entry) => showAttachmentSelection && entry.name && entry.name !== attachmentOptions[0])
       .map((entry, index) => ({ order: index + 1, name: entry.name }));
     const extendedNotes = [
       `Středisko: ${serviceCenter}`,
-      `Pozemky: ${fieldSummary.map((item) => `${item.field_name} (${item.field_code}) - ${item.amount_ha} ha`).join('; ')}`,
+      fieldSummary.length ? `Pozemky: ${fieldSummary.map((item) => `${item.field_name} (${item.field_code}) - ${item.amount_ha} ha`).join('; ')}` : 'Pozemky: bez pozemku',
+      isOtherWorkType ? `Technika: ${selectedTractor ? (availableTractors.find((tractor) => tractor.id === selectedTractor)?.tractor_name ?? 'zvolená technika') : noTractorLabel}` : '',
       `Přípojné zařízení: ${attachmentSummary.length ? attachmentSummary.map((item) => item.name).join('; ') : 'bez přípojného zařízení'}`,
       fuelEnabled && fuelLiters > 0 ? `Tankování PHM: ${fuelLiters} l dne ${fuelDate}` : '',
       isOtherWorkType && otherWorkNote ? `Poznámka k Ostatní práci: ${otherWorkNote}` : '',
@@ -501,13 +616,14 @@ function ReportForm() {
     ].filter(Boolean).join('\n');
 
     try {
+      showFormMessage('Ukládám pracovní výkaz...', 'info');
       const response = await client.post('/reports', {
         report_number: `RPT-${Date.now()}`,
-        tractor_id: selectedTractor,
+        tractor_id: showTractorSelection ? selectedTractor ?? null : null,
         user_id: user?.id ?? 1,
         employee_name: user?.full_name,
         service_center: serviceCenter,
-        field_id: selectedFields[0].fieldId,
+        field_id: selectedFields[0]?.fieldId ?? null,
         field_entries: fieldSummary,
         work_type_id: selectedWorkType,
         date,
@@ -519,7 +635,7 @@ function ReportForm() {
         fuel_liters: 0,
         fuel_entry: fuelEnabled && fuelLiters > 0 ? {
           date: fuelDate,
-          tractor_id: fuelTractorId ?? selectedTractor,
+          tractor_id: fuelTractorId ?? selectedTractor ?? null,
           user_id: user?.id ?? 1,
           liters: fuelLiters,
           note: fuelNote
@@ -536,31 +652,83 @@ function ReportForm() {
         date,
         time_start: `${normalizeClockTime(timeStart)}:00`,
         time_end: `${nextStart}:00`,
+        work_type: workTypes.find((item) => item.id === selectedWorkType)?.name,
         created_at: new Date().toISOString()
       };
+      setLastUsedReport({
+        report_id: response.data?.id,
+        service_center: serviceCenter,
+        tractor_id: showTractorSelection ? selectedTractor : undefined,
+        tractor_name: showTractorSelection ? availableTractors.find((tractor) => tractor.id === selectedTractor)?.tractor_name : undefined,
+        work_type_id: selectedWorkType,
+        work_type: workTypes.find((item) => item.id === selectedWorkType)?.name,
+        attachments: attachmentSummary,
+        date
+      });
       setReports((items) => [...items, submittedReport]);
       setTimeStart(nextStart);
       setTimeEnd(nextEnd);
       saveLastReportPreferences({
         serviceCenter,
-        selectedTractor,
+        selectedTractor: showTractorSelection ? selectedTractor : undefined,
         selectedWorkType,
-        attachmentNames: attachmentEntries.map((entry) => entry.name)
+        attachmentNames: showAttachmentSelection ? attachmentEntries.map((entry) => entry.name) : [attachmentOptions[0]]
       });
-      setMessage(`Výkaz byl uložen. Další práce navazuje od ${nextStart}.`);
+      showFormMessage(`Výkaz byl uložen. Další práce navazuje od ${nextStart}.`, 'success');
+      window.alert('Výkaz byl vytvořen.');
     } catch (error) {
       console.error(error);
-      setMessage('Chyba při ukládání výkazu.');
+      showFormMessage('Výkaz se nepodařilo uložit. Zkontrolujte vyplněné údaje a zkuste to znovu.', 'error');
     }
   };
 
   const handleSelectTractor = (event: ChangeEvent<HTMLSelectElement>) => {
-    const tractorId = Number(event.target.value);
+    const tractorId = event.target.value ? Number(event.target.value) : undefined;
     setSelectedTractor(tractorId);
     setFuelTractorId(tractorId);
   };
 
-  const handleSelectWorkType = (event: ChangeEvent<HTMLSelectElement>) => setSelectedWorkType(Number(event.target.value));
+  const handleSelectWorkType = (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextWorkType = Number(event.target.value);
+    setSelectedWorkType(nextWorkType);
+    if (isOtherWorkTypeId(workTypes, nextWorkType)) {
+      setOtherUsesFields(false);
+      setOtherUsesTractor(false);
+      setOtherUsesAttachments(false);
+      setSelectedTractor(undefined);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+      setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
+      return;
+    }
+    setOtherUsesFields(false);
+    setOtherUsesTractor(false);
+    setOtherUsesAttachments(false);
+    if (!availableTractors.some((tractor) => tractor.id === selectedTractor)) {
+      setSelectedTractor(availableTractors[0]?.id);
+    }
+    const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
+    if (!hasSelectedField && fields.length > 0) {
+      const firstFieldId = fields[0].id;
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+    }
+  };
+  const applyLastUsedTractor = () => {
+    if (!lastUsedReport?.tractor_id || !canUseLastTractor) {
+      showFormMessage('Techniku z posledního výkazu nelze pro toto středisko převzít.', 'error');
+      return;
+    }
+    setSelectedTractor(lastUsedReport.tractor_id);
+    setFuelTractorId(lastUsedReport.tractor_id);
+    showFormMessage('Technika byla převzata z posledního výkazu.', 'success');
+  };
+  const applyLastUsedAttachments = () => {
+    if (!hasLastAttachments) {
+      showFormMessage('Z posledního výkazu není dostupné přípojné zařízení.', 'error');
+      return;
+    }
+    setAttachmentEntries(buildAttachmentEntries(lastAttachmentNames));
+    showFormMessage('Přípojné zařízení bylo převzato z posledního výkazu.', 'success');
+  };
   const updateFieldEntry = (entryId: number, changes: Partial<FieldEntry>) => {
     setFieldEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, ...changes } : entry));
   };
@@ -588,6 +756,28 @@ function ReportForm() {
     if (!canAddAttachment) return;
     setAttachmentEntries((entries) => [...entries, { id: Date.now(), name: attachmentOptions[0] }]);
   };
+  const enableOtherFields = (enabled: boolean) => {
+    setOtherUsesFields(enabled);
+    if (enabled && fields.length > 0 && !fieldEntries.some((entry) => entry.fieldId)) {
+      const firstFieldId = fields[0].id;
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+    }
+    if (!enabled) {
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+    }
+  };
+  const enableOtherTractor = (enabled: boolean) => {
+    setOtherUsesTractor(enabled);
+    if (!enabled) {
+      setSelectedTractor(undefined);
+    }
+  };
+  const enableOtherAttachments = (enabled: boolean) => {
+    setOtherUsesAttachments(enabled);
+    if (!enabled) {
+      setAttachmentEntries([{ id: Date.now(), name: attachmentOptions[0] }]);
+    }
+  };
   const removeAttachmentEntry = (entryId: number) => {
     if (!window.confirm('Opravdu chcete odebrat toto přípojné zařízení z výkazu?')) return;
     setAttachmentEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
@@ -607,6 +797,10 @@ function ReportForm() {
           <strong>{totalArea.toFixed(2)} ha</strong>
           <span>{timeStart}-{timeEnd}</span>
         </div>
+        {!metadataLoading && !hasUsableLastReport ? (
+          <p className="field-hint field-hint--inline">Zatím není dostupný předchozí výkaz pro předvyplnění.</p>
+        ) : null}
+        {message ? <p className={`form-message form-message--${messageTone}`} role="status" aria-live="polite">{message}</p> : null}
         <form onSubmit={handleSubmit} className="report-form">
           <section className="report-section">
             <h2>Čas práce</h2>
@@ -761,75 +955,105 @@ function ReportForm() {
             <div className="section-line">
               <h2>Pozemky</h2>
             </div>
-            <div className="repeat-list">
-              {fieldEntries.map((entry, index) => (
-                <div className="repeat-row repeat-row--field" key={entry.id}>
-                  <span className="row-number">{index + 1}</span>
-                  <div className="field-row">
-                    <label htmlFor={`field-${entry.id}`}>Pozemek</label>
-                    <select
-                      id={`field-${entry.id}`}
-                      value={entry.fieldId ?? ''}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                        const fieldId = Number(event.target.value);
-                        updateFieldEntry(entry.id, {
-                          fieldId,
-                          amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
-                        });
-                      }}
-                    >
-                      {metadataLoading && <option value="">Načítám pole...</option>}
-                      {!metadataLoading && getAvailableFields(entry.id).length === 0 && <option value="">Žádná dostupná pole</option>}
-                      {getAvailableFields(entry.id).map((item) => (
-                        <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field-row field-row--compact">
-                    <label htmlFor={`percent-${entry.id}`}>Zpracováno</label>
-                    <select
-                      id={`percent-${entry.id}`}
-                      value={entry.processedPercent}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                        const processedPercent = Number(event.target.value);
-                        updateFieldEntry(entry.id, {
-                          processedPercent,
-                          amountHa: calculateProcessedArea(fields, entry.fieldId, processedPercent)
-                        });
-                      }}
-                    >
-                      {processedPercentOptions.map((option) => (
-                        <option key={option} value={option}>{option} %</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="field-row field-row--area">
-                    <label>Výměra</label>
-                    <strong>{entry.amountHa.toFixed(2)} ha</strong>
-                  </div>
-                  <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
+            {isOtherWorkType ? (
+              <label className="toggle-row">
+                <input type="checkbox" checked={otherUsesFields} onChange={(event) => enableOtherFields(event.target.checked)} />
+                Práce probíhala na pozemku
+              </label>
+            ) : null}
+            {showFieldSelection ? (
+              <>
+                <div className="repeat-list">
+                  {fieldEntries.map((entry, index) => (
+                    <div className="repeat-row repeat-row--field" key={entry.id}>
+                      <span className="row-number">{index + 1}</span>
+                      <div className="field-row">
+                        <label htmlFor={`field-${entry.id}`}>Pozemek</label>
+                        <select
+                          id={`field-${entry.id}`}
+                          value={entry.fieldId ?? ''}
+                          onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                            const fieldId = Number(event.target.value);
+                            updateFieldEntry(entry.id, {
+                              fieldId,
+                              amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
+                            });
+                          }}
+                        >
+                          {metadataLoading && <option value="">Načítám pole...</option>}
+                          {!metadataLoading && getAvailableFields(entry.id).length === 0 && <option value="">Žádná dostupná pole</option>}
+                          {getAvailableFields(entry.id).map((item) => (
+                            <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field-row field-row--compact">
+                        <label htmlFor={`percent-${entry.id}`}>Zpracováno</label>
+                        <select
+                          id={`percent-${entry.id}`}
+                          value={entry.processedPercent}
+                          onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                            const processedPercent = Number(event.target.value);
+                            updateFieldEntry(entry.id, {
+                              processedPercent,
+                              amountHa: calculateProcessedArea(fields, entry.fieldId, processedPercent)
+                            });
+                          }}
+                        >
+                          {processedPercentOptions.map((option) => (
+                            <option key={option} value={option}>{option} %</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field-row field-row--area">
+                        <label>Výměra</label>
+                        <strong>{entry.amountHa.toFixed(2)} ha</strong>
+                      </div>
+                      <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button type="button" className="secondary add-row-button" onClick={addFieldEntry}>Přidat pole</button>
+                <button type="button" className="secondary add-row-button" onClick={addFieldEntry}>Přidat pole</button>
+              </>
+            ) : (
+              <p className="field-hint">U typu práce Ostatní není pozemek povinný.</p>
+            )}
           </section>
 
           <section className="report-section">
-            <h2>Technika</h2>
-            <div className="field-grid">
-              <div className="field-row">
-                <label className="sr-only" htmlFor="tractor">Technika</label>
-                <select id="tractor" value={selectedTractor ?? ''} onChange={handleSelectTractor}>
-                  {metadataLoading && <option value="">Načítám traktory...</option>}
-                  {!metadataLoading && availableTractors.length === 0 && <option value="">Pro toto středisko není dostupná žádná technika</option>}
-                  {availableTractors.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="section-line">
+              <h2>Technika</h2>
+              {canUseLastTractor ? (
+                <button type="button" className="secondary" onClick={applyLastUsedTractor}>
+                  Převzít z posledního výkazu
+                </button>
+              ) : null}
             </div>
+            {isOtherWorkType ? (
+              <label className="toggle-row">
+                <input type="checkbox" checked={otherUsesTractor} onChange={(event) => enableOtherTractor(event.target.checked)} />
+                Práce probíhala s technikou
+              </label>
+            ) : null}
+            {showTractorSelection ? (
+              <div className="field-grid">
+                <div className="field-row">
+                  <label className="sr-only" htmlFor="tractor">Technika</label>
+                  <select id="tractor" value={selectedTractor ?? ''} onChange={handleSelectTractor}>
+                    {isOtherWorkType ? <option value="">{noTractorLabel}</option> : null}
+                    {metadataLoading && <option value="">Načítám traktory...</option>}
+                    {!metadataLoading && availableTractors.length === 0 && <option value="">Pro toto středisko není dostupná žádná technika</option>}
+                    {availableTractors.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <p className="field-hint">U typu práce Ostatní není technika povinná.</p>
+            )}
           </section>
 
           <section className="report-section">
@@ -862,8 +1086,9 @@ function ReportForm() {
                     min="0"
                     step="0.1"
                     inputMode="decimal"
-                    value={fuelLiters}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelLiters(Number(event.target.value))}
+                    placeholder="0"
+                    value={fuelLiters > 0 ? fuelLiters : ''}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelLiters(event.target.value === '' ? 0 : Number(event.target.value))}
                   />
                 </div>
                 <div className="field-row">
@@ -877,31 +1102,48 @@ function ReportForm() {
           <section className="report-section">
             <div className="section-line">
               <h2>Přípojné zařízení</h2>
+              {hasLastAttachments ? (
+                <button type="button" className="secondary" onClick={applyLastUsedAttachments}>
+                  Převzít z posledního výkazu
+                </button>
+              ) : null}
             </div>
-            <div className="repeat-list">
-              {attachmentEntries.map((entry, index) => (
-                <div className="repeat-row repeat-row--attachment" key={entry.id}>
-                  <span className="row-number">{index + 1}</span>
-                  <div className="field-row">
-                    <label htmlFor={`attachment-${entry.id}`}>Zařízení</label>
-                    <select
-                      id={`attachment-${entry.id}`}
-                      value={entry.name}
-                      onChange={(event: ChangeEvent<HTMLSelectElement>) => updateAttachmentEntry(entry.id, event.target.value)}
-                    >
-                      {attachmentOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                    </select>
-                  </div>
-                  <button type="button" className="danger repeat-remove" onClick={() => removeAttachmentEntry(entry.id)} disabled={attachmentEntries.length === 1}>Odebrat</button>
-                </div>
-              ))}
-            </div>
-            {attachmentEntries.length < 3 ? (
-              <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={!canAddAttachment}>
-                Přidat zařízení
-              </button>
+            {isOtherWorkType ? (
+              <label className="toggle-row">
+                <input type="checkbox" checked={otherUsesAttachments} onChange={(event) => enableOtherAttachments(event.target.checked)} />
+                Práce probíhala s přípojným zařízením
+              </label>
             ) : null}
-            <p className="field-hint">Lze přidat maximálně 3 přípojná zařízení.</p>
+            {showAttachmentSelection ? (
+              <>
+                <div className="repeat-list">
+                  {attachmentEntries.map((entry, index) => (
+                    <div className="repeat-row repeat-row--attachment" key={entry.id}>
+                      <span className="row-number">{index + 1}</span>
+                      <div className="field-row">
+                        <label htmlFor={`attachment-${entry.id}`}>Zařízení</label>
+                        <select
+                          id={`attachment-${entry.id}`}
+                          value={entry.name}
+                          onChange={(event: ChangeEvent<HTMLSelectElement>) => updateAttachmentEntry(entry.id, event.target.value)}
+                        >
+                          {attachmentOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <button type="button" className="danger repeat-remove" onClick={() => removeAttachmentEntry(entry.id)} disabled={attachmentEntries.length === 1}>Odebrat</button>
+                    </div>
+                  ))}
+                </div>
+                {attachmentEntries.length < 3 ? (
+                  <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={!canAddAttachment}>
+                    Přidat zařízení
+                  </button>
+                ) : null}
+                <p className="field-hint">Lze přidat maximálně 3 přípojná zařízení.</p>
+              </>
+            ) : (
+              <p className="field-hint">U typu práce Ostatní není přípojné zařízení povinné.</p>
+            )}
           </section>
 
           <section className="report-section">
@@ -915,7 +1157,7 @@ function ReportForm() {
           ) : null}
 
           <div className="form-footer">
-            {message ? <p className="form-message">{message}</p> : null}
+            {message ? <p className={`form-message form-message--${messageTone}`} role="status" aria-live="polite">{message}</p> : null}
             <button type="submit" className="primary">{reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${reportMode === 'leave' ? 'dovolenou' : 'školení'}`}</button>
           </div>
         </form>

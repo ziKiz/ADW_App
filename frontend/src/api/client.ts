@@ -3,11 +3,15 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { getUser } from '../utils/auth';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
+export const APP_MODE = import.meta.env.VITE_APP_MODE || 'static-demo';
+export const isLiveMode = APP_MODE === 'live';
 const demoDataBase = `${import.meta.env.BASE_URL}demo-data`;
 const storedReportsKey = 'adw_demo_reports';
 const storedFuelEntriesKey = 'adw_demo_fuel_entries';
 const storedUsersKey = 'adw_demo_users';
 const storedAuditKey = 'adw_demo_audit';
+const storedNoticesKey = 'adw_notice_board';
+const storedServiceTasksKey = 'adw_service_tasks';
 
 const client = axios.create({
   baseURL: API_BASE,
@@ -138,6 +142,42 @@ function decorateReports(reports: any[], fields: any[], tractors: any[], workTyp
   });
 }
 
+function isRegularWorkReport(report: any) {
+  return (
+    (report.report_kind === undefined || report.report_kind === 'work') &&
+    report.work_type_id &&
+    !['Dovolená', 'Školení'].includes(String(report.work_type ?? ''))
+  );
+}
+
+async function getDemoLastUsedReport() {
+  const user = getUser();
+  const reports = (await getDemoReports())
+    .filter((report) => {
+      const matchesUser = report.user_id !== undefined && report.user_id !== null
+        ? Number(report.user_id) === Number(user?.id)
+        : report.employee_name === user?.full_name;
+      return matchesUser && isRegularWorkReport(report);
+    })
+    .sort((first, second) => {
+      const dateCompare = String(second.date ?? '').localeCompare(String(first.date ?? ''));
+      if (dateCompare !== 0) return dateCompare;
+      return String(second.created_at ?? '').localeCompare(String(first.created_at ?? ''));
+    });
+  const last = reports[0];
+  if (!last) return null;
+  return {
+    report_id: last.id,
+    service_center: last.service_center ?? getReportCenter(last),
+    tractor_id: last.tractor_id,
+    tractor_name: last.tractor_name,
+    work_type_id: last.work_type_id,
+    work_type: last.work_type,
+    attachments: last.attachments ?? [],
+    date: last.date
+  };
+}
+
 async function getDemoReports() {
   const [reports, fields, tractors, workTypes, fuelEntries] = await Promise.all([
     loadDemoJson<any[]>('reports.json'),
@@ -158,11 +198,42 @@ async function getDemoUsers() {
   return users.map((user) => storedUsers.find((item) => Number(item.id) === Number(user.id)) ?? user);
 }
 
+async function getDemoContacts() {
+  return loadDemoJson<any[]>('contacts.json');
+}
+
+async function getDemoServiceTasks() {
+  return getStoredJson<any[]>(storedServiceTasksKey, [
+    {
+      id: 1,
+      machine: 'FENDT VARIO 724',
+      description: 'Kontrola před sezónou a výměna filtrů.',
+      created_by: 'Mechanizace',
+      created_at: '2026-06-26T08:00:00.000Z'
+    }
+  ]).filter((item) => !item.archived_at);
+}
+
+async function getDemoNotices() {
+  return getStoredJson<any[]>(storedNoticesKey, [
+    {
+      id: 1,
+      title: 'Pozor na termíny výkazů',
+      message: 'Prosíme doplňovat výkazy průběžně každý pracovní den.',
+      author: 'Vedení',
+      created_at: '2026-06-26T08:00:00.000Z'
+    }
+  ]).filter((item) => !item.archived_at);
+}
+
 async function createDemoReport(config: InternalAxiosRequestConfig) {
   const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
   const tractors = await loadDemoJson<any[]>('tractors.json');
+  const workTypes = await loadDemoJson<any[]>('work-types.json');
   const allowedTractors = filterTractorsForServiceCenter(tractors, body.service_center, getUser()?.role);
-  if ((!body.report_kind || body.report_kind === 'work') && !allowedTractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
+  const workType = workTypes.find((item) => Number(item.id) === Number(body.work_type_id));
+  const allowsNoTractor = String(workType?.name ?? '') === 'Ostatní' && !body.tractor_id;
+  if ((!body.report_kind || body.report_kind === 'work') && !allowsNoTractor && !allowedTractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
     throw new Error('Vybraný stroj nepatří do zvoleného střediska.');
   }
   const existingReports = await getDemoReports();
@@ -256,6 +327,18 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
       user_roles: []
     });
   }
+  if (endpoint === 'contacts') {
+    return responseFromDemo(config, await getDemoContacts());
+  }
+  if (endpoint === 'service-schedule') {
+    return responseFromDemo(config, await loadDemoJson('service-schedule.json'));
+  }
+  if (endpoint === 'notices') {
+    return responseFromDemo(config, await getDemoNotices());
+  }
+  if (endpoint === 'service-tasks') {
+    return responseFromDemo(config, await getDemoServiceTasks());
+  }
   if (endpoint === 'export/csv') {
     const status = (config.params as any)?.status ?? 'approved';
     const center = (config.params as any)?.center ?? 'all';
@@ -268,6 +351,9 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
     return responseFromDemo(config, data);
   }
   if (endpoint === 'reports' || endpoint.startsWith('reports/')) {
+    if (endpoint === 'reports/last-used') {
+      return responseFromDemo(config, await getDemoLastUsedReport());
+    }
     const decoratedReports = await getDemoReports();
     if (endpoint.startsWith('reports/')) {
       const id = Number(endpoint.split('/')[1]);
@@ -282,7 +368,12 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
 
 client.interceptors.request.use((config) => {
   const user = getUser();
+  const requestId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  config.headers['x-request-id'] = requestId;
   if (user) {
+    if (user.access_token) {
+      config.headers.Authorization = `Bearer ${user.access_token}`;
+    }
     config.headers['x-user-role'] = user.role;
     config.headers['x-user-id'] = String(user.id);
     config.headers['x-user-name'] = user.full_name || user.username || user.email;
@@ -295,12 +386,45 @@ client.interceptors.response.use(
   async (error) => {
     const config = error.config as InternalAxiosRequestConfig | undefined;
     if (!config) throw error;
+    if (isLiveMode) throw error;
     const endpoint = normalizeEndpoint(config.url);
     if ((config.method ?? 'get').toLowerCase() === 'post' && endpoint === 'reports') {
       return createDemoReport(config);
     }
     if ((config.method ?? '').toLowerCase() === 'put' && endpoint.startsWith('users/')) {
       return updateDemoUser(config);
+    }
+    if ((config.method ?? '').toLowerCase() === 'post' && endpoint === 'notices') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+      const notices = await getDemoNotices();
+      const item = { ...body, id: notices.reduce((max, notice) => Math.max(max, Number(notice.id || 0)), 0) + 1, created_at: new Date().toISOString() };
+      setStoredJson(storedNoticesKey, [item, ...notices]);
+      appendDemoAudit('notices', item.id, 'create', null, item);
+      return responseFromDemo(config, item);
+    }
+    if ((config.method ?? '').toLowerCase() === 'post' && endpoint.startsWith('notices/') && endpoint.endsWith('/archive')) {
+      const id = Number(endpoint.split('/')[1]);
+      const notices = getStoredJson<any[]>(storedNoticesKey, []);
+      const updated = notices.map((notice) => Number(notice.id) === id ? { ...notice, archived_at: new Date().toISOString(), archived_by: getUser()?.full_name ?? 'Demo uživatel' } : notice);
+      setStoredJson(storedNoticesKey, updated);
+      appendDemoAudit('notices', id, 'archive', notices.find((notice) => Number(notice.id) === id), updated.find((notice) => Number(notice.id) === id));
+      return responseFromDemo(config, { message: 'Informace byla archivována.' });
+    }
+    if ((config.method ?? '').toLowerCase() === 'post' && endpoint === 'service-tasks') {
+      const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+      const tasks = await getDemoServiceTasks();
+      const item = { ...body, id: tasks.reduce((max, task) => Math.max(max, Number(task.id || 0)), 0) + 1, created_at: new Date().toISOString() };
+      setStoredJson(storedServiceTasksKey, [item, ...tasks]);
+      appendDemoAudit('machine_service_tasks', item.id, 'create', null, item);
+      return responseFromDemo(config, item);
+    }
+    if ((config.method ?? '').toLowerCase() === 'post' && endpoint.startsWith('service-tasks/') && endpoint.endsWith('/archive')) {
+      const id = Number(endpoint.split('/')[1]);
+      const tasks = getStoredJson<any[]>(storedServiceTasksKey, []);
+      const updated = tasks.map((task) => Number(task.id) === id ? { ...task, archived_at: new Date().toISOString(), archived_by: getUser()?.full_name ?? 'Demo uživatel' } : task);
+      setStoredJson(storedServiceTasksKey, updated);
+      appendDemoAudit('machine_service_tasks', id, 'archive', tasks.find((task) => Number(task.id) === id), updated.find((task) => Number(task.id) === id));
+      return responseFromDemo(config, { message: 'Servis byl archivován.' });
     }
     const demoResponse = await getDemoDataForRequest(config);
     if (demoResponse) return demoResponse;

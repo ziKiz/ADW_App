@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: adw-postgres
+    environment:
+      POSTGRES_DB: adw
+      POSTGRES_USER: adw
+      POSTGRES_PASSWORD: adw
+    ports:
+      - "5432:5432"
+    volumes:
+      - adw_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adw -d adw"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  adw_postgres_data:
+

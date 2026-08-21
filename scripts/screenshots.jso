@@ -1,0 +1,51 @@
+const { chromium } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+
+const BASE_URL = 'http://localhost:5173';
+
+const pages = [
+  { name: '01-home', url: '/' },
+  { name: '02-dashboard', url: '/dashboard' },
+  { name: '03-lide', url: '/lide' },
+  { name: '04-strediska', url: '/strediska' },
+  { name: '05-technika', url: '/technika' },
+  { name: '06-ciselniky', url: '/ciselniky' },
+  { name: '07-admin', url: '/admin' },
+];
+
+(async () => {
+  const outputDir = path.join(__dirname, '..', 'screenshots');
+
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir);
+  }
+
+  const browser = await chromium.launch();
+  const page = await browser.newPage({
+    viewport: {
+      width: 1440,
+      height: 1000,
+    },
+  });
+
+  for (const item of pages) {
+    const fullUrl = BASE_URL + item.url;
+
+    console.log(`Fotím: ${fullUrl}`);
+
+    await page.goto(fullUrl, {
+      waitUntil: 'networkidle',
+    });
+
+    await page.screenshot({
+      path: path.join(outputDir, `${item.name}.png`),
+      fullPage: true,
+    });
+  }
+
+  await browser.close();
+
+  console.log('Hotovo. Screenshoty jsou ve složce screenshots.');
+})();
+

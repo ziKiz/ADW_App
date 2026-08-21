@@ -672,8 +672,24 @@ label,
   font-weight: 900;
 }
 
+.segmented-control a {
+  display: grid;
+  min-height: 42px;
+  align-items: center;
+  justify-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--adw-green-dark);
+  cursor: pointer;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .segmented-control button.active,
-.segmented-control button:hover {
+.segmented-control button:hover,
+.segmented-control a.active,
+.segmented-control a:hover {
   border-color: #89c99c;
   background: var(--adw-green-soft);
 }
@@ -790,6 +806,25 @@ label,
   margin: 12px 0 0;
   color: var(--muted);
   font-weight: 700;
+}
+
+.form-message {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f6f8f5;
+  padding: 10px 12px;
+}
+
+.form-message--success {
+  border-color: #9fd0ad;
+  background: var(--adw-green-soft);
+  color: var(--adw-green-dark);
+}
+
+.form-message--error {
+  border-color: #efb4aa;
+  background: #fff3f1;
+  color: #9f2f1f;
 }
 
 .approval-table {
@@ -1123,6 +1158,16 @@ label,
   margin-top: 4px;
   color: var(--adw-green-dark);
   font-size: 1.2rem;
+}
+
+.approval-status-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.director-filter-bar {
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px);
+  margin-bottom: 14px;
 }
 
 .attention-panel,
@@ -1459,6 +1504,128 @@ label,
   color: var(--muted);
   font-size: 0.8rem;
   font-weight: 700;
+}
+
+.small-panel-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-color: #98aaa1 #edf2ef;
+  scrollbar-width: thin;
+}
+
+.small-panel-scroll::-webkit-scrollbar,
+.approval-table-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.small-panel-scroll::-webkit-scrollbar-track,
+.approval-table-scroll::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: #edf2ef;
+}
+
+.small-panel-scroll::-webkit-scrollbar-thumb,
+.approval-table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid #edf2ef;
+  border-radius: 999px;
+  background: #98aaa1;
+}
+
+.machine-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(80px, 1.2fr) 58px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #edf2ef;
+  padding: 8px 0;
+  color: #39443f;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.machine-row:last-child {
+  border-bottom: 0;
+}
+
+.machine-row b {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef2ef;
+}
+
+.machine-row i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--adw-green), #f2cc19);
+}
+
+.machine-row strong {
+  text-align: right;
+}
+
+.activity-list .small-panel-scroll {
+  display: grid;
+  gap: 8px;
+}
+
+.activity-list span {
+  display: grid;
+  gap: 3px;
+  border: 1px solid #e4ebe7;
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 8px 10px;
+  color: #39443f;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.activity-list b {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.readonly-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.readonly-detail-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfb;
+  padding: 10px 12px;
+}
+
+.readonly-detail-grid span,
+.readonly-detail-grid strong {
+  display: block;
+}
+
+.readonly-detail-grid span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.readonly-detail-grid strong,
+.readonly-detail-grid p {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-weight: 800;
+  white-space: pre-wrap;
+}
+
+.readonly-detail-grid__wide {
+  grid-column: 1 / -1;
 }
 
 .donut {
@@ -2233,6 +2400,24 @@ label,
     white-space: nowrap;
   }
 
+  .approval-status-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .approval-status-tabs a {
+    min-width: 0;
+    padding: 0 8px;
+    white-space: normal;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .director-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
   .section-line {
     align-items: center;
   }
@@ -2482,6 +2667,19 @@ label,
   .approval-detail-modal .detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+
+  .readonly-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .machine-row {
+    grid-template-columns: minmax(0, 1fr) 54px;
+  }
+
+  .machine-row b {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .approval-detail-modal .detail-field {
@@ -2743,6 +2941,30 @@ label,
   border-color: var(--adw-green);
   background: var(--adw-green);
   color: #ffffff;
+}
+
+.contact-group-select {
+  display: grid;
+  gap: 6px;
+}
+
+.contact-group-select label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.contact-group-select select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+  font-weight: 800;
 }
 
 .compact-contact-list {
@@ -3077,13 +3299,26 @@ label,
   }
 
   .contacts-section-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     position: sticky;
     top: 0;
     z-index: 3;
+    width: 100%;
+    overflow: visible;
     margin: -2px -2px 0;
     background: rgba(246, 248, 245, 0.96);
     padding: 2px;
     backdrop-filter: blur(10px);
+  }
+
+  .contacts-section-tabs button {
+    flex: initial;
+    min-width: 0;
+    width: 100%;
+    padding: 0 6px;
+    white-space: normal;
+    line-height: 1.15;
   }
 
   .contact-search {
@@ -3108,15 +3343,17 @@ label,
     display: none;
   }
 
-  .contact-filter-row {
+  .contact-group-select {
     margin: 0 -2px;
-    padding: 0 2px 6px;
   }
 
-  .contact-filter-row button {
-    min-height: 42px;
-    padding: 0 14px;
-    font-size: 0.78rem;
+  .contact-group-select label {
+    font-size: 0.72rem;
+  }
+
+  .contact-group-select select {
+    min-height: 44px;
+    font-size: 0.9rem;
   }
 
   .compact-contact-list {
