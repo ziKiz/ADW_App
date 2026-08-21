@@ -20,6 +20,10 @@ const client = axios.create({
   }
 });
 
+export function hasHttpStatus(error: unknown, statuses: number[]) {
+  return axios.isAxiosError(error) && Boolean(error.response?.status && statuses.includes(error.response.status));
+}
+
 async function loadDemoJson<T>(fileName: string): Promise<T> {
   const response = await fetch(`${demoDataBase}/${fileName}`);
   if (!response.ok) throw new Error(`Demo data ${fileName} nelze načíst.`);

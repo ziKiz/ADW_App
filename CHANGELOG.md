@@ -14,6 +14,11 @@ Formát:
 
 ## 2026-08-21
 
+### QA a použitelnost
+- Formuláře výkazů a detailů schvalování zobrazují vedle nativních polí také český náhled datumů a časů.
+- Mobilní spodní navigace je kompaktnější a obsah má větší spodní odsazení, aby se ovládání nepřekrývalo s obsahem.
+- Dashboard už běžným rolím nespouští načítání auditního feedu, které končilo očekávanou chybou oprávnění v konzoli; audit feed má zároveň stabilní klíče bez React varování.
+
 ### Backend a bezpečnost
 - Odstraněn starý Express backend `backend/`; aplikace má jeden živý backend ve `backend_fastapi/`.
 - README a Nginx konfigurace byly vyčištěny na čistý FastAPI + PostgreSQL workflow bez starých Express importů a lokálních JSON backend dat.

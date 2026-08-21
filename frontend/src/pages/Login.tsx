@@ -1,6 +1,6 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import client, { isLiveMode } from '../api/client';
+import client, { hasHttpStatus, isLiveMode } from '../api/client';
 import { AVAILABLE_DEMO_USERS, saveUser } from '../utils/auth';
 
 function roleLabel(role: string) {
@@ -29,7 +29,7 @@ function Login() {
       saveUser(response.data);
       navigate('/dashboard');
     } catch (error) {
-      console.error(error);
+      if (!hasHttpStatus(error, [401])) console.error(error);
       setMessage('Přihlášení se nezdařilo. Zkontrolujte údaje.');
     }
   };

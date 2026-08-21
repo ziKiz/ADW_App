@@ -141,6 +141,10 @@ function displayReportPerformance(report: ReportSummary) {
   return `${asNumber(report.amount_ha).toFixed(1)} ha`;
 }
 
+function canReadAudit(role?: string) {
+  return ['admin', 'reditel'].includes(String(role ?? '').toLocaleLowerCase('cs'));
+}
+
 function Dashboard() {
   const [reports, setReports] = useState<ReportSummary[]>([]);
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
@@ -153,11 +157,12 @@ function Dashboard() {
   const [panelMessage, setPanelMessage] = useState('');
   const [selectedUserReport, setSelectedUserReport] = useState<ReportSummary | null>(null);
   const user = getUser();
+  const showAuditFeed = canReadAudit(user?.role);
 
   useEffect(() => {
     Promise.allSettled([
       client.get('/reports'),
-      client.get('/audit?limit=30'),
+      showAuditFeed ? client.get('/audit?limit=30') : Promise.resolve({ data: [] }),
       client.get('/notices'),
       client.get('/service-tasks')
     ]).then(([reportsResponse, auditResponse, noticesResponse, serviceTasksResponse]) => {
@@ -166,11 +171,11 @@ function Dashboard() {
       if (noticesResponse.status === 'fulfilled') setNotices(noticesResponse.value.data as NoticeItem[]);
       if (serviceTasksResponse.status === 'fulfilled') setServiceTasks(serviceTasksResponse.value.data as ServiceTask[]);
       if (reportsResponse.status === 'rejected') console.error(reportsResponse.reason);
-      if (auditResponse.status === 'rejected') console.error(auditResponse.reason);
+      if (showAuditFeed && auditResponse.status === 'rejected') console.error(auditResponse.reason);
       if (noticesResponse.status === 'rejected') console.error(noticesResponse.reason);
       if (serviceTasksResponse.status === 'rejected') console.error(serviceTasksResponse.reason);
     });
-  }, []);
+  }, [showAuditFeed]);
 
   const pendingReports = useMemo(() => reports.filter((report) => report.status === 'pending'), [reports]);
   const overdueReports = useMemo(() => pendingReports.filter(isOverdue), [pendingReports]);
@@ -211,11 +216,13 @@ function Dashboard() {
   const recentActivity = useMemo(() => {
     if (auditEntries.length > 0) {
       return auditEntries.map((entry) => ({
+        key: `audit-${entry.id}`,
         time: formatDateTime(entry.changed_at),
         text: activityText(entry)
       }));
     }
     return reports.slice(0, 20).map((report) => ({
+      key: `report-${report.id}`,
       time: formatDate(report.date),
       text: `${report.employee_name ?? report.report_number} zadal výkaz ${report.work_type}`
     }));
@@ -262,7 +269,9 @@ function Dashboard() {
       const response = await client.post('/notices', { title: noticeTitle.trim(), message: noticeMessage.trim(), author: user?.full_name ?? 'Admin' });
       const item = response.data as NoticeItem;
       setNotices((items) => [item, ...items]);
-      client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      if (showAuditFeed) {
+        client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      }
       setNoticeTitle('');
       setNoticeMessage('');
       setPanelMessage('Informace byla přidána.');
@@ -276,7 +285,9 @@ function Dashboard() {
     try {
       await client.post(`/notices/${id}/archive`);
       setNotices((items) => items.filter((item) => item.id !== id));
-      client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      if (showAuditFeed) {
+        client.get('/audit?limit=30').then((response) => setAuditEntries(response.data as AuditEntry[])).catch((error) => console.error(error));
+      }
       setPanelMessage('Informace byla archivována.');
     } catch (error) {
       console.error(error);
@@ -597,7 +608,7 @@ function Dashboard() {
             <div className="activity-list">
               <div className="small-panel-scroll">
                 {recentActivity.map((item) => (
-                  <span key={`${item.time}-${item.text}`}><b>{item.time}</b>{item.text}</span>
+                  <span key={item.key}><b>{item.time}</b>{item.text}</span>
                 ))}
               </div>
             </div>

@@ -123,6 +123,10 @@ function formatCzechDate(value: string) {
   return formatSharedCzechDate(value);
 }
 
+function formatCzechTime(value: string) {
+  return normalizeClockTime(value) || '-';
+}
+
 function getLastReportPreferences(): LastReportPreferences {
   const saved = localStorage.getItem(lastReportPreferencesKey);
   if (!saved) return {};
@@ -813,14 +817,17 @@ function ReportForm() {
                   value={date}
                   onChange={handleDateChange}
                 />
+                <small className="date-format-hint">Česky: {formatCzechDate(date)}</small>
               </div>
               <div className="field-row">
                 <label htmlFor="from">Od</label>
                 <input id="from" type="time" min="07:00" max="15:30" value={timeStart} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeStart(event.target.value)} />
+                <small className="date-format-hint">Česky: {formatCzechTime(timeStart)}</small>
               </div>
               <div className="field-row">
                 <label htmlFor="to">Do</label>
                 <input id="to" type="time" min="07:00" max="15:30" value={timeEnd} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeEnd(event.target.value)} />
+                <small className="date-format-hint">Česky: {formatCzechTime(timeEnd)}</small>
               </div>
             </div>
           </section>
@@ -1067,6 +1074,7 @@ function ReportForm() {
                 <div className="field-row">
                   <label htmlFor="fuelDate">Datum tankování</label>
                   <input id="fuelDate" type="date" value={fuelDate} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelDate(event.target.value)} />
+                  <small className="date-format-hint">Česky: {formatCzechDate(fuelDate)}</small>
                 </div>
                 <div className="field-row">
                   <label htmlFor="fuelTractor">Stroj</label>

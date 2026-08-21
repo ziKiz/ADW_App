@@ -47,6 +47,10 @@ function normalizeTime(value?: string | null) {
   return value ? value.slice(0, 5) : '';
 }
 
+function formatCzechTime(value?: string | null) {
+  return normalizeTime(value) || '-';
+}
+
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
   return report ? ['Dovolená', 'Školení'].includes(report.work_type) : false;
 }
@@ -264,10 +268,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           <label>
             Datum od
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            {dateFrom ? <small className="date-format-hint">Česky: {formatDate(dateFrom)}</small> : null}
           </label>
           <label>
             Datum do
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            {dateTo ? <small className="date-format-hint">Česky: {formatDate(dateTo)}</small> : null}
           </label>
         </div>
         {message && <p className="form-message">{message}</p>}
@@ -324,9 +330,9 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               </div>
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
-                <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
-                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /></label>
-                <label className="detail-field">Do<input type="time" value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /></label>
+                <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /><small className="date-format-hint">Česky: {formatDate(selectedReport.date)}</small></label>
+                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /><small className="date-format-hint">Česky: {formatCzechTime(selectedReport.time_start)}</small></label>
+                <label className="detail-field">Do<input type="time" value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /><small className="date-format-hint">Česky: {formatCzechTime(selectedReport.time_end)}</small></label>
                 <label className="detail-field">
                   Činnost
                   <select value={selectedReport.work_type_id ?? ''} onChange={handleDetailNumberChange('work_type_id')}>
@@ -356,7 +362,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </select>
                 </label>
                 <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
-                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
+                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /><small className="date-format-hint">Česky: {formatDate((selectedReport.fuel_date ?? selectedReport.date).slice(0, 10))}</small></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               {status === 'pending' ? (
