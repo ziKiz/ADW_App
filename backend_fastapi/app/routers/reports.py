@@ -31,6 +31,11 @@ def parse_time_value(value: Any) -> time | None:
     return time.fromisoformat(str(value))
 
 
+def validate_report_time_order(is_work: bool, time_start: time | None, time_end: time | None) -> None:
+    if is_work and time_start and time_end and time_end <= time_start:
+        raise HTTPException(status_code=422, detail="Konec práce musí být po začátku.")
+
+
 def report_select(where: str = "") -> str:
     return f"""
       SELECT r.id, r.report_number, r.report_kind, r.user_id, r.employee_name, r.service_center,
@@ -142,6 +147,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    validate_report_time_order(is_work, time_start, time_end)
     report_user_id, employee_name = report_identity_for_create(payload, user)
     result = await session.execute(
         text(
@@ -217,6 +223,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    validate_report_time_order(is_work, time_start, time_end)
     before_dict = dict(before_row)
     report_user_id, employee_name = report_identity_for_update(payload, user, before_dict)
     await session.execute(

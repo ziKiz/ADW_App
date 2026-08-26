@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
@@ -129,6 +129,10 @@ function isAbsenceReport(report: Pick<ReportSummary, 'work_type'>) {
   return ['Dovolená', 'Školení'].includes(report.work_type);
 }
 
+function isScopedApprovalRole(role?: string) {
+  return ['schvalovatel', 'specialista'].includes(String(role ?? '').toLocaleLowerCase('cs'));
+}
+
 function displayReportTime(report: ReportSummary) {
   if (isAbsenceReport(report)) return 'celý den';
   const start = formatTime(report.time_start);
@@ -177,7 +181,15 @@ function Dashboard() {
     });
   }, [showAuditFeed]);
 
-  const pendingReports = useMemo(() => reports.filter((report) => report.status === 'pending'), [reports]);
+  const userServiceCenter = getUserServiceCenter(user);
+  const visibleReports = useMemo(() => {
+    if (!isScopedApprovalRole(user?.role)) return reports;
+    return reports.filter((report) => (
+      getReportCenter(report) === userServiceCenter ||
+      report.employee_name === user?.full_name
+    ));
+  }, [reports, user?.full_name, user?.role, userServiceCenter]);
+  const pendingReports = useMemo(() => visibleReports.filter((report) => report.status === 'pending'), [visibleReports]);
   const overdueReports = useMemo(() => pendingReports.filter(isOverdue), [pendingReports]);
   const lastUpdated = useMemo(() => formatCzechDateTime(new Date()), [reports]);
 
@@ -187,13 +199,12 @@ function Dashboard() {
     calculateHours(report.time_start, report.time_end) > 10
   ), [pendingReports]);
 
-  const userServiceCenter = getUserServiceCenter(user);
   const fuelSourceReports = useMemo(() => {
     if (user?.role === 'schvalovatel' || user?.role === 'specialista') {
-      return reports.filter((report) => getReportCenter(report) === userServiceCenter);
+      return visibleReports.filter((report) => getReportCenter(report) === userServiceCenter);
     }
-    return reports;
-  }, [reports, user?.role, userServiceCenter]);
+    return visibleReports;
+  }, [user?.role, userServiceCenter, visibleReports]);
 
   const machineFuel = useMemo(() => {
     const totals = new Map<string, number>();
@@ -209,7 +220,7 @@ function Dashboard() {
   const canManageNotices = user?.role === 'admin' || user?.role === 'reditel';
   const canArchiveNotices = user?.role === 'admin';
   const canManageService = user?.role === 'admin' || user?.role === 'schvalovatel';
-  const canSeeFuelOverview = user?.role === 'schvalovatel' || user?.role === 'specialista';
+  const canSeeFuelOverview = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeActivity = user?.role === 'admin' || user?.role === 'reditel';
   const isTractorOperator = user?.role === 'traktorista' || user?.role === 'zamestnanec';
 
@@ -221,17 +232,17 @@ function Dashboard() {
         text: activityText(entry)
       }));
     }
-    return reports.slice(0, 20).map((report) => ({
+    return visibleReports.slice(0, 20).map((report) => ({
       key: `report-${report.id}`,
       time: formatDate(report.date),
       text: `${report.employee_name ?? report.report_number} zadal výkaz ${report.work_type}`
     }));
-  }, [auditEntries, reports]);
+  }, [auditEntries, visibleReports]);
 
   const priorityReports = pendingReports.slice(0, 20);
   const userAllReports = useMemo(
-    () => reports.filter((r) => r.employee_name === user?.full_name),
-    [reports, user?.full_name]
+    () => visibleReports.filter((r) => r.employee_name === user?.full_name),
+    [user?.full_name, visibleReports]
   );
   const userReports = useMemo(() => userAllReports.slice(0, 10), [userAllReports]);
   const userReportDates = useMemo(() => new Set(userAllReports.map((report) => String(report.date).slice(0, 10))), [userAllReports]);
@@ -240,12 +251,12 @@ function Dashboard() {
   const needsAttentionCount = missingWeekdays.length + returnedReports.length;
   const absencesToday = useMemo(() => {
     const today = toIsoDate(new Date());
-    return reports
+    return visibleReports
       .filter((report) => ['Dovolená', 'Školení'].includes(report.work_type))
       .map((report) => ({ report, range: getAbsenceRange(report) }))
       .filter((item) => item.range.start <= today && item.range.end >= today)
       .sort((first, second) => String(first.report.employee_name ?? '').localeCompare(String(second.report.employee_name ?? ''), 'cs-CZ'));
-  }, [reports]);
+  }, [visibleReports]);
   const fuelOverview = useMemo(() => {
     const now = new Date();
     const sumForDays = (days: number) => fuelSourceReports
@@ -588,20 +599,23 @@ function Dashboard() {
         <div className="approval-bottom-grid">
           {ServicePanel}
           {AbsencePanel}
-          <section className="approval-small-panel">
-            <h2>Tankování PHM podle strojů</h2>
-            <div className="machine-bars">
-              <div className="small-panel-scroll">
-                {machineFuel.map((item) => (
-                  <div key={item.name} className="machine-row">
-                    <span>{item.name}</span>
-                    <b><i style={{ width: `${Math.min(100, item.value / 8)}%` } as CSSProperties} /></b>
-                    <strong>{item.value.toFixed(0)} l</strong>
-                  </div>
-                ))}
+          {canSeeFuelOverview ? (
+            <section className="approval-small-panel">
+              <h2>Tankování PHM podle strojů</h2>
+              <div className="machine-fuel-list small-panel-scroll">
+                {machineFuel.length === 0 ? (
+                  <p className="empty-state empty-state--compact">Žádné tankování PHM v aktuálním přehledu.</p>
+                ) : (
+                  machineFuel.map((item) => (
+                    <div key={item.name} className="machine-fuel-row">
+                      <span>{item.name}</span>
+                      <strong>{item.value.toFixed(0)} l</strong>
+                    </div>
+                  ))
+                )}
               </div>
-            </div>
-          </section>
+            </section>
+          ) : null}
           {canSeeActivity ? (
           <section className="approval-small-panel">
             <h2>Poslední aktivita</h2>

@@ -236,7 +236,8 @@ main {
   font-weight: 600;
 }
 
-.logout-button {
+.logout-button,
+.profile-switch-button {
   width: 100%;
   min-height: 32px;
   margin-top: 10px;
@@ -249,8 +250,18 @@ main {
   font-weight: 800;
 }
 
-.logout-button:hover {
+.profile-switch-button {
+  margin-top: 6px;
+}
+
+.logout-button:hover,
+.profile-switch-button:hover {
   background: rgba(255, 255, 255, 0.16);
+}
+
+.mobile-account-button,
+.mobile-account-menu {
+  display: none;
 }
 
 .container {
@@ -1373,6 +1384,37 @@ label,
   text-align: right;
 }
 
+.machine-fuel-list {
+  display: grid;
+  gap: 6px;
+}
+
+.machine-fuel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #edf2ef;
+  padding: 8px 0;
+  color: #39443f;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.machine-fuel-row:last-child {
+  border-bottom: 0;
+}
+
+.machine-fuel-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.machine-fuel-row strong {
+  color: var(--adw-green-dark);
+  white-space: nowrap;
+}
+
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -2065,6 +2107,7 @@ label,
   }
 
   .brand-user {
+    position: relative;
     grid-area: user;
     display: flex;
     align-items: center;
@@ -2079,30 +2122,75 @@ label,
   }
 
   .brand-user span {
+    display: none;
+  }
+
+  .mobile-account-button {
+    display: inline-flex;
+    align-items: center;
     max-width: 128px;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 900;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .brand-user span::after {
+  .mobile-account-button::after {
     content: "";
-    display: inline-block;
+    flex: 0 0 auto;
     width: 13px;
     height: 13px;
     margin-left: 8px;
     border-radius: 999px;
     background: #12c957;
     box-shadow: 0 0 0 2px rgba(18, 201, 87, 0.18);
-    vertical-align: -1px;
   }
 
   .brand-user strong {
     display: none;
   }
 
+  .profile-switch-button,
   .logout-button {
     display: none;
+  }
+
+  .mobile-account-menu {
+    position: absolute;
+    top: 28px;
+    right: 0;
+    z-index: 60;
+    display: grid;
+    min-width: 150px;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 8px;
+    background: #08383d;
+    padding: 6px;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+  }
+
+  .mobile-account-menu button {
+    min-height: 36px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #ffffff;
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.82rem;
+    font-weight: 850;
+  }
+
+  .mobile-account-menu button:hover {
+    background: rgba(255, 255, 255, 0.12);
   }
 
   .app-sidebar__version {

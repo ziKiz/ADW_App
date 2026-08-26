@@ -12,7 +12,9 @@ export interface AppUser {
 
 const USER_STORAGE_KEY = 'adw_user';
 const LOGGED_OUT_STORAGE_KEY = 'adw_logged_out';
+const MARTINA_PROFILE_STORAGE_KEY = 'adw_martina_profile';
 const IS_LIVE_MODE = import.meta.env.VITE_APP_MODE === 'live';
+export type MartinaProfileMode = 'admin' | 'work';
 
 export const DEMO_ADMIN_USER: AppUser = {
   id: 21,
@@ -56,6 +58,29 @@ export const DEMO_AGRONOM_USER: AppUser = {
 
 export const AVAILABLE_DEMO_USERS = [DEMO_ADMIN_USER, DEMO_TRACTOR_OPERATOR_USER, DEMO_LEOS_SKUCIUS_USER, DEMO_AGRONOM_USER];
 
+export function isMartinaUser(user: AppUser | null | undefined) {
+  return user?.username === 'martina.novotna' || user?.full_name === 'Ing. Martina Novotná';
+}
+
+export function getMartinaProfileMode(): MartinaProfileMode {
+  const saved = localStorage.getItem(MARTINA_PROFILE_STORAGE_KEY);
+  return saved === 'work' ? 'work' : 'admin';
+}
+
+export function setMartinaProfileMode(mode: MartinaProfileMode) {
+  localStorage.setItem(MARTINA_PROFILE_STORAGE_KEY, mode);
+}
+
+function applyMartinaProfile(user: AppUser) {
+  if (!isMartinaUser(user) || getMartinaProfileMode() !== 'work') return user;
+  return {
+    ...user,
+    role: 'schvalovatel',
+    department_name: user.department_name || 'Mechanizace',
+    scope_department: user.scope_department || user.department_name || 'Mechanizace'
+  };
+}
+
 export function saveUser(user: AppUser) {
   localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   localStorage.removeItem(LOGGED_OUT_STORAGE_KEY);
@@ -65,7 +90,7 @@ export function getUser(): AppUser | null {
   const saved = localStorage.getItem(USER_STORAGE_KEY);
   if (!saved) return null;
   try {
-    return JSON.parse(saved) as AppUser;
+    return applyMartinaProfile(JSON.parse(saved) as AppUser);
   } catch {
     return null;
   }

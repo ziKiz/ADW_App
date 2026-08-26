@@ -117,6 +117,10 @@ function addMinutesToTime(time: string, minutes: number) {
   return minutesToTime(timeToMinutes(time) + minutes);
 }
 
+function isEndAfterStart(start: string, end: string) {
+  return timeToMinutes(end) > timeToMinutes(start);
+}
+
 function sameReportDate(reportDate: string | undefined, targetDate: string) {
   return String(reportDate ?? '').slice(0, 10) === targetDate;
 }
@@ -612,6 +616,12 @@ function ReportForm() {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
     }
+    if (!isEndAfterStart(timeStart, timeEnd)) {
+      const nextEnd = addMinutesToTime(timeStart, followUpDurationMinutes);
+      setTimeEnd(nextEnd);
+      showFormMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`, 'error');
+      return;
+    }
 
     if (!confirmReportSubmit(`Opravdu chcete uložit a odeslat výkaz za ${formatCzechDate(date)} (${timeStart}-${timeEnd}, ${totalArea.toFixed(2)} ha)?`)) {
       showFormMessage('Odeslání bylo zrušeno.', 'info');
@@ -713,6 +723,17 @@ function ReportForm() {
     const tractorId = event.target.value ? Number(event.target.value) : undefined;
     setSelectedTractor(tractorId);
     setFuelTractorId(tractorId);
+  };
+
+  const handleTimeStartChange = (value: string) => {
+    setTimeStart(value);
+    if (!isEndAfterStart(value, timeEnd)) {
+      setTimeEnd(addMinutesToTime(value, followUpDurationMinutes));
+    }
+  };
+
+  const handleTimeEndChange = (value: string) => {
+    setTimeEnd(isEndAfterStart(timeStart, value) ? value : addMinutesToTime(timeStart, followUpDurationMinutes));
   };
 
   const handleSelectWorkType = (event: ChangeEvent<HTMLSelectElement>) => {
@@ -856,11 +877,11 @@ function ReportForm() {
               </div>
               <div className="field-row">
                 <label htmlFor="from">Od</label>
-                <input id="from" type="time" min="07:00" max="15:30" value={timeStart} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeStart(event.target.value)} />
+                <input id="from" type="time" value={timeStart} onChange={(event: ChangeEvent<HTMLInputElement>) => handleTimeStartChange(event.target.value)} />
               </div>
               <div className="field-row">
                 <label htmlFor="to">Do</label>
-                <input id="to" type="time" min="07:00" max="15:30" value={timeEnd} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeEnd(event.target.value)} />
+                <input id="to" type="time" min={timeStart} value={timeEnd} onChange={(event: ChangeEvent<HTMLInputElement>) => handleTimeEndChange(event.target.value)} />
               </div>
             </div>
           </section>

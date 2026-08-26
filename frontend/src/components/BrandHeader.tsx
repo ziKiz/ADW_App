@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import { clearUser, getOrCreateDemoUser } from '../utils/auth';
+import { clearUser, getMartinaProfileMode, getOrCreateDemoUser, isMartinaUser, setMartinaProfileMode } from '../utils/auth';
 import { appDataValidity } from '../utils/employeeContext';
 import packageJson from '../../package.json';
 
@@ -9,12 +9,22 @@ function BrandHeader() {
   const navigate = useNavigate();
   const user = getOrCreateDemoUser();
   const [pendingCount, setPendingCount] = useState(0);
+  const [profileMode, setProfileMode] = useState(getMartinaProfileMode);
+  const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const versionLabel = packageJson.version;
   const validTo = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${appDataValidity}T12:00:00`));
 
   const handleLogout = () => {
     clearUser();
     navigate('/login', { replace: true });
+  };
+
+  const handleProfileToggle = () => {
+    const nextMode = profileMode === 'admin' ? 'work' : 'admin';
+    setMartinaProfileMode(nextMode);
+    setProfileMode(nextMode);
+    setMobileAccountOpen(false);
+    navigate('/dashboard', { replace: true });
   };
 
   const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
@@ -93,9 +103,33 @@ function BrandHeader() {
         <NavLink to="/contacts" end>Kontakty</NavLink>
       </nav>
       <div className="brand-user">
+        <button
+          className="mobile-account-button"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={mobileAccountOpen}
+          onClick={() => setMobileAccountOpen((open) => !open)}
+        >
+          {user?.full_name ?? 'Nepřihlášený uživatel'}
+        </button>
         <span>{user?.full_name ?? 'Nepřihlášený uživatel'}</span>
         <strong>{getRoleLabel()}</strong>
+        {isMartinaUser(user) ? (
+          <button className="profile-switch-button" type="button" onClick={handleProfileToggle}>
+            {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
+          </button>
+        ) : null}
         <button className="logout-button" type="button" onClick={handleLogout}>Odhlásit se</button>
+        {mobileAccountOpen ? (
+          <div className="mobile-account-menu" role="menu">
+            {isMartinaUser(user) ? (
+              <button type="button" role="menuitem" onClick={handleProfileToggle}>
+                {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
+              </button>
+            ) : null}
+            <button type="button" role="menuitem" onClick={handleLogout}>Odhlásit se</button>
+          </div>
+        ) : null}
       </div>
       <div className="app-sidebar__version">
         <span>Verze {versionLabel}</span>

@@ -13,6 +13,7 @@ interface PendingReport {
   field_id?: number;
   work_type_id?: number;
   user_id?: number;
+  service_center?: string;
   date: string;
   time_start?: string | null;
   time_end?: string | null;
@@ -24,11 +25,26 @@ interface PendingReport {
   fuel_liters?: number | string;
   fuel_date?: string;
   fuel_note?: string;
+  field_entries?: FieldEntrySummary[] | string | null;
+  notes?: string;
   status: string;
 }
 
-interface EditableReport extends PendingReport {
-  notes?: string;
+interface FieldEntrySummary {
+  order?: number;
+  field_id?: number;
+  field_name?: string;
+  field_code?: string;
+  amount_ha?: number | string;
+  processed_percent?: number | string;
+}
+
+interface EditableFieldEntry {
+  id: number;
+  field_id?: number;
+  amount_ha: number;
+  processed_percent: number;
+  field_search: string;
 }
 
 function calculateHours(timeStart: string, timeEnd: string) {
@@ -47,8 +63,25 @@ function normalizeTime(value?: string | null) {
   return value ? value.slice(0, 5) : '';
 }
 
-function formatCzechTime(value?: string | null) {
-  return normalizeTime(value) || '-';
+function timeToMinutes(value: string) {
+  const [hours, minutes] = normalizeTime(value).split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(minutes: number) {
+  const safeMinutes = Math.max(0, Math.min(23 * 60 + 59, minutes));
+  const hours = Math.floor(safeMinutes / 60);
+  const restMinutes = safeMinutes % 60;
+  return `${String(hours).padStart(2, '0')}:${String(restMinutes).padStart(2, '0')}`;
+}
+
+function addMinutesToTime(time: string, minutes: number) {
+  return minutesToTime(timeToMinutes(time) + minutes);
+}
+
+function isEndAfterStart(start: string, end: string) {
+  return timeToMinutes(end) > timeToMinutes(start);
 }
 
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
@@ -66,11 +99,72 @@ function cleanDefaultNote(value?: string) {
   return value?.trim() === 'Práce proběhla bez závad.' ? '' : value;
 }
 
+function getFieldArea(fields: FieldRecord[], fieldId?: number) {
+  const field = fields.find((item) => item.id === fieldId);
+  return Number(field?.area ?? 0);
+}
+
+function calculateProcessedArea(fields: FieldRecord[], fieldId: number | undefined, processedPercent: number) {
+  return Number((getFieldArea(fields, fieldId) * processedPercent / 100).toFixed(2));
+}
+
+function normalizeSearch(value: string) {
+  return value.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('cs-CZ').trim();
+}
+
+function fieldSearchText(field: FieldRecord) {
+  return normalizeSearch(`${field.field_name} ${field.field_code} ${field.quadrant ?? ''} ${field.crop ?? ''}`);
+}
+
+function parseFieldEntries(report: PendingReport, fields: FieldRecord[]): EditableFieldEntry[] {
+  let rawEntries: FieldEntrySummary[] = [];
+  if (Array.isArray(report.field_entries)) {
+    rawEntries = report.field_entries;
+  } else if (typeof report.field_entries === 'string' && report.field_entries.trim()) {
+    try {
+      rawEntries = JSON.parse(report.field_entries) as FieldEntrySummary[];
+    } catch {
+      rawEntries = [];
+    }
+  }
+  const entries = rawEntries
+    .filter((entry) => entry.field_id)
+    .map((entry, index) => ({
+      id: Date.now() + index,
+      field_id: Number(entry.field_id),
+      amount_ha: Number(entry.amount_ha ?? calculateProcessedArea(fields, Number(entry.field_id), Number(entry.processed_percent ?? 100))),
+      processed_percent: Number(entry.processed_percent ?? 100),
+      field_search: ''
+    }));
+  if (entries.length > 0) return entries;
+  if (report.field_id) {
+    return [{
+      id: Date.now(),
+      field_id: report.field_id,
+      amount_ha: Number(report.amount_ha ?? getFieldArea(fields, report.field_id)),
+      processed_percent: 100,
+      field_search: ''
+    }];
+  }
+  return [{ id: Date.now(), field_id: undefined, amount_ha: 0, processed_percent: 100, field_search: '' }];
+}
+
+function getReportCenter(report: Pick<PendingReport, 'service_center' | 'notes'>) {
+  const explicitCenter = String(report.service_center ?? '').trim();
+  if (explicitCenter) return explicitCenter;
+  const match = String(report.notes ?? '').match(/Středisko:\s*([^\n]+)/);
+  return match?.[1]?.trim() ?? 'Rostlinná výroba';
+}
+
+function isScopedApprovalRole(role?: string) {
+  return ['schvalovatel', 'specialista'].includes(String(role ?? '').toLocaleLowerCase('cs'));
+}
+
 function isHalfDayLeave(report: Pick<PendingReport, 'work_type' | 'hours_worked'> & { notes?: string }) {
   return report.work_type === 'Dovolená' && (Number(report.hours_worked ?? 0) === 4 || String(report.notes ?? '').includes('Půldenní dovolená: ano'));
 }
 
-function hasCompanionWorkReport(reports: PendingReport[], report: EditableReport) {
+function hasCompanionWorkReport(reports: PendingReport[], report: PendingReport) {
   const reportDate = String(report.date).slice(0, 10);
   return reports.some((item) =>
     item.id !== report.id &&
@@ -96,7 +190,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [tractors, setTractors] = useState<Tractor[]>([]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
-  const [selectedReport, setSelectedReport] = useState<EditableReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<PendingReport | null>(null);
+  const [detailFieldEntries, setDetailFieldEntries] = useState<EditableFieldEntry[]>([]);
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -109,8 +204,17 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         client.get('/reports', { params: { status } }),
         client.get('/reports')
       ]);
-      setReports(response.data as PendingReport[]);
-      setAllReports(allResponse.data as PendingReport[]);
+      const filterForScope = (items: PendingReport[]) => {
+        if (!isScopedApprovalRole(user?.role)) return items;
+        const scope = user?.scope_department || user?.department_name;
+        return items.filter((report) => (
+          getReportCenter(report) === scope ||
+          Number(report.user_id) === Number(user?.id) ||
+          report.employee_name === user?.full_name
+        ));
+      };
+      setReports(filterForScope(response.data as PendingReport[]));
+      setAllReports(filterForScope(allResponse.data as PendingReport[]));
     } catch (error) {
       console.error(error);
     }
@@ -167,7 +271,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const openReportDetail = async (reportId: number) => {
     try {
       const response = await client.get(`/reports/${reportId}`);
-      const report = response.data as EditableReport;
+      const report = response.data as PendingReport;
       setSelectedReport({
         ...report,
         date: report.date.slice(0, 10),
@@ -175,40 +279,118 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         time_end: normalizeTime(report.time_end),
         notes: cleanDefaultNote(report.notes)
       });
+      setDetailFieldEntries(parseFieldEntries(report, fields));
     } catch (error) {
       console.error(error);
       setMessage('Detail výkazu se nepodařilo načíst.');
     }
   };
 
-  const updateSelectedReport = (changes: Partial<EditableReport>) => {
+  const updateSelectedReport = (changes: Partial<PendingReport>) => {
     setSelectedReport((current) => (current ? { ...current, ...changes } : current));
   };
 
-  const handleDetailNumberChange = (field: 'tractor_id' | 'field_id' | 'work_type_id' | 'amount_ha' | 'fuel_liters') =>
+  const updateDetailTimeStart = (value: string) => {
+    setSelectedReport((current) => {
+      if (!current) return current;
+      const currentEnd = normalizeTime(current.time_end);
+      return {
+        ...current,
+        time_start: value,
+        time_end: isEndAfterStart(value, currentEnd) ? currentEnd : addMinutesToTime(value, 60)
+      };
+    });
+  };
+
+  const updateDetailTimeEnd = (value: string) => {
+    if (!selectedReport) return;
+    const start = normalizeTime(selectedReport.time_start);
+    updateSelectedReport({ time_end: isEndAfterStart(start, value) ? value : addMinutesToTime(start, 60) });
+  };
+
+  const handleDetailNumberChange = (field: 'tractor_id' | 'work_type_id' | 'fuel_liters') =>
     (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      updateSelectedReport({ [field]: Number(event.target.value) } as Partial<EditableReport>);
+      updateSelectedReport({ [field]: Number(event.target.value) } as Partial<PendingReport>);
     };
+
+  const updateDetailFieldEntry = (entryId: number, changes: Partial<EditableFieldEntry>) => {
+    setDetailFieldEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, ...changes } : entry));
+  };
+
+  const getAvailableDetailFields = (currentEntryId: number) => {
+    const selectedFieldIds = detailFieldEntries
+      .filter((entry) => entry.id !== currentEntryId && entry.field_id !== undefined)
+      .map((entry) => entry.field_id);
+    return fields.filter((field) => !selectedFieldIds.includes(field.id));
+  };
+
+  const getVisibleDetailFields = (entry: EditableFieldEntry) => {
+    const availableFields = getAvailableDetailFields(entry.id);
+    const query = normalizeSearch(entry.field_search);
+    const visibleFields = query
+      ? availableFields.filter((field) => fieldSearchText(field).includes(query))
+      : availableFields;
+    const selectedField = fields.find((field) => field.id === entry.field_id);
+    return selectedField && !visibleFields.some((field) => field.id === selectedField.id)
+      ? [selectedField, ...visibleFields]
+      : visibleFields;
+  };
+
+  const addDetailFieldEntry = () => {
+    const firstField = getAvailableDetailFields(-1)[0];
+    if (!firstField) return;
+    setDetailFieldEntries((entries) => [...entries, {
+      id: Date.now(),
+      field_id: firstField.id,
+      amount_ha: getFieldArea(fields, firstField.id),
+      processed_percent: 100,
+      field_search: ''
+    }]);
+  };
+
+  const removeDetailFieldEntry = (entryId: number) => {
+    setDetailFieldEntries((entries) => entries.filter((entry) => entry.id !== entryId));
+  };
 
   const saveReportDetail = async () => {
     if (!selectedReport) return false;
     const absence = isAbsenceReport(selectedReport);
     const timeStart = normalizeTime(selectedReport.time_start);
     const timeEnd = normalizeTime(selectedReport.time_end);
+    if (!absence && !isEndAfterStart(timeStart, timeEnd)) {
+      const nextEnd = addMinutesToTime(timeStart, 60);
+      updateSelectedReport({ time_end: nextEnd });
+      setMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`);
+      return false;
+    }
+    const selectedFields = absence ? [] : detailFieldEntries.filter((entry) => entry.field_id);
+    const fieldSummary = selectedFields.map((entry, index) => {
+      const field = fields.find((item) => item.id === entry.field_id);
+      return {
+        order: index + 1,
+        field_id: entry.field_id,
+        field_name: field?.field_name ?? '',
+        field_code: field?.field_code ?? '',
+        amount_ha: entry.amount_ha,
+        processed_percent: entry.processed_percent
+      };
+    });
+    const totalArea = fieldSummary.reduce((sum, entry) => sum + Number(entry.amount_ha || 0), 0);
 
     try {
       await client.put(`/reports/${selectedReport.id}`, {
         report_kind: absence ? (selectedReport.work_type === 'Dovolená' ? 'leave' : 'training') : 'work',
         tractor_id: selectedReport.tractor_id,
         user_id: selectedReport.user_id ?? user?.id ?? 1,
-        field_id: selectedReport.field_id,
+        field_id: fieldSummary[0]?.field_id ?? null,
+        field_entries: fieldSummary,
         work_type_id: selectedReport.work_type_id,
         date: selectedReport.date,
         time_start: absence || !timeStart ? null : `${timeStart}:00`,
         time_end: absence || !timeEnd ? null : `${timeEnd}:00`,
         break_hours: 0,
         hours_worked: absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
-        amount_ha: Number(selectedReport.amount_ha ?? 0),
+        amount_ha: totalArea,
         fuel_liters: 0,
         fuel_entry: !absence && Number(selectedReport.fuel_liters ?? 0) > 0 ? {
           date: selectedReport.fuel_date ?? selectedReport.date,
@@ -268,12 +450,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           <label>
             Datum od
             <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
-            {dateFrom ? <small className="date-format-hint">Česky: {formatDate(dateFrom)}</small> : null}
           </label>
           <label>
             Datum do
             <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
-            {dateTo ? <small className="date-format-hint">Česky: {formatDate(dateTo)}</small> : null}
           </label>
         </div>
         {message && <p className="form-message">{message}</p>}
@@ -330,26 +510,84 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               </div>
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
-                <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /><small className="date-format-hint">Česky: {formatDate(selectedReport.date)}</small></label>
-                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateSelectedReport({ time_start: event.target.value })} /><small className="date-format-hint">Česky: {formatCzechTime(selectedReport.time_start)}</small></label>
-                <label className="detail-field">Do<input type="time" value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateSelectedReport({ time_end: event.target.value })} /><small className="date-format-hint">Česky: {formatCzechTime(selectedReport.time_end)}</small></label>
+                <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
+                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateDetailTimeStart(event.target.value)} /></label>
+                <label className="detail-field">Do<input type="time" min={normalizeTime(selectedReport.time_start)} value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateDetailTimeEnd(event.target.value)} /></label>
                 <label className="detail-field">
                   Činnost
                   <select value={selectedReport.work_type_id ?? ''} onChange={handleDetailNumberChange('work_type_id')}>
                     {workTypes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   </select>
                 </label>
-                <label className="detail-field">
-                  Pozemek
-                  <select value={selectedReport.field_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('field_id')}>
-                    {absence ? <option value="">Bez pozemku</option> : null}
-                    {fields.map((item) => <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>)}
-                  </select>
-                </label>
-                <label className="detail-field">
-                  Počet ha
-                  <input type="number" min="0" step="0.01" value={selectedReport.amount_ha ?? 0} disabled={absence} onChange={handleDetailNumberChange('amount_ha')} />
-                </label>
+                <div className="detail-field detail-grid__wide approval-fields-editor">
+                  <div className="section-line">
+                    <h3>Pozemky</h3>
+                    <button type="button" className="secondary" disabled={absence || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
+                  </div>
+                  {absence ? (
+                    <p className="field-hint">Dovolená a školení pozemky nepotřebují.</p>
+                  ) : (
+                    <div className="repeat-list">
+                      {detailFieldEntries.length === 0 ? (
+                        <p className="field-hint">Ve výkazu není zadaný žádný pozemek.</p>
+                      ) : null}
+                      {detailFieldEntries.map((entry, index) => {
+                        const visibleFields = getVisibleDetailFields(entry);
+                        return (
+                          <div className="repeat-row repeat-row--field" key={entry.id}>
+                            <span className="row-number">{index + 1}</span>
+                            <div className="field-row">
+                              <label htmlFor={`approval-field-search-${entry.id}`}>Hledat pozemek</label>
+                              <input
+                                id={`approval-field-search-${entry.id}`}
+                                type="search"
+                                placeholder="Název nebo kód pole"
+                                value={entry.field_search}
+                                onChange={(event) => updateDetailFieldEntry(entry.id, { field_search: event.target.value })}
+                              />
+                              <label htmlFor={`approval-field-${entry.id}`}>Pozemek</label>
+                              <select
+                                id={`approval-field-${entry.id}`}
+                                value={entry.field_id ?? ''}
+                                onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                                  const fieldId = Number(event.target.value);
+                                  updateDetailFieldEntry(entry.id, {
+                                    field_id: fieldId,
+                                    amount_ha: calculateProcessedArea(fields, fieldId, entry.processed_percent)
+                                  });
+                                }}
+                              >
+                                {visibleFields.length === 0 ? <option value="" disabled>Žádný pozemek neodpovídá hledání</option> : null}
+                                {visibleFields.map((item) => <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>)}
+                              </select>
+                            </div>
+                            <div className="field-row field-row--compact">
+                              <label htmlFor={`approval-percent-${entry.id}`}>Zpracováno</label>
+                              <select
+                                id={`approval-percent-${entry.id}`}
+                                value={entry.processed_percent}
+                                onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                                  const processedPercent = Number(event.target.value);
+                                  updateDetailFieldEntry(entry.id, {
+                                    processed_percent: processedPercent,
+                                    amount_ha: calculateProcessedArea(fields, entry.field_id, processedPercent)
+                                  });
+                                }}
+                              >
+                                {[25, 50, 75, 100].map((option) => <option key={option} value={option}>{option} %</option>)}
+                              </select>
+                            </div>
+                            <div className="field-row field-row--area">
+                              <label>Výměra</label>
+                              <strong>{entry.amount_ha.toFixed(2)} ha</strong>
+                            </div>
+                            <button type="button" className="danger repeat-remove" onClick={() => removeDetailFieldEntry(entry.id)}>Odebrat</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 <label className="detail-field">
                   Stroj
                   <select value={selectedReport.tractor_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('tractor_id')}>
@@ -362,7 +600,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </select>
                 </label>
                 <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
-                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /><small className="date-format-hint">Česky: {formatDate((selectedReport.fuel_date ?? selectedReport.date).slice(0, 10))}</small></label>
+                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               {status === 'pending' ? (

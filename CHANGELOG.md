@@ -14,6 +14,14 @@ Formát:
 
 ## 2026-08-26
 
+### Schvalování a dashboard
+- Schvalovatel může v detailu výkazu před schválením doplnit, vyhledat nebo odebrat více pozemků a uložit správný součet hektarů.
+- Ve schvalovacím detailu i filtrech zmizely pomocné texty `Česky:` pod datumy a časy.
+- Martina Novotná má přepínač mezi admin profilem a pracovním schvalovacím profilem pro své středisko.
+- Mobilní hlavička nabízí po klepnutí na jméno uživatele možnost odhlášení.
+- Dashboard ukazuje tankování PHM podle strojů jako jednoduchý seznam názvu stroje a litrů.
+- Formulář výkazu i backend hlídají, že konec práce musí být po začátku; při změně začátku se konec automaticky posune.
+
 ### Mobilní výkazy
 - Mobilní hlavička aplikace je kompaktnější podle nového návrhu: logo, název společnosti, jméno uživatele se stavovou tečkou a datum platnosti databáze zabírají méně výšky.
 - Mobilní formulář výkazu má u typu práce menší tlačítka `Dovolená` a `Školení` vedle sebe, aby běžná volba práce zůstala vizuálně hlavní.

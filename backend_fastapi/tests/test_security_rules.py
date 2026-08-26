@@ -3,8 +3,10 @@ import unittest
 
 os.environ["APP_MODE"] = "local"
 
+from fastapi import HTTPException
+
 from app.config import Settings
-from app.routers.reports import report_identity_for_create, report_identity_for_update
+from app.routers.reports import parse_time_value, report_identity_for_create, report_identity_for_update, validate_report_time_order
 from app.security import can_access_report, is_elevated_user
 
 
@@ -49,6 +51,15 @@ class ReportIdentityTests(unittest.TestCase):
         current_report = {"user_id": 5, "employee_name": "Jan Novák"}
 
         self.assertEqual(report_identity_for_update(payload, user, current_report), (5, "Jan Novák"))
+
+
+class ReportTimeValidationTests(unittest.TestCase):
+    def test_work_report_rejects_end_before_start(self):
+        with self.assertRaises(HTTPException):
+            validate_report_time_order(True, parse_time_value("16:30:00"), parse_time_value("15:30:00"))
+
+    def test_work_report_accepts_end_after_start(self):
+        validate_report_time_order(True, parse_time_value("16:30:00"), parse_time_value("17:30:00"))
 
 
 class SettingsTests(unittest.TestCase):
