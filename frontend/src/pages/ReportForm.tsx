@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, ChangeEvent, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { getUserServiceCenter, normalizeServiceCenter, serviceCenters, vacationBalance } from '../utils/employeeContext';
@@ -296,6 +297,7 @@ function confirmReportSubmit(message: string) {
 }
 
 function ReportForm() {
+  const navigate = useNavigate();
   const user = getUser();
   const lastPreferences = useMemo(getLastReportPreferences, []);
   const initialServiceCenter = serviceCenters.includes(lastPreferences.serviceCenter ?? '')
@@ -824,6 +826,7 @@ function ReportForm() {
     <div className="container">
       <div className="card report-card">
         <div className="page-heading">
+          <button className="mobile-back-button" type="button" aria-label="Zpět" onClick={() => navigate(-1)}>‹</button>
           <div>
             <p className="eyebrow">Výkazy</p>
             <h1 className="page-title">Nový pracovní výkaz</h1>

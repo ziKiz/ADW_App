@@ -14,6 +14,11 @@ Formát:
 
 ## 2026-08-26
 
+### Mobilní výkazy
+- Mobilní hlavička aplikace je kompaktnější podle nového návrhu: logo, název společnosti, jméno uživatele se stavovou tečkou a datum platnosti databáze zabírají méně výšky.
+- Mobilní formulář výkazu má u typu práce menší tlačítka `Dovolená` a `Školení` vedle sebe, aby běžná volba práce zůstala vizuálně hlavní.
+- Mobilní stránka nového výkazu má kompaktní tlačítko zpět vedle názvu stránky.
+
 ### Výkazy
 - Formulář pracovního výkazu už nezobrazuje pomocné texty `Česky:` pod datumy a časy, aby vyplňování nebylo zahlcené opakovanými informacemi.
 - Výběr pozemku má hledání podle názvu, kódu a dalších údajů pole, aby uživatel nemusel procházet dlouhou roletku ručně.

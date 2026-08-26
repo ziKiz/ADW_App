@@ -344,6 +344,10 @@ main {
   margin-bottom: 20px;
 }
 
+.mobile-back-button {
+  display: none;
+}
+
 .dashboard-actions {
   display: grid;
   grid-template-columns: 150px 110px auto;
@@ -1965,22 +1969,27 @@ label,
     max-width: 100%;
     min-width: 0;
     display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand user"
+      "version version";
     gap: 0;
-    padding: 8px 12px 14px;
+    padding: 10px 14px 11px;
     box-shadow: none;
     overflow: visible;
   }
 
   .app-sidebar__brand {
+    grid-area: brand;
     padding: 0;
     border-bottom: 0;
     min-width: 0;
   }
 
   .brand-logo {
-    grid-template-columns: 48px minmax(0, 1fr);
-    gap: 8px;
-    font-size: 0.52rem;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+    font-size: 0.72rem;
     min-width: 0;
   }
 
@@ -1989,11 +1998,11 @@ label,
   }
 
   .brand-logo svg {
-    width: 48px;
+    width: 72px;
   }
 
   .brand-logo text {
-    font-size: 40px;
+    font-size: 44px;
   }
 
   .desktop-nav {
@@ -2056,19 +2065,36 @@ label,
   }
 
   .brand-user {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-area: user;
+    display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 6px;
-    border-top: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 7px 0 0;
-    font-size: 0.76rem;
+    justify-self: end;
+    gap: 8px;
+    margin-top: 0;
+    border-top: 0;
+    padding: 0 0 0 8px;
+    font-size: 1rem;
+    font-weight: 900;
+    color: #ffffff;
   }
 
   .brand-user span {
+    max-width: 128px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .brand-user span::after {
+    content: "";
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    margin-left: 8px;
+    border-radius: 999px;
+    background: #12c957;
+    box-shadow: 0 0 0 2px rgba(18, 201, 87, 0.18);
+    vertical-align: -1px;
   }
 
   .brand-user strong {
@@ -2076,30 +2102,55 @@ label,
   }
 
   .logout-button {
-    width: auto;
-    min-height: 28px;
-    margin-top: 0;
-    padding: 5px 9px;
-    font-size: 0.7rem;
-    white-space: nowrap;
+    display: none;
   }
 
   .app-sidebar__version {
-    justify-self: end;
-    gap: 1px;
-    padding: 3px 0 0;
-    font-size: 0.58rem;
-    line-height: 1.15;
+    grid-area: version;
+    justify-self: stretch;
+    margin-top: 9px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    gap: 0;
+    padding: 8px 0 0;
+    font-size: 0;
+    line-height: 1.1;
     text-align: right;
   }
 
+  .app-sidebar__version span {
+    display: none;
+  }
+
   .app-sidebar__version small {
-    font-size: 0.54rem;
+    display: block;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.82rem;
+    font-weight: 800;
   }
 
   .page-heading {
     gap: 8px;
     margin-bottom: 14px;
+  }
+
+  .report-card .page-heading {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .mobile-back-button {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: 2.6rem;
+    font-weight: 400;
+    line-height: 1;
   }
 
   .page-heading .primary,
@@ -2111,12 +2162,34 @@ label,
     font-size: 1.55rem;
   }
 
+  .report-card .page-heading .eyebrow {
+    display: none;
+  }
+
   .eyebrow {
     font-size: 0.68rem;
   }
 
   .approval-workspace {
     gap: 10px;
+  }
+
+  .report-mode-row {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-mode-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .quick-mode-button {
+    min-height: 46px;
+    padding: 8px 10px;
+  }
+
+  .quick-mode-button strong {
+    font-size: 0.9rem;
   }
 
   .approval-metrics {
@@ -3468,15 +3541,15 @@ label,
   }
 
   .brand-logo {
-    grid-template-columns: 56px 1fr;
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .brand-logo svg {
-    width: 56px;
+    width: 72px;
   }
 
   .brand-logo span {
-    font-size: 0.54rem;
+    font-size: 0.72rem;
   }
 
   .approval-metrics {
