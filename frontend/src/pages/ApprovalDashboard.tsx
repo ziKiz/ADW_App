@@ -567,7 +567,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                                       })}
                                     >
                                       <span>{item.field_name}</span>
-                                      <small>{item.field_code}</small>
+                                      <small>{Number(item.area ?? 0).toFixed(2)} ha</small>
                                     </button>
                                   ))}
                                   {visibleFields.length === 0 ? <p>Žádný pozemek neodpovídá hledání.</p> : null}

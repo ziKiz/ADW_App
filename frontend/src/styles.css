@@ -779,6 +779,8 @@ label,
 }
 
 .field-search-results {
+  position: relative;
+  z-index: 8;
   display: grid;
   gap: 5px;
   max-height: 220px;
@@ -2226,7 +2228,7 @@ label,
     margin-top: 0;
     border-top: 0;
     padding: 0 0 0 8px;
-    font-size: 1rem;
+    font-size: 0.86rem;
     font-weight: 900;
     color: #ffffff;
   }
@@ -2238,7 +2240,7 @@ label,
   .mobile-account-button {
     display: inline-flex;
     align-items: center;
-    max-width: 128px;
+    max-width: 112px;
     border: 0;
     background: transparent;
     color: #ffffff;
@@ -2260,6 +2262,10 @@ label,
     border-radius: 999px;
     background: #12c957;
     box-shadow: 0 0 0 2px rgba(18, 201, 87, 0.18);
+  }
+
+  body:has(.field-search-input:focus) .mobile-bottom-nav {
+    display: none;
   }
 
   .brand-user strong {

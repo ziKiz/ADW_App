@@ -31,6 +31,15 @@ function BrandHeader() {
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
   const canCreateReport = !canSeeApprovals;
+  const mobileUserName = (() => {
+    const fullName = user?.full_name ?? 'Nepřihlášený';
+    const nameWithoutTitle = fullName.replace(/^(Ing\.|Bc\.|Mgr\.|MUDr\.)\s+/i, '').trim();
+    const parts = nameWithoutTitle.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2 && nameWithoutTitle.length >= 15) {
+      return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+    }
+    return nameWithoutTitle;
+  })();
 
   const getRoleLabel = () => {
     switch(user?.role) {
@@ -109,9 +118,11 @@ function BrandHeader() {
           type="button"
           aria-haspopup="menu"
           aria-expanded={mobileAccountOpen}
+          aria-label={`Účet ${user?.full_name ?? 'Nepřihlášený uživatel'}`}
+          title={user?.full_name ?? 'Nepřihlášený uživatel'}
           onClick={() => setMobileAccountOpen((open) => !open)}
         >
-          {user?.full_name ?? 'Nepřihlášený uživatel'}
+          {mobileUserName}
         </button>
         <span>{user?.full_name ?? 'Nepřihlášený uživatel'}</span>
         <strong>{getRoleLabel()}</strong>

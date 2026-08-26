@@ -14,6 +14,13 @@ Formát:
 
 ## 2026-08-26
 
+### Mobilní formulář a technika
+- Formulář výkazu má v části `Technika` živé hledání podle názvu, SPZ i typu stroje.
+- Výběr techniky nově nabízí první volbu `Bez techniky`, aby šel uložit výkaz bez stroje.
+- Výsledky hledání pozemků ukazují místo DPB výměru v hektarech.
+- Mobilní hlavička zkracuje dlouhé jméno uživatele bez zvětšení výšky hlavičky.
+- Mobilní spodní navigace se při psaní do vyhledávání schová, aby nepřekrývala výsledky a klávesnici.
+
 ### Výkazy, absence a archiv
 - Výběr pozemků ve formuláři i schvalovacím detailu má živé výsledky hledání přímo pod polem, takže není nutné otevírat rozbalovací seznam.
 - Speciální volby `Dovolená`, `Školení` a nový typ `Doktor` jsou schované pod rozklikávacím přepínačem `Ostatní`.

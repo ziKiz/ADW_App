@@ -259,10 +259,8 @@ async function getDemoNotices() {
 async function createDemoReport(config: InternalAxiosRequestConfig) {
   const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
   const tractors = await loadDemoJson<any[]>('tractors.json');
-  const workTypes = await loadDemoJson<any[]>('work-types.json');
   const allowedTractors = filterTractorsForServiceCenter(tractors, body.service_center, getUser()?.role);
-  const workType = workTypes.find((item) => Number(item.id) === Number(body.work_type_id));
-  const allowsNoTractor = String(workType?.name ?? '') === 'Ostatní' && !body.tractor_id;
+  const allowsNoTractor = !body.tractor_id;
   if ((!body.report_kind || body.report_kind === 'work') && !allowsNoTractor && !allowedTractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
     throw new Error('Vybraný stroj nepatří do zvoleného střediska.');
   }

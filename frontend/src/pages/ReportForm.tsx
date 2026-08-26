@@ -224,6 +224,10 @@ function fieldSearchText(field: FieldRecord) {
   return normalizeSearch(`${field.field_name} ${field.field_code} ${field.quadrant ?? ''} ${field.crop ?? ''}`);
 }
 
+function tractorSearchText(tractor: Tractor) {
+  return normalizeSearch(`${tractor.tractor_name} ${tractor.tractor_code} ${tractor.vehicle_type ?? ''}`);
+}
+
 function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
   const name = modeWorkTypeName(mode);
   return workTypes.find((item) => item.name === name)?.id;
@@ -334,6 +338,7 @@ function ReportForm() {
   const [reports, setReports] = useState<ReportTimeEntry[]>([]);
   const [lastUsedReport, setLastUsedReport] = useState<LastUsedReport | null>(null);
   const [selectedTractor, setSelectedTractor] = useState<number | undefined>(undefined);
+  const [tractorSearch, setTractorSearch] = useState('');
   const [selectedWorkType, setSelectedWorkType] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState<MessageTone>('info');
@@ -378,6 +383,11 @@ function ReportForm() {
     () => sortTractorsForWork(filterTractorsForServiceCenter(tractors, serviceCenter, user?.role)),
     [serviceCenter, tractors, user?.role]
   );
+  const visibleTractors = useMemo(() => {
+    const query = normalizeSearch(tractorSearch.trim());
+    if (!query) return availableTractors;
+    return availableTractors.filter((tractor) => tractorSearchText(tractor).includes(query));
+  }, [availableTractors, tractorSearch]);
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
   const canAddAttachment = attachmentEntries.length < 3 && attachmentEntries[attachmentEntries.length - 1]?.name !== attachmentOptions[0];
   const lastAttachmentNames = useMemo(() => normalizeAttachmentNamesFromReport(lastUsedReport?.attachments), [lastUsedReport]);
@@ -386,7 +396,6 @@ function ReportForm() {
   const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && workTypes.some((item) => item.id === lastUsedReport.work_type_id && !['Dovolená', 'Školení', 'Doktor'].includes(item.name)));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
   const fieldsRequired = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
-  const tractorRequired = reportMode === 'work' && !isOtherWorkType;
   const showFieldSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
   const showTractorSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesTractor);
   const showAttachmentSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesAttachments);
@@ -494,7 +503,7 @@ function ReportForm() {
     const firstTractorId = availableTractors[0]?.id;
     if (isOtherWorkType && !otherUsesTractor) {
       setSelectedTractor(undefined);
-    } else if (!availableTractors.some((tractor) => tractor.id === selectedTractor) && !isOtherWorkType) {
+    } else if (selectedTractor && !availableTractors.some((tractor) => tractor.id === selectedTractor) && !isOtherWorkType) {
       setSelectedTractor(firstTractorId);
     }
     if (!availableTractors.some((tractor) => tractor.id === fuelTractorId)) {
@@ -677,10 +686,6 @@ function ReportForm() {
     }
 
     const selectedFields = fieldEntries.filter((entry) => entry.fieldId);
-    if (tractorRequired && (availableTractors.length === 0 || !selectedTractor)) {
-      showFormMessage('Pro toto středisko není dostupná žádná technika.', 'error');
-      return;
-    }
     if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
@@ -799,6 +804,7 @@ function ReportForm() {
     const tractorId = event.target.value ? Number(event.target.value) : undefined;
     setSelectedTractor(tractorId);
     setFuelTractorId(tractorId);
+    setTractorSearch('');
   };
 
   const handleTimeStartChange = (value: string) => {
@@ -906,6 +912,7 @@ function ReportForm() {
     setOtherUsesTractor(enabled);
     if (!enabled) {
       setSelectedTractor(undefined);
+      setTractorSearch('');
     }
   };
   const enableOtherAttachments = (enabled: boolean) => {
@@ -1155,7 +1162,7 @@ function ReportForm() {
                                   })}
                                 >
                                   <span>{item.field_name}</span>
-                                  <small>{item.field_code}</small>
+                                  <small>{Number(item.area ?? 0).toFixed(2)} ha</small>
                                 </button>
                               ))}
                               {visibleFields.length === 0 ? <p>Žádný pozemek neodpovídá hledání.</p> : null}
@@ -1232,12 +1239,52 @@ function ReportForm() {
             {showTractorSelection ? (
               <div className="field-grid">
                 <div className="field-row">
+                  <label htmlFor="tractor-search">Hledat techniku</label>
+                  <input
+                    id="tractor-search"
+                    type="search"
+                    className="field-search-input"
+                    placeholder="Název, SPZ nebo typ"
+                    value={tractorSearch}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => setTractorSearch(event.target.value)}
+                  />
+                  {tractorSearch ? (
+                    <div className="field-search-results">
+                      <button
+                        type="button"
+                        className={selectedTractor === undefined ? 'active' : ''}
+                        onClick={() => {
+                          setSelectedTractor(undefined);
+                          setTractorSearch('');
+                        }}
+                      >
+                        <span>{noTractorLabel}</span>
+                        <small>bez stroje</small>
+                      </button>
+                      {visibleTractors.slice(0, 8).map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={selectedTractor === item.id ? 'active' : ''}
+                          onClick={() => {
+                            setSelectedTractor(item.id);
+                            setFuelTractorId(item.id);
+                            setTractorSearch('');
+                          }}
+                        >
+                          <span>{item.tractor_name}</span>
+                          <small>{item.tractor_code && item.tractor_code !== item.tractor_name ? item.tractor_code : item.vehicle_type ?? 'stroj'}</small>
+                        </button>
+                      ))}
+                      {visibleTractors.length === 0 ? <p>Žádná technika neodpovídá hledání.</p> : null}
+                    </div>
+                  ) : null}
                   <label className="sr-only" htmlFor="tractor">Technika</label>
                   <select id="tractor" value={selectedTractor ?? ''} onChange={handleSelectTractor}>
-                    {isOtherWorkType ? <option value="">{noTractorLabel}</option> : null}
+                    <option value="">{noTractorLabel}</option>
                     {metadataLoading && <option value="">Načítám traktory...</option>}
                     {!metadataLoading && availableTractors.length === 0 && <option value="">Pro toto středisko není dostupná žádná technika</option>}
-                    {availableTractors.map((item) => (
+                    {visibleTractors.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
                       </option>
