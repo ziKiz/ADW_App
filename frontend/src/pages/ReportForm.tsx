@@ -25,6 +25,7 @@ interface FieldEntry {
   fieldId?: number;
   amountHa: number;
   processedPercent: number;
+  fieldSearch?: string;
 }
 
 interface AttachmentEntry {
@@ -123,10 +124,6 @@ function formatCzechDate(value: string) {
   return formatSharedCzechDate(value);
 }
 
-function formatCzechTime(value: string) {
-  return normalizeClockTime(value) || '-';
-}
-
 function getLastReportPreferences(): LastReportPreferences {
   const saved = localStorage.getItem(lastReportPreferencesKey);
   if (!saved) return {};
@@ -210,6 +207,17 @@ function modeWorkTypeName(mode: ReportMode) {
   return '';
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .toLocaleLowerCase('cs-CZ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function fieldSearchText(field: FieldRecord) {
+  return normalizeSearch(`${field.field_name} ${field.field_code} ${field.quadrant ?? ''} ${field.crop ?? ''}`);
+}
+
 function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
   const name = modeWorkTypeName(mode);
   return workTypes.find((item) => item.name === name)?.id;
@@ -283,6 +291,10 @@ function confirmReportDate(value: string) {
   return window.confirm(`Zadáváte výkaz ${direction} o ${days} ${dayLabel}. Chcete pokračovat?`);
 }
 
+function confirmReportSubmit(message: string) {
+  return window.confirm(message);
+}
+
 function ReportForm() {
   const user = getUser();
   const lastPreferences = useMemo(getLastReportPreferences, []);
@@ -308,7 +320,7 @@ function ReportForm() {
   const [absenceStart, setAbsenceStart] = useState(getLocalTodayDate);
   const [absenceEnd, setAbsenceEnd] = useState(getLocalTodayDate);
   const [absenceNote, setAbsenceNote] = useState('');
-  const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+  const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>(
     (lastPreferences.attachmentNames?.length ? lastPreferences.attachmentNames : [attachmentOptions[0]])
       .slice(0, 3)
@@ -384,7 +396,7 @@ function ReportForm() {
         setFields(loadedFields);
         if (loadedFields.length > 0) {
           const firstFieldId = loadedFields[0].id;
-          setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(loadedFields, firstFieldId), processedPercent: 100 }]);
+          setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(loadedFields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
         }
       } else {
         console.error(fieldResponse.reason);
@@ -464,14 +476,14 @@ function ReportForm() {
       setOtherUsesTractor(false);
       setOtherUsesAttachments(false);
       setSelectedTractor(undefined);
-      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
       setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
       return;
     }
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
     if (!hasSelectedField) {
       const firstFieldId = fields[0].id;
-      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
   }, [fields, isOtherWorkType, metadataLoading]);
 
@@ -535,6 +547,10 @@ function ReportForm() {
       }
 
       const title = reportMode === 'leave' ? 'Dovolená' : 'Školení';
+      if (!confirmReportSubmit(`Opravdu chcete uložit ${title.toLocaleLowerCase('cs-CZ')} v rozsahu ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}?`)) {
+        showFormMessage('Uložení bylo zrušeno.', 'info');
+        return;
+      }
       const extendedNotes = [
         `Středisko: ${serviceCenter}`,
         `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
@@ -592,6 +608,11 @@ function ReportForm() {
     }
     if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
+      return;
+    }
+
+    if (!confirmReportSubmit(`Opravdu chcete uložit a odeslat výkaz za ${formatCzechDate(date)} (${timeStart}-${timeEnd}, ${totalArea.toFixed(2)} ha)?`)) {
+      showFormMessage('Odeslání bylo zrušeno.', 'info');
       return;
     }
 
@@ -700,7 +721,7 @@ function ReportForm() {
       setOtherUsesTractor(false);
       setOtherUsesAttachments(false);
       setSelectedTractor(undefined);
-      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
       setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
       return;
     }
@@ -713,7 +734,7 @@ function ReportForm() {
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
     if (!hasSelectedField && fields.length > 0) {
       const firstFieldId = fields[0].id;
-      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
   };
   const applyLastUsedTractor = () => {
@@ -742,11 +763,23 @@ function ReportForm() {
       .map((entry) => entry.fieldId);
     return fields.filter((field) => !selectedFieldIds.includes(field.id));
   };
+  const getVisibleFields = (entry: FieldEntry) => {
+    const availableFields = getAvailableFields(entry.id);
+    const query = normalizeSearch(entry.fieldSearch ?? '');
+    const visibleFields = query
+      ? availableFields.filter((field) => fieldSearchText(field).includes(query))
+      : availableFields;
+    const selectedField = fields.find((field) => field.id === entry.fieldId);
+    if (selectedField && !visibleFields.some((field) => field.id === selectedField.id)) {
+      return [selectedField, ...visibleFields];
+    }
+    return visibleFields;
+  };
   const addFieldEntry = () => {
     const availableFields = getAvailableFields(-1);
     const firstFieldId = availableFields[0]?.id;
     if (firstFieldId !== undefined) {
-      setFieldEntries((entries) => [...entries, { id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+      setFieldEntries((entries) => [...entries, { id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
   };
   const removeFieldEntry = (entryId: number) => {
@@ -764,10 +797,10 @@ function ReportForm() {
     setOtherUsesFields(enabled);
     if (enabled && fields.length > 0 && !fieldEntries.some((entry) => entry.fieldId)) {
       const firstFieldId = fields[0].id;
-      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
     if (!enabled) {
-      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100 }]);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
     }
   };
   const enableOtherTractor = (enabled: boolean) => {
@@ -817,17 +850,14 @@ function ReportForm() {
                   value={date}
                   onChange={handleDateChange}
                 />
-                <small className="date-format-hint">Česky: {formatCzechDate(date)}</small>
               </div>
               <div className="field-row">
                 <label htmlFor="from">Od</label>
                 <input id="from" type="time" min="07:00" max="15:30" value={timeStart} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeStart(event.target.value)} />
-                <small className="date-format-hint">Česky: {formatCzechTime(timeStart)}</small>
               </div>
               <div className="field-row">
                 <label htmlFor="to">Do</label>
                 <input id="to" type="time" min="07:00" max="15:30" value={timeEnd} onChange={(event: ChangeEvent<HTMLInputElement>) => setTimeEnd(event.target.value)} />
-                <small className="date-format-hint">Česky: {formatCzechTime(timeEnd)}</small>
               </div>
             </div>
           </section>
@@ -906,12 +936,10 @@ function ReportForm() {
                 <div className="field-row">
                   <label htmlFor="absenceStart">Od dne</label>
                   <input id="absenceStart" type="date" value={absenceStart} onChange={(event) => handleAbsenceStartChange(event.target.value)} />
-                  <small className="date-format-hint">{formatCzechDate(absenceStart)}</small>
                 </div>
                 <div className="field-row">
                   <label htmlFor="absenceEnd">Do dne</label>
                   <input id="absenceEnd" type="date" min={absenceStart} value={absenceEnd} onChange={(event) => setAbsenceEnd(event.target.value)} />
-                  <small className="date-format-hint">{formatCzechDate(absenceEnd)}</small>
                 </div>
                 <div className="absence-days-box">
                   <span>Pracovní dny</span>
@@ -971,54 +999,66 @@ function ReportForm() {
             {showFieldSelection ? (
               <>
                 <div className="repeat-list">
-                  {fieldEntries.map((entry, index) => (
-                    <div className="repeat-row repeat-row--field" key={entry.id}>
-                      <span className="row-number">{index + 1}</span>
-                      <div className="field-row">
-                        <label htmlFor={`field-${entry.id}`}>Pozemek</label>
-                        <select
-                          id={`field-${entry.id}`}
-                          value={entry.fieldId ?? ''}
-                          onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                            const fieldId = Number(event.target.value);
-                            updateFieldEntry(entry.id, {
-                              fieldId,
-                              amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
-                            });
-                          }}
-                        >
-                          {metadataLoading && <option value="">Načítám pole...</option>}
-                          {!metadataLoading && getAvailableFields(entry.id).length === 0 && <option value="">Žádná dostupná pole</option>}
-                          {getAvailableFields(entry.id).map((item) => (
-                            <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>
-                          ))}
-                        </select>
+                  {fieldEntries.map((entry, index) => {
+                    const visibleFields = getVisibleFields(entry);
+                    return (
+                      <div className="repeat-row repeat-row--field" key={entry.id}>
+                        <span className="row-number">{index + 1}</span>
+                        <div className="field-row">
+                          <label htmlFor={`field-search-${entry.id}`}>Hledat pozemek</label>
+                          <input
+                            id={`field-search-${entry.id}`}
+                            type="search"
+                            className="field-search-input"
+                            placeholder="Název nebo kód pole"
+                            value={entry.fieldSearch ?? ''}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => updateFieldEntry(entry.id, { fieldSearch: event.target.value })}
+                          />
+                          <label htmlFor={`field-${entry.id}`}>Pozemek</label>
+                          <select
+                            id={`field-${entry.id}`}
+                            value={entry.fieldId ?? ''}
+                            onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                              const fieldId = Number(event.target.value);
+                              updateFieldEntry(entry.id, {
+                                fieldId,
+                                amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
+                              });
+                            }}
+                          >
+                            {metadataLoading && <option value="">Načítám pole...</option>}
+                            {!metadataLoading && visibleFields.length === 0 && <option value="" disabled>Žádný pozemek neodpovídá hledání</option>}
+                            {visibleFields.map((item) => (
+                              <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field-row field-row--compact">
+                          <label htmlFor={`percent-${entry.id}`}>Zpracováno</label>
+                          <select
+                            id={`percent-${entry.id}`}
+                            value={entry.processedPercent}
+                            onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                              const processedPercent = Number(event.target.value);
+                              updateFieldEntry(entry.id, {
+                                processedPercent,
+                                amountHa: calculateProcessedArea(fields, entry.fieldId, processedPercent)
+                              });
+                            }}
+                          >
+                            {processedPercentOptions.map((option) => (
+                              <option key={option} value={option}>{option} %</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field-row field-row--area">
+                          <label>Výměra</label>
+                          <strong>{entry.amountHa.toFixed(2)} ha</strong>
+                        </div>
+                        <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
                       </div>
-                      <div className="field-row field-row--compact">
-                        <label htmlFor={`percent-${entry.id}`}>Zpracováno</label>
-                        <select
-                          id={`percent-${entry.id}`}
-                          value={entry.processedPercent}
-                          onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                            const processedPercent = Number(event.target.value);
-                            updateFieldEntry(entry.id, {
-                              processedPercent,
-                              amountHa: calculateProcessedArea(fields, entry.fieldId, processedPercent)
-                            });
-                          }}
-                        >
-                          {processedPercentOptions.map((option) => (
-                            <option key={option} value={option}>{option} %</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="field-row field-row--area">
-                        <label>Výměra</label>
-                        <strong>{entry.amountHa.toFixed(2)} ha</strong>
-                      </div>
-                      <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <button type="button" className="secondary add-row-button" onClick={addFieldEntry}>Přidat pole</button>
               </>
@@ -1074,7 +1114,6 @@ function ReportForm() {
                 <div className="field-row">
                   <label htmlFor="fuelDate">Datum tankování</label>
                   <input id="fuelDate" type="date" value={fuelDate} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelDate(event.target.value)} />
-                  <small className="date-format-hint">Česky: {formatCzechDate(fuelDate)}</small>
                 </div>
                 <div className="field-row">
                   <label htmlFor="fuelTractor">Stroj</label>

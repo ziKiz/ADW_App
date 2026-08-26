@@ -12,6 +12,13 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-08-26
+
+### Výkazy
+- Formulář pracovního výkazu už nezobrazuje pomocné texty `Česky:` pod datumy a časy, aby vyplňování nebylo zahlcené opakovanými informacemi.
+- Výběr pozemku má hledání podle názvu, kódu a dalších údajů pole, aby uživatel nemusel procházet dlouhou roletku ručně.
+- Před uložením a odesláním výkazu, dovolené nebo školení se zobrazí potvrzení s rekapitulací vybraného termínu.
+
 ## 2026-08-21
 
 ### QA a použitelnost
