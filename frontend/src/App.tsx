@@ -8,6 +8,7 @@ import DictionariesView from './pages/DictionariesView';
 import Contacts from './pages/Contacts';
 import ServiceSchedule from './pages/ServiceSchedule';
 import DirectorOverview from './pages/DirectorOverview';
+import ArchiveView from './pages/ArchiveView';
 import Login from './pages/Login';
 import BrandHeader from './components/BrandHeader';
 import { getOrCreateDemoUser } from './utils/auth';
@@ -44,6 +45,7 @@ function App() {
           <Route path="/services" element={<ServiceSchedule />} />
           <Route path="/director" element={canSeeDirectorOverview ? <DirectorOverview /> : <Navigate to="/dashboard" replace />} />
           <Route path="/export" element={canSeeAdminModules ? <ExportView /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/archive" element={canSeeAdminModules ? <ArchiveView /> : <Navigate to="/dashboard" replace />} />
           <Route path="/users" element={canSeeAdminModules ? <UsersView /> : <Navigate to="/dashboard" replace />} />
           <Route path="/dictionaries" element={canSeeAdminModules ? <DictionariesView /> : <Navigate to="/dashboard" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { FieldRecord, Tractor, WorkType } from '../types';
@@ -85,7 +85,7 @@ function isEndAfterStart(start: string, end: string) {
 }
 
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
-  return report ? ['Dovolená', 'Školení'].includes(report.work_type) : false;
+  return report ? ['Dovolená', 'Školení', 'Doktor'].includes(report.work_type) : false;
 }
 
 function displayTime(report: PendingReport) {
@@ -170,7 +170,7 @@ function hasCompanionWorkReport(reports: PendingReport[], report: PendingReport)
     item.id !== report.id &&
     String(item.date).slice(0, 10) === reportDate &&
     (item.employee_name ?? '') === (report.employee_name ?? '') &&
-    !['Dovolená', 'Školení'].includes(item.work_type)
+    !['Dovolená', 'Školení', 'Doktor'].includes(item.work_type)
   );
 }
 
@@ -184,6 +184,7 @@ const statusMeta = {
 };
 
 function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [reports, setReports] = useState<PendingReport[]>([]);
   const [allReports, setAllReports] = useState<PendingReport[]>([]);
   const [filteredReports, setFilteredReports] = useState<PendingReport[]>([]);
@@ -197,6 +198,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [dateTo, setDateTo] = useState('');
   const [message, setMessage] = useState('');
   const user = getUser();
+  const requestedReportId = searchParams.get('report');
 
   const loadReports = async () => {
     try {
@@ -237,6 +239,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
       if (workTypeResponse.status === 'fulfilled') setWorkTypes(workTypeResponse.value.data);
     });
   }, [status]);
+
+  useEffect(() => {
+    if (!requestedReportId || fields.length === 0) return;
+    openReportDetail(Number(requestedReportId));
+    setSearchParams({}, { replace: true });
+  }, [fields.length, requestedReportId, setSearchParams]);
 
   useEffect(() => {
     setFilteredReports(reports.filter((report) => {
@@ -379,7 +387,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
     try {
       await client.put(`/reports/${selectedReport.id}`, {
-        report_kind: absence ? (selectedReport.work_type === 'Dovolená' ? 'leave' : 'training') : 'work',
+        report_kind: absence ? (selectedReport.work_type === 'Dovolená' ? 'leave' : selectedReport.work_type === 'Doktor' ? 'doctor' : 'training') : 'work',
         tractor_id: selectedReport.tractor_id,
         user_id: selectedReport.user_id ?? user?.id ?? 1,
         field_id: fieldSummary[0]?.field_id ?? null,
@@ -525,7 +533,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     <button type="button" className="secondary" disabled={absence || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
                   </div>
                   {absence ? (
-                    <p className="field-hint">Dovolená a školení pozemky nepotřebují.</p>
+                    <p className="field-hint">Dovolená, školení a doktor pozemky nepotřebují.</p>
                   ) : (
                     <div className="repeat-list">
                       {detailFieldEntries.length === 0 ? (
@@ -545,6 +553,26 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                                 value={entry.field_search}
                                 onChange={(event) => updateDetailFieldEntry(entry.id, { field_search: event.target.value })}
                               />
+                              {entry.field_search ? (
+                                <div className="field-search-results">
+                                  {visibleFields.slice(0, 8).map((item) => (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      className={entry.field_id === item.id ? 'active' : ''}
+                                      onClick={() => updateDetailFieldEntry(entry.id, {
+                                        field_id: item.id,
+                                        amount_ha: calculateProcessedArea(fields, item.id, entry.processed_percent),
+                                        field_search: ''
+                                      })}
+                                    >
+                                      <span>{item.field_name}</span>
+                                      <small>{item.field_code}</small>
+                                    </button>
+                                  ))}
+                                  {visibleFields.length === 0 ? <p>Žádný pozemek neodpovídá hledání.</p> : null}
+                                </div>
+                              ) : null}
                               <label htmlFor={`approval-field-${entry.id}`}>Pozemek</label>
                               <select
                                 id={`approval-field-${entry.id}`}

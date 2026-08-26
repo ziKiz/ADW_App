@@ -154,6 +154,32 @@ function isRegularWorkReport(report: any) {
   );
 }
 
+function normalizeClockTime(value?: string | null) {
+  return value ? String(value).slice(0, 5) : '';
+}
+
+function timeToMinutes(value: string) {
+  const [hours, minutes] = normalizeClockTime(value).split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return 0;
+  return hours * 60 + minutes;
+}
+
+function hasDemoTimeOverlap(reports: any[], body: any) {
+  if (!body.date || !body.time_start || !body.time_end) return false;
+  const user = getUser();
+  const userId = body.user_id ?? user?.id;
+  const start = timeToMinutes(body.time_start);
+  const end = timeToMinutes(body.time_end);
+  return reports.some((report) => {
+    if (String(report.date ?? '').slice(0, 10) !== String(body.date).slice(0, 10)) return false;
+    if (Number(report.user_id ?? 0) !== Number(userId ?? 0) && report.employee_name !== body.employee_name) return false;
+    const reportStart = normalizeClockTime(report.time_start);
+    const reportEnd = normalizeClockTime(report.time_end);
+    if (!reportStart || !reportEnd) return false;
+    return timeToMinutes(reportStart) < end && timeToMinutes(reportEnd) > start;
+  });
+}
+
 async function getDemoLastUsedReport() {
   const user = getUser();
   const reports = (await getDemoReports())
@@ -241,6 +267,9 @@ async function createDemoReport(config: InternalAxiosRequestConfig) {
     throw new Error('Vybraný stroj nepatří do zvoleného střediska.');
   }
   const existingReports = await getDemoReports();
+  if (hasDemoTimeOverlap(existingReports, body)) {
+    throw new Error('V zadaném čase už existuje jiný výkaz.');
+  }
   const storedReports = getStoredJson<any[]>(storedReportsKey, []);
   const storedFuelEntries = getStoredJson<any[]>(storedFuelEntriesKey, []);
   const now = new Date().toISOString();

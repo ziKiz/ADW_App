@@ -14,6 +14,14 @@ Formát:
 
 ## 2026-08-26
 
+### Výkazy, absence a archiv
+- Výběr pozemků ve formuláři i schvalovacím detailu má živé výsledky hledání přímo pod polem, takže není nutné otevírat rozbalovací seznam.
+- Speciální volby `Dovolená`, `Školení` a nový typ `Doktor` jsou schované pod rozklikávacím přepínačem `Ostatní`.
+- Typ `Doktor` podporuje 4 hodiny s automatickým koncem podle začátku nebo 8 hodin jako celý den `07:00-15:00`.
+- Frontend i backend brání uložení překrývajících se výkazů stejného uživatele ve stejném čase.
+- Admin navigace má novou stránku `Archiv`, která zobrazuje auditní historii včetně obsahu a období platnosti záznamu.
+- Mobilní navigace schvalovatele nechává jen `Ke schválení`; výkaz z přehledu vedoucího jde otevřít přímo do detailu schválení.
+
 ### Schvalování a dashboard
 - Schvalovatel může v detailu výkazu před schválením doplnit, vyhledat nebo odebrat více pozemků a uložit správný součet hektarů.
 - Ve schvalovacím detailu i filtrech zmizely pomocné texty `Česky:` pod datumy a časy.

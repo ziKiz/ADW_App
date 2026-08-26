@@ -6,7 +6,7 @@ os.environ["APP_MODE"] = "local"
 from fastapi import HTTPException
 
 from app.config import Settings
-from app.routers.reports import parse_time_value, report_identity_for_create, report_identity_for_update, validate_report_time_order
+from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, validate_report_time_order
 from app.security import can_access_report, is_elevated_user
 
 
@@ -60,6 +60,9 @@ class ReportTimeValidationTests(unittest.TestCase):
 
     def test_work_report_accepts_end_after_start(self):
         validate_report_time_order(True, parse_time_value("16:30:00"), parse_time_value("17:30:00"))
+
+    def test_doctor_report_counts_as_timed_report(self):
+        self.assertTrue(is_timed_report({"report_kind": "doctor", "time_start": "09:00:00", "time_end": "13:00:00"}))
 
 
 class SettingsTests(unittest.TestCase):

@@ -82,6 +82,7 @@ function BrandHeader() {
             <NavLink to="/users" end>Organizace</NavLink>
             <NavLink to="/dictionaries" end>Číselníky</NavLink>
             <NavLink to="/export" end>Exporty</NavLink>
+            <NavLink to="/archive" end>Archiv</NavLink>
           </>
         )}
         <NavLink to="/services" end>Služby</NavLink>
@@ -93,10 +94,10 @@ function BrandHeader() {
         {canSeeApprovals && (
           <>
             <NavLink to="/approvals">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
-            <NavLink to="/approvals/approved">Schválené</NavLink>
             {canSeeDirectorOverview ? <NavLink to="/director" end>Ředitelství</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/dictionaries" end>Číselníky</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/export" end>Exporty</NavLink> : null}
+            {canSeeAdminModules ? <NavLink to="/archive" end>Archiv</NavLink> : null}
           </>
         )}
         <NavLink to="/services" end>Služby</NavLink>

@@ -64,7 +64,7 @@ interface ReportTimeEntry {
   created_at?: string;
 }
 
-type ReportMode = 'work' | 'leave' | 'training';
+type ReportMode = 'work' | 'leave' | 'training' | 'doctor';
 type MessageTone = 'info' | 'success' | 'error';
 
 const processedPercentOptions = [25, 50, 75, 100];
@@ -209,6 +209,7 @@ function countWeekdaysInclusive(start: string, end: string) {
 function modeWorkTypeName(mode: ReportMode) {
   if (mode === 'leave') return 'Dovolená';
   if (mode === 'training') return 'Školení';
+  if (mode === 'doctor') return 'Doktor';
   return '';
 }
 
@@ -229,7 +230,7 @@ function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
 }
 
 function findDefaultWorkTypeId(workTypes: WorkType[]) {
-  return workTypes.find((item) => !['Dovolená', 'Školení'].includes(item.name))?.id;
+  return workTypes.find((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name))?.id;
 }
 
 function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
@@ -273,7 +274,27 @@ function getSuggestedTimesForDate(reports: ReportTimeEntry[], targetDate: string
 }
 
 function isWorkReportEntry(report: ReportTimeEntry) {
-  return !['Dovolená', 'Školení'].includes(String(report.work_type ?? ''));
+  return !['Dovolená', 'Školení', 'Doktor'].includes(String(report.work_type ?? ''));
+}
+
+function reportTimeRange(report: ReportTimeEntry) {
+  const start = normalizeClockTime(report.time_start);
+  const end = normalizeClockTime(report.time_end);
+  if (start && end) return { start, end };
+  const type = String(report.work_type ?? '');
+  if (['Dovolená', 'Školení', 'Doktor'].includes(type)) return { start: '07:00', end: '15:00' };
+  return null;
+}
+
+function hasTimeOverlap(reports: ReportTimeEntry[], targetDate: string, start: string, end: string, user: ReturnType<typeof getUser>) {
+  const startMinutes = timeToMinutes(start);
+  const endMinutes = timeToMinutes(end);
+  return reports.some((report) => {
+    if (!sameReportDate(report.date, targetDate) || !belongsToCurrentUser(report, user)) return false;
+    const range = reportTimeRange(report);
+    if (!range) return false;
+    return timeToMinutes(range.start) < endMinutes && timeToMinutes(range.end) > startMinutes;
+  });
 }
 
 function hasWorkReportForDate(reports: ReportTimeEntry[], targetDate: string, user: ReturnType<typeof getUser>) {
@@ -317,14 +338,18 @@ function ReportForm() {
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState<MessageTone>('info');
   const [metadataLoading, setMetadataLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [date, setDate] = useState(getLocalTodayDate);
   const [timeStart, setTimeStart] = useState(defaultStartTime);
   const [timeEnd, setTimeEnd] = useState('15:30');
   const [serviceCenter, setServiceCenter] = useState(initialServiceCenter);
   const [reportMode, setReportMode] = useState<ReportMode>('work');
+  const [specialOptionsOpen, setSpecialOptionsOpen] = useState(false);
   const [halfDayLeave, setHalfDayLeave] = useState(false);
   const [absenceStart, setAbsenceStart] = useState(getLocalTodayDate);
   const [absenceEnd, setAbsenceEnd] = useState(getLocalTodayDate);
+  const [doctorHours, setDoctorHours] = useState<4 | 8>(4);
+  const [doctorStart, setDoctorStart] = useState(defaultStartTime);
   const [absenceNote, setAbsenceNote] = useState('');
   const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>(
@@ -345,6 +370,8 @@ function ReportForm() {
   const isOtherWorkType = workTypes.some((item) => item.id === selectedWorkType && item.name === 'Ostatní');
   const selectedModeDays = countWeekdaysInclusive(absenceStart, absenceEnd);
   const selectedAbsenceUnits = halfDayLeave && reportMode === 'leave' ? 0.5 : selectedModeDays;
+  const doctorEnd = doctorHours === 8 ? '15:00' : addMinutesToTime(doctorStart, 4 * 60);
+  const doctorTimeStart = doctorHours === 8 ? defaultStartTime : doctorStart;
   const isAbsenceOverBalance = reportMode === 'leave' && selectedAbsenceUnits > vacationBalance.daysRemaining;
   const isLongAbsence = selectedModeDays > 20;
   const availableTractors = useMemo(
@@ -356,7 +383,7 @@ function ReportForm() {
   const lastAttachmentNames = useMemo(() => normalizeAttachmentNamesFromReport(lastUsedReport?.attachments), [lastUsedReport]);
   const hasLastAttachments = lastAttachmentNames.some((name) => name !== attachmentOptions[0]);
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
-  const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && workTypes.some((item) => item.id === lastUsedReport.work_type_id && !['Dovolená', 'Školení'].includes(item.name)));
+  const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && workTypes.some((item) => item.id === lastUsedReport.work_type_id && !['Dovolená', 'Školení', 'Doktor'].includes(item.name)));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
   const fieldsRequired = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
   const tractorRequired = reportMode === 'work' && !isOtherWorkType;
@@ -411,7 +438,7 @@ function ReportForm() {
       if (workTypeResponse.status === 'fulfilled') {
         setWorkTypes(loadedWorkTypes);
         if (loadedWorkTypes.length > 0) {
-          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení'].includes(item.name));
+          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name));
           const preferredWorkTypeId = normalWorkTypes.some((item) => item.id === lastPreferences.selectedWorkType)
             ? lastPreferences.selectedWorkType
             : normalWorkTypes[0]?.id ?? loadedWorkTypes[0].id;
@@ -435,7 +462,7 @@ function ReportForm() {
         setLastUsedReport(lastUsed);
         const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
         const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
-        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení'].includes(item.name));
+        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor'].includes(item.name));
         if (lastTractorIsValid) {
           setSelectedTractor(lastUsed.tractor_id);
           setFuelTractorId(lastUsed.tractor_id);
@@ -508,23 +535,42 @@ function ReportForm() {
     if (reportMode === mode) {
       setReportMode('work');
       setHalfDayLeave(false);
+      setSpecialOptionsOpen(false);
       const workTypeId = findDefaultWorkTypeId(workTypes);
       if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
       return;
     }
     setReportMode(mode);
+    setSpecialOptionsOpen(false);
     if (mode !== 'leave') setHalfDayLeave(false);
+    if (mode === 'doctor') setAbsenceEnd(absenceStart);
     const workTypeId = findWorkTypeId(workTypes, mode);
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
   };
 
   const handleAbsenceStartChange = (value: string) => {
     setAbsenceStart(value);
+    if (reportMode === 'doctor') {
+      setAbsenceEnd(value);
+      return;
+    }
     if (absenceEnd < value) setAbsenceEnd(value);
+  };
+
+  const handleDoctorHoursChange = (value: 4 | 8) => {
+    setDoctorHours(value);
+    if (value === 8) {
+      setDoctorStart(defaultStartTime);
+    }
+  };
+
+  const handleDoctorStartChange = (value: string) => {
+    setDoctorStart(value);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
     showFormMessage('Kontroluji výkaz...', 'info');
     if (!confirmReportDate(reportMode === 'work' ? date : absenceStart)) {
       showFormMessage('Uložení bylo zrušeno.', 'info');
@@ -541,6 +587,17 @@ function ReportForm() {
         showFormMessage('Vyberte platné datum od a do.', 'error');
         return;
       }
+      if (reportMode === 'doctor') {
+        setAbsenceEnd(absenceStart);
+        if (!isEndAfterStart(doctorTimeStart, doctorEnd)) {
+          showFormMessage('Konec návštěvy doktora musí být po začátku.', 'error');
+          return;
+        }
+        if (hasTimeOverlap(reports, absenceStart, doctorTimeStart, doctorEnd, user)) {
+          showFormMessage('V zadaném čase už existuje jiný výkaz. Upravte prosím čas doktora nebo navazující práce.', 'error');
+          return;
+        }
+      }
       if (reportMode === 'leave' && halfDayLeave) {
         if (absenceStart !== absenceEnd) {
           showFormMessage('Půldenní dovolená může být zadaná jen na jeden den.', 'error');
@@ -552,15 +609,18 @@ function ReportForm() {
         }
       }
 
-      const title = reportMode === 'leave' ? 'Dovolená' : 'Školení';
-      if (!confirmReportSubmit(`Opravdu chcete uložit ${title.toLocaleLowerCase('cs-CZ')} v rozsahu ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}?`)) {
+      const title = specialName;
+      const submitSummary = reportMode === 'doctor'
+        ? `${formatCzechDate(absenceStart)} (${doctorTimeStart}-${doctorEnd}, ${doctorHours} h)`
+        : `${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`;
+      if (!confirmReportSubmit(`Opravdu chcete uložit ${title.toLocaleLowerCase('cs-CZ')} v rozsahu ${submitSummary}?`)) {
         showFormMessage('Uložení bylo zrušeno.', 'info');
         return;
       }
       const extendedNotes = [
         `Středisko: ${serviceCenter}`,
-        `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
-        `Počet pracovních dní: ${selectedAbsenceUnits}`,
+        reportMode === 'doctor' ? `Doktor: ${formatCzechDate(absenceStart)} ${doctorTimeStart}-${doctorEnd}` : `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
+        reportMode === 'doctor' ? `Počet hodin: ${doctorHours}` : `Počet pracovních dní: ${selectedAbsenceUnits}`,
         reportMode === 'leave' && halfDayLeave ? 'Půldenní dovolená: ano' : '',
         isLongAbsence ? 'Upozornění: nestandardně dlouhé období.' : '',
         isAbsenceOverBalance ? `Upozornění: zadáno více dní dovolené, než je aktuální zůstatek ${vacationBalance.daysRemaining}.` : '',
@@ -568,6 +628,7 @@ function ReportForm() {
       ].filter(Boolean).join('\n');
 
       try {
+        setIsSubmitting(true);
         showFormMessage(`Ukládám ${title.toLocaleLowerCase('cs-CZ')}...`, 'info');
         const response = await client.post('/reports', {
           report_number: `RPT-${Date.now()}`,
@@ -580,10 +641,10 @@ function ReportForm() {
           field_entries: [],
           work_type_id: specialWorkType.id,
           date: absenceStart,
-          time_start: null,
-          time_end: null,
+          time_start: reportMode === 'doctor' ? `${doctorTimeStart}:00` : null,
+          time_end: reportMode === 'doctor' ? `${doctorEnd}:00` : null,
           break_hours: 0,
-          hours_worked: reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
+          hours_worked: reportMode === 'doctor' ? doctorHours : reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
           amount_ha: 0,
           fuel_liters: 0,
           attachments: [],
@@ -594,15 +655,23 @@ function ReportForm() {
           user_id: user?.id ?? 1,
           employee_name: user?.full_name,
           date: absenceStart,
+          time_start: reportMode === 'doctor' ? `${doctorTimeStart}:00` : undefined,
+          time_end: reportMode === 'doctor' ? `${doctorEnd}:00` : undefined,
           work_type: specialName,
           created_at: new Date().toISOString()
         };
         setReports((items) => [...items, submittedReport]);
-        showFormMessage(`${title} byla uložena v rozsahu ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}.`, 'success');
-        window.alert(`${title} byla vytvořena.`);
+        if (reportMode === 'doctor') {
+          setTimeStart(doctorEnd);
+          setTimeEnd(addMinutesToTime(doctorEnd, followUpDurationMinutes));
+        }
+        showFormMessage(`${title} byl uložen v rozsahu ${submitSummary}.`, 'success');
+        window.alert(`${title} byl vytvořen.`);
       } catch (error) {
         console.error(error);
         showFormMessage(`${title} se nepodařilo uložit. Zkontrolujte datum a zkuste to znovu.`, 'error');
+      } finally {
+        setIsSubmitting(false);
       }
       return;
     }
@@ -620,6 +689,10 @@ function ReportForm() {
       const nextEnd = addMinutesToTime(timeStart, followUpDurationMinutes);
       setTimeEnd(nextEnd);
       showFormMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`, 'error');
+      return;
+    }
+    if (hasTimeOverlap(reports, date, timeStart, timeEnd, user)) {
+      showFormMessage('V zadaném čase už existuje jiný výkaz. Výkaz se znovu neuložil.', 'error');
       return;
     }
 
@@ -653,6 +726,7 @@ function ReportForm() {
     ].filter(Boolean).join('\n');
 
     try {
+      setIsSubmitting(true);
       showFormMessage('Ukládám pracovní výkaz...', 'info');
       const response = await client.post('/reports', {
         report_number: `RPT-${Date.now()}`,
@@ -715,7 +789,9 @@ function ReportForm() {
       window.alert('Výkaz byl vytvořen.');
     } catch (error) {
       console.error(error);
-      showFormMessage('Výkaz se nepodařilo uložit. Zkontrolujte vyplněné údaje a zkuste to znovu.', 'error');
+      showFormMessage('Výkaz se nepodařilo uložit. Pokud už v tomto čase výkaz existuje, upravte prosím čas práce.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -909,44 +985,50 @@ function ReportForm() {
                 <label className="sr-only" htmlFor="workType">Typ práce</label>
                 <select
                   id="workType"
-                  value={reportMode === 'work' ? selectedWorkType ?? '' : selectedWorkType ?? ''}
+                  value={reportMode === 'work' ? selectedWorkType ?? '' : ''}
                   onChange={(event) => {
                     setReportMode('work');
+                    setSpecialOptionsOpen(false);
                     handleSelectWorkType(event);
                   }}
                 >
-                  {reportMode !== 'work' && selectedWorkType ? <option value={selectedWorkType}>{modeWorkTypeName(reportMode)}</option> : null}
                   {metadataLoading && <option value="">Načítám typy prací...</option>}
                   {!metadataLoading && workTypes.length === 0 && <option value="">Žádné typy prací</option>}
-                  {workTypes.filter((item) => !['Dovolená', 'Školení'].includes(item.name)).map((item) => (
+                  {workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name)).map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="quick-mode-actions" aria-label="Rychlé typy výkazu">
-                <button
-                  type="button"
-                  className={`quick-mode-button ${reportMode === 'leave' ? 'active' : ''}`}
-                  onClick={() => selectReportMode('leave')}
-                >
-                  <strong>Dovolená</strong>
-                </button>
-                <button
-                  type="button"
-                  className={`quick-mode-button ${reportMode === 'training' ? 'active' : ''}`}
-                  onClick={() => selectReportMode('training')}
-                >
-                  <strong>Školení</strong>
-                </button>
-              </div>
+              <label className="toggle-row special-type-toggle">
+                <input type="checkbox" checked={specialOptionsOpen || reportMode !== 'work'} onChange={(event) => setSpecialOptionsOpen(event.target.checked)} />
+                Ostatní
+              </label>
             </div>
+            {(specialOptionsOpen || reportMode !== 'work') ? (
+              <div className="special-type-actions" aria-label="Ostatní typy výkazu">
+                {[
+                  ['leave', 'Dovolená'],
+                  ['training', 'Školení'],
+                  ['doctor', 'Doktor']
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={`quick-mode-button ${reportMode === mode ? 'active' : ''}`}
+                    onClick={() => selectReportMode(mode as ReportMode)}
+                  >
+                    <strong>{label}</strong>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           {reportMode !== 'work' ? (
             <section className="report-section special-report-panel">
               <div className="special-report-heading">
                 <div>
-                  <h2>{reportMode === 'leave' ? 'Dovolená' : 'Školení'}</h2>
+                  <h2>{modeWorkTypeName(reportMode)}</h2>
                 </div>
                 {reportMode === 'leave' ? (
                   <div className="vacation-balance-card">
@@ -961,13 +1043,34 @@ function ReportForm() {
                   <label htmlFor="absenceStart">Od dne</label>
                   <input id="absenceStart" type="date" value={absenceStart} onChange={(event) => handleAbsenceStartChange(event.target.value)} />
                 </div>
-                <div className="field-row">
-                  <label htmlFor="absenceEnd">Do dne</label>
-                  <input id="absenceEnd" type="date" min={absenceStart} value={absenceEnd} onChange={(event) => setAbsenceEnd(event.target.value)} />
-                </div>
+                {reportMode !== 'doctor' ? (
+                  <div className="field-row">
+                    <label htmlFor="absenceEnd">Do dne</label>
+                    <input id="absenceEnd" type="date" min={absenceStart} value={absenceEnd} onChange={(event) => setAbsenceEnd(event.target.value)} />
+                  </div>
+                ) : null}
+                {reportMode === 'doctor' ? (
+                  <>
+                    <div className="field-row">
+                      <label htmlFor="doctorHours">Rozsah</label>
+                      <select id="doctorHours" value={doctorHours} onChange={(event) => handleDoctorHoursChange(Number(event.target.value) as 4 | 8)}>
+                        <option value={4}>4 hodiny</option>
+                        <option value={8}>8 hodin</option>
+                      </select>
+                    </div>
+                    <div className="field-row">
+                      <label htmlFor="doctorStart">Od</label>
+                      <input id="doctorStart" type="time" value={doctorTimeStart} disabled={doctorHours === 8} onChange={(event) => handleDoctorStartChange(event.target.value)} />
+                    </div>
+                    <div className="field-row">
+                      <label htmlFor="doctorEnd">Do</label>
+                      <input id="doctorEnd" type="time" value={doctorEnd} disabled />
+                    </div>
+                  </>
+                ) : null}
                 <div className="absence-days-box">
-                  <span>Pracovní dny</span>
-                  <strong>{selectedAbsenceUnits}</strong>
+                  <span>{reportMode === 'doctor' ? 'Hodiny' : 'Pracovní dny'}</span>
+                  <strong>{reportMode === 'doctor' ? doctorHours : selectedAbsenceUnits}</strong>
                 </div>
               </div>
               {reportMode === 'leave' ? (
@@ -1038,6 +1141,26 @@ function ReportForm() {
                             value={entry.fieldSearch ?? ''}
                             onChange={(event: ChangeEvent<HTMLInputElement>) => updateFieldEntry(entry.id, { fieldSearch: event.target.value })}
                           />
+                          {entry.fieldSearch ? (
+                            <div className="field-search-results">
+                              {visibleFields.slice(0, 8).map((item) => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  className={entry.fieldId === item.id ? 'active' : ''}
+                                  onClick={() => updateFieldEntry(entry.id, {
+                                    fieldId: item.id,
+                                    amountHa: calculateProcessedArea(fields, item.id, entry.processedPercent),
+                                    fieldSearch: ''
+                                  })}
+                                >
+                                  <span>{item.field_name}</span>
+                                  <small>{item.field_code}</small>
+                                </button>
+                              ))}
+                              {visibleFields.length === 0 ? <p>Žádný pozemek neodpovídá hledání.</p> : null}
+                            </div>
+                          ) : null}
                           <label htmlFor={`field-${entry.id}`}>Pozemek</label>
                           <select
                             id={`field-${entry.id}`}
@@ -1229,7 +1352,9 @@ function ReportForm() {
 
           <div className="form-footer">
             {message ? <p className={`form-message form-message--${messageTone}`} role="status" aria-live="polite">{message}</p> : null}
-            <button type="submit" className="primary">{reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${reportMode === 'leave' ? 'dovolenou' : 'školení'}`}</button>
+            <button type="submit" className="primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Ukládám...' : reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${reportMode === 'leave' ? 'dovolenou' : reportMode === 'training' ? 'školení' : 'doktora'}`}
+            </button>
           </div>
         </form>
       </div>

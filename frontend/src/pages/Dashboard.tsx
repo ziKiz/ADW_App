@@ -62,9 +62,9 @@ function parseCzechDate(value: string) {
 }
 
 function getAbsenceRange(report: ReportSummary) {
-  const noteRange = String(report.notes ?? '').match(/(?:Dovolená|Školení):\s*(\d{2}\.\d{2}\.\d{4})\s*až\s*(\d{2}\.\d{2}\.\d{4})/);
+  const noteRange = String(report.notes ?? '').match(/(?:Dovolená|Školení|Doktor):\s*(\d{2}\.\d{2}\.\d{4})\s*(?:až\s*)?(\d{2}\.\d{2}\.\d{4})?/);
   const start = noteRange ? parseCzechDate(noteRange[1]) : String(report.date).slice(0, 10);
-  const end = noteRange ? parseCzechDate(noteRange[2]) : String(report.date).slice(0, 10);
+  const end = noteRange?.[2] ? parseCzechDate(noteRange[2]) : String(report.date).slice(0, 10);
   return { start: start ?? String(report.date).slice(0, 10), end: end ?? String(report.date).slice(0, 10) };
 }
 
@@ -126,7 +126,7 @@ function getReportCenter(report: Pick<ReportSummary, 'notes'>) {
 }
 
 function isAbsenceReport(report: Pick<ReportSummary, 'work_type'>) {
-  return ['Dovolená', 'Školení'].includes(report.work_type);
+  return ['Dovolená', 'Školení', 'Doktor'].includes(report.work_type);
 }
 
 function isScopedApprovalRole(role?: string) {
@@ -252,7 +252,7 @@ function Dashboard() {
   const absencesToday = useMemo(() => {
     const today = toIsoDate(new Date());
     return visibleReports
-      .filter((report) => ['Dovolená', 'Školení'].includes(report.work_type))
+      .filter((report) => ['Dovolená', 'Školení', 'Doktor'].includes(report.work_type))
       .map((report) => ({ report, range: getAbsenceRange(report) }))
       .filter((item) => item.range.start <= today && item.range.end >= today)
       .sort((first, second) => String(first.report.employee_name ?? '').localeCompare(String(second.report.employee_name ?? ''), 'cs-CZ'));
@@ -399,7 +399,7 @@ function Dashboard() {
       <h2>Kdo dnes chybí</h2>
       <div className="mini-list">
         {absencesToday.length === 0 ? (
-          <p className="empty-state empty-state--compact">Dnes nikdo není na dovolené ani školení.</p>
+          <p className="empty-state empty-state--compact">Dnes nikdo není na dovolené, školení ani u doktora.</p>
         ) : (
           absencesToday.map(({ report, range }) => (
             <span key={`${report.id}-${range.start}`}>
@@ -586,7 +586,7 @@ function Dashboard() {
                         <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
                         <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
                         <td className="mobile-hide" data-label="Výkon">{isAbsenceReport(report) ? '-' : `${asNumber(report.amount_ha).toFixed(1)} ha · tankování ${asNumber(report.fuel_liters).toFixed(0)} l`}</td>
-                        <td className="mobile-hide" data-label="Akce"><Link className="edit-action" to="/approvals">Otevřít</Link></td>
+                        <td data-label="Akce"><Link className="edit-action" to={`/approvals?report=${report.id}`}>Otevřít</Link></td>
                       </tr>
                     );
                   })}

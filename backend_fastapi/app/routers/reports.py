@@ -31,9 +31,53 @@ def parse_time_value(value: Any) -> time | None:
     return time.fromisoformat(str(value))
 
 
-def validate_report_time_order(is_work: bool, time_start: time | None, time_end: time | None) -> None:
-    if is_work and time_start and time_end and time_end <= time_start:
+def validate_report_time_order(requires_time_order: bool, time_start: time | None, time_end: time | None) -> None:
+    if requires_time_order and time_start and time_end and time_end <= time_start:
         raise HTTPException(status_code=422, detail="Konec práce musí být po začátku.")
+
+
+def is_timed_report(payload: dict[str, Any]) -> bool:
+    return payload.get("report_kind") in (None, "work", "doctor") and payload.get("time_start") and payload.get("time_end")
+
+
+async def ensure_no_time_overlap(
+    session: AsyncSession,
+    user_id: Any,
+    report_date: date | None,
+    time_start: time | None,
+    time_end: time | None,
+    *,
+    exclude_report_id: int | None = None,
+) -> None:
+    if not user_id or not report_date or not time_start or not time_end:
+        return
+    params: dict[str, Any] = {
+        "user_id": user_id,
+        "date": report_date,
+        "time_start": time_start,
+        "time_end": time_end,
+        "exclude_report_id": exclude_report_id,
+    }
+    result = await session.execute(
+        text(
+            """
+            SELECT id
+            FROM reports
+            WHERE archived_at IS NULL
+              AND user_id = :user_id
+              AND date = :date
+              AND time_start IS NOT NULL
+              AND time_end IS NOT NULL
+              AND (:exclude_report_id IS NULL OR id <> :exclude_report_id)
+              AND time_start < :time_end
+              AND time_end > :time_start
+            LIMIT 1
+            """
+        ),
+        params,
+    )
+    if result.first():
+        raise HTTPException(status_code=409, detail="V zadaném čase už existuje jiný výkaz.")
 
 
 def report_select(where: str = "") -> str:
@@ -117,7 +161,7 @@ async def get_last_used_report(session: AsyncSession = Depends(get_session), use
               AND r.report_kind = 'work'
               AND r.user_id = :user_id
               AND r.work_type_id IS NOT NULL
-              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení')
+              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení', 'Doktor')
             ORDER BY r.date DESC, r.created_at DESC
             LIMIT 1
             """
@@ -147,8 +191,10 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
-    validate_report_time_order(is_work, time_start, time_end)
+    validate_report_time_order(is_work or is_timed_report(payload), time_start, time_end)
     report_user_id, employee_name = report_identity_for_create(payload, user)
+    if is_timed_report(payload):
+        await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end)
     result = await session.execute(
         text(
             """
@@ -223,9 +269,11 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
-    validate_report_time_order(is_work, time_start, time_end)
+    validate_report_time_order(is_work or is_timed_report(payload), time_start, time_end)
     before_dict = dict(before_row)
     report_user_id, employee_name = report_identity_for_update(payload, user, before_dict)
+    if is_timed_report(payload):
+        await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end, exclude_report_id=report_id)
     await session.execute(
         text(
             """
