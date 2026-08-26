@@ -56,11 +56,14 @@ async def ensure_no_time_overlap(
         "date": report_date,
         "time_start": time_start,
         "time_end": time_end,
-        "exclude_report_id": exclude_report_id,
     }
+    exclude_clause = ""
+    if exclude_report_id is not None:
+        exclude_clause = "AND id <> :exclude_report_id"
+        params["exclude_report_id"] = exclude_report_id
     result = await session.execute(
         text(
-            """
+            f"""
             SELECT id
             FROM reports
             WHERE archived_at IS NULL
@@ -68,7 +71,7 @@ async def ensure_no_time_overlap(
               AND date = :date
               AND time_start IS NOT NULL
               AND time_end IS NOT NULL
-              AND (:exclude_report_id IS NULL OR id <> :exclude_report_id)
+              {exclude_clause}
               AND time_start < :time_end
               AND time_end > :time_start
             LIMIT 1
