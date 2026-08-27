@@ -31,6 +31,7 @@ function BrandHeader() {
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
   const canCreateReport = !canSeeApprovals;
+  const canUseMartinaSwitch = import.meta.env.VITE_APP_MODE !== 'live' && isMartinaUser(user);
   const mobileUserName = (() => {
     const fullName = user?.full_name ?? 'Nepřihlášený';
     const nameWithoutTitle = fullName.replace(/^(Ing\.|Bc\.|Mgr\.|MUDr\.)\s+/i, '').trim();
@@ -40,18 +41,6 @@ function BrandHeader() {
     }
     return nameWithoutTitle;
   })();
-
-  const getRoleLabel = () => {
-    switch(user?.role) {
-      case 'admin': return 'Administrátor systému';
-      case 'reditel': return 'Ředitel';
-      case 'schvalovatel': return 'Schvalovatel';
-      case 'specialista': return 'Specialista';
-      case 'zamestnanec': return 'Zaměstnanec';
-      case 'traktorista': return 'Traktorista';
-      default: return 'Uživatel';
-    }
-  };
 
   useEffect(() => {
     client.get('/reports')
@@ -125,8 +114,7 @@ function BrandHeader() {
           {mobileUserName}
         </button>
         <span>{user?.full_name ?? 'Nepřihlášený uživatel'}</span>
-        <strong>{getRoleLabel()}</strong>
-        {isMartinaUser(user) ? (
+        {canUseMartinaSwitch ? (
           <button className="profile-switch-button" type="button" onClick={handleProfileToggle}>
             {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
           </button>
@@ -134,7 +122,7 @@ function BrandHeader() {
         <button className="logout-button" type="button" onClick={handleLogout}>Odhlásit se</button>
         {mobileAccountOpen ? (
           <div className="mobile-account-menu" role="menu">
-            {isMartinaUser(user) ? (
+            {canUseMartinaSwitch ? (
               <button type="button" role="menuitem" onClick={handleProfileToggle}>
                 {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
               </button>

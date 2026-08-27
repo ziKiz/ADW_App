@@ -17,7 +17,7 @@ function roleLabel(role: string) {
 
 function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [loginName, setLoginName] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [selectedUserForLogin, setSelectedUserForLogin] = useState<string | null>(null);
@@ -25,7 +25,7 @@ function Login() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
-      const response = await client.post('/auth/login', { email, password });
+      const response = await client.post('/auth/login', { login: loginName, password });
       saveUser(response.data);
       navigate('/dashboard');
     } catch (error) {
@@ -49,10 +49,37 @@ function Login() {
 
   const handleCancelSelection = () => {
     setSelectedUserForLogin(null);
-    setEmail('');
+    setLoginName('');
     setPassword('');
     setMessage('');
   };
+
+  if (isLiveMode || selectedUserForLogin === 'manual') {
+    return (
+      <div className="login-screen">
+        <div className="card login-card">
+          <div>
+            <p className="eyebrow">ADW aplikace</p>
+            <h1 className="page-title">Přihlášení</h1>
+            <p className="section-title">Zadejte přihlašovací údaje.</p>
+          </div>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="field-row">
+              <label htmlFor="loginName">Přihlašovací jméno</label>
+              <input id="loginName" type="text" autoComplete="username" placeholder="jmeno.prijmeni" value={loginName} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginName(event.target.value)} required />
+            </div>
+            <div className="field-row">
+              <label htmlFor="password">Heslo</label>
+              <input id="password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)} required />
+            </div>
+            {message && <p className="form-message">{message}</p>}
+            <button type="submit" className="primary">Přihlásit se</button>
+            {!isLiveMode ? <button type="button" className="secondary" onClick={handleCancelSelection}>Zpět</button> : null}
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   if (!selectedUserForLogin) {
     return (
@@ -79,33 +106,6 @@ function Login() {
           <button type="button" className="tertiary" onClick={() => setSelectedUserForLogin('manual')}>
             Přihlásit se s údaji
           </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (selectedUserForLogin === 'manual') {
-    return (
-      <div className="login-screen">
-        <div className="card login-card">
-          <div>
-            <p className="eyebrow">ADW aplikace</p>
-            <h1 className="page-title">Přihlášení</h1>
-            <p className="section-title">Zadejte přihlašovací údaje.</p>
-          </div>
-          <form onSubmit={handleSubmit} className="login-form">
-            <div className="field-row">
-              <label htmlFor="email">Email</label>
-              <input id="email" type="email" placeholder="jmeno@firma.cz" value={email} onChange={(event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)} required />
-            </div>
-            <div className="field-row">
-              <label htmlFor="password">Heslo</label>
-              <input id="password" type="password" placeholder="••••••••" value={password} onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)} required />
-            </div>
-            {message && <p className="form-message">{message}</p>}
-            <button type="submit" className="primary">Přihlásit se</button>
-            <button type="button" className="secondary" onClick={handleCancelSelection}>Zpět</button>
-          </form>
         </div>
       </div>
     );

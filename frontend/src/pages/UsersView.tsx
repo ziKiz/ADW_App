@@ -32,12 +32,10 @@ function formatAuditDate(value?: string) {
 function UsersView() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [departmentFilter, setDepartmentFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editedUser, setEditedUser] = useState<UserRecord | null>(null);
   const user = getUser();
-  const canEditOrganization = user?.role === 'admin' || user?.full_name === 'Ing. Martina Novotná';
-  const roleOptions = ['admin', 'reditel', 'schvalovatel', 'specialista', 'zamestnanec', 'traktorista', 'helios'];
+  const canEditOrganization = user?.role === 'admin' || user?.role === 'reditel';
 
   useEffect(() => {
     client.get('/users')
@@ -45,11 +43,9 @@ function UsersView() {
       .catch((error) => console.error(error));
   }, []);
 
-  const roles = useMemo(() => [...new Set(users.map((user) => user.role_name ?? user.role_code ?? user.role))].sort(), [users]);
   const departments = useMemo(() => [...new Set(users.map((user) => user.department_name).filter(Boolean))].sort(), [users]);
   const filteredUsers = users.filter((user) => {
-    const role = user.role_name ?? user.role_code ?? user.role;
-    return (roleFilter === 'all' || role === roleFilter) && (departmentFilter === 'all' || user.department_name === departmentFilter);
+    return departmentFilter === 'all' || user.department_name === departmentFilter;
   });
 
   const startEdit = (item: UserRecord) => {
@@ -96,13 +92,6 @@ function UsersView() {
               {departments.map((department) => <option key={department} value={department}>{department}</option>)}
             </select>
           </label>
-          <label>
-            Role
-            <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
-              <option value="all">Vše</option>
-              {roles.map((role) => <option key={role} value={role}>{role}</option>)}
-            </select>
-          </label>
         </div>
         <table className="approval-table">
           <thead>
@@ -111,8 +100,6 @@ function UsersView() {
               <th>Středisko</th>
               <th>Pozice</th>
               <th>Nadřízený</th>
-              <th>Role</th>
-              <th>Rozsah</th>
               <th>Poslední úprava</th>
               {canEditOrganization ? <th>Akce</th> : null}
             </tr>
@@ -136,20 +123,6 @@ function UsersView() {
                     {isEditing ? <input value={editedUser.position ?? ''} onChange={(event) => updateEdited({ position: event.target.value })} /> : item.position ?? '-'}
                   </td>
                   <td data-label="Nadřízený">{item.manager_name || '-'}</td>
-                  <td data-label="Role">
-                    {isEditing ? (
-                      <select value={editedUser.role} onChange={(event) => updateEdited({ role: event.target.value })}>
-                        {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
-                      </select>
-                    ) : <span className="status-green">{item.role_name ?? item.role_code ?? item.role}</span>}
-                  </td>
-                  <td data-label="Rozsah">
-                    {isEditing ? (
-                      <select value={editedUser.scope_department ?? editedUser.department_name ?? ''} onChange={(event) => updateEdited({ scope_department: event.target.value })}>
-                        {serviceCenters.map((center) => <option key={center} value={center}>{center}</option>)}
-                      </select>
-                    ) : item.scope_department ?? '-'}
-                  </td>
                   <td data-label="Poslední úprava">{formatAuditDate(item.updated_at)}</td>
                   {canEditOrganization ? (
                     <td data-label="Akce">

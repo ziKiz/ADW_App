@@ -228,6 +228,10 @@ function tractorSearchText(tractor: Tractor) {
   return normalizeSearch(`${tractor.tractor_name} ${tractor.tractor_code} ${tractor.vehicle_type ?? ''}`);
 }
 
+function workTypeSearchText(workType: WorkType) {
+  return normalizeSearch(`${workType.name} ${workType.description ?? ''}`);
+}
+
 function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
   const name = modeWorkTypeName(mode);
   return workTypes.find((item) => item.name === name)?.id;
@@ -340,6 +344,7 @@ function ReportForm() {
   const [selectedTractor, setSelectedTractor] = useState<number | undefined>(undefined);
   const [tractorSearch, setTractorSearch] = useState('');
   const [selectedWorkType, setSelectedWorkType] = useState<number | undefined>(undefined);
+  const [workTypeSearch, setWorkTypeSearch] = useState('');
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState<MessageTone>('info');
   const [metadataLoading, setMetadataLoading] = useState(true);
@@ -388,12 +393,21 @@ function ReportForm() {
     if (!query) return availableTractors;
     return availableTractors.filter((tractor) => tractorSearchText(tractor).includes(query));
   }, [availableTractors, tractorSearch]);
+  const normalWorkTypes = useMemo(
+    () => workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name)),
+    [workTypes]
+  );
+  const visibleWorkTypes = useMemo(() => {
+    const query = normalizeSearch(workTypeSearch.trim());
+    if (!query) return normalWorkTypes;
+    return normalWorkTypes.filter((item) => workTypeSearchText(item).includes(query));
+  }, [normalWorkTypes, workTypeSearch]);
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
   const canAddAttachment = attachmentEntries.length < 3 && attachmentEntries[attachmentEntries.length - 1]?.name !== attachmentOptions[0];
   const lastAttachmentNames = useMemo(() => normalizeAttachmentNamesFromReport(lastUsedReport?.attachments), [lastUsedReport]);
   const hasLastAttachments = lastAttachmentNames.some((name) => name !== attachmentOptions[0]);
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
-  const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && workTypes.some((item) => item.id === lastUsedReport.work_type_id && !['Dovolená', 'Školení', 'Doktor'].includes(item.name)));
+  const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && normalWorkTypes.some((item) => item.id === lastUsedReport.work_type_id));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
   const fieldsRequired = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
   const showFieldSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
@@ -821,6 +835,7 @@ function ReportForm() {
   const handleSelectWorkType = (event: ChangeEvent<HTMLSelectElement>) => {
     const nextWorkType = Number(event.target.value);
     setSelectedWorkType(nextWorkType);
+    setWorkTypeSearch('');
     if (isOtherWorkTypeId(workTypes, nextWorkType)) {
       setOtherUsesFields(false);
       setOtherUsesTractor(false);
@@ -989,6 +1004,35 @@ function ReportForm() {
             <h2>Typ práce</h2>
             <div className="report-mode-row">
               <div className="field-row">
+                <label htmlFor="work-type-search">Hledat typ práce</label>
+                <input
+                  id="work-type-search"
+                  type="search"
+                  className="field-search-input"
+                  placeholder="Název práce"
+                  value={workTypeSearch}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setWorkTypeSearch(event.target.value)}
+                />
+                {workTypeSearch ? (
+                  <div className="field-search-results">
+                    {visibleWorkTypes.slice(0, 8).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className={selectedWorkType === item.id ? 'active' : ''}
+                        onClick={() => {
+                          setReportMode('work');
+                          setSpecialOptionsOpen(false);
+                          setSelectedWorkType(item.id);
+                          setWorkTypeSearch('');
+                        }}
+                      >
+                        <span>{item.name}</span>
+                      </button>
+                    ))}
+                    {visibleWorkTypes.length === 0 ? <p>Žádný typ práce neodpovídá hledání.</p> : null}
+                  </div>
+                ) : null}
                 <label className="sr-only" htmlFor="workType">Typ práce</label>
                 <select
                   id="workType"
@@ -1001,7 +1045,7 @@ function ReportForm() {
                 >
                   {metadataLoading && <option value="">Načítám typy prací...</option>}
                   {!metadataLoading && workTypes.length === 0 && <option value="">Žádné typy prací</option>}
-                  {workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name)).map((item) => (
+                  {visibleWorkTypes.map((item) => (
                     <option key={item.id} value={item.id}>{item.name}</option>
                   ))}
                 </select>

@@ -75,7 +75,7 @@ async def get_current_user(
     result = await session.execute(
         text(
             """
-            SELECT id, username, email, role, full_name, active, department_name, scope_department
+            SELECT id, username, email, role, full_name, active, department_name, scope_department, manager_username, manager_name
             FROM users
             WHERE id = :id AND active = TRUE AND archived_at IS NULL
             """

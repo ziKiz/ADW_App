@@ -10,21 +10,25 @@ router = APIRouter()
 
 
 class LoginInput(BaseModel):
-    email: str
+    login: str | None = None
+    email: str | None = None
     password: str
 
 
 @router.post("/login")
 async def login(payload: LoginInput, session: AsyncSession = Depends(get_session)):
+    login_name = (payload.login or payload.email or "").strip()
+    if not login_name:
+        raise HTTPException(status_code=401, detail="Neplatné přihlašovací údaje")
     result = await session.execute(
         text(
             """
-            SELECT id, username, email, password_hash, role, full_name, department_name, scope_department
+            SELECT id, username, email, password_hash, role, full_name, department_name, scope_department, manager_username, manager_name
             FROM users
-            WHERE email = :email AND active = TRUE AND archived_at IS NULL
+            WHERE (username = :login OR email = :login) AND active = TRUE AND archived_at IS NULL
             """
         ),
-        {"email": payload.email},
+        {"login": login_name},
     )
     user = result.mappings().first()
     if not user or not verify_password(payload.password, user["password_hash"]):

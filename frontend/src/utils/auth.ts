@@ -6,6 +6,8 @@ export interface AppUser {
   full_name: string;
   department_name?: string;
   scope_department?: string;
+  manager_username?: string;
+  manager_name?: string;
   access_token?: string;
   token_type?: string;
 }

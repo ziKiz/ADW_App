@@ -14,6 +14,13 @@ Formát:
 
 ## 2026-08-26
 
+### Ostré přihlášení a nový číselník prací
+- Přihlášení v live režimu používá přihlašovací jméno a heslo bez demo účtů na obrazovce.
+- Produkční seed umí načíst uživatele, střediska, vedoucí a hesla ze souboru `Přihlašovací údaje.xlsx`.
+- Token přihlášení má delší platnost, aby uživatel zůstal přihlášený až do vlastního odhlášení.
+- Číselník typů práce je aktualizovaný podle nového ostrého seznamu a ve formuláři jde živě filtrovat.
+- Viditelné popisky uživatelských úrovní byly odstraněné z přihlášení, hlavičky i organizace.
+
 ### Mobilní formulář a technika
 - Formulář výkazu má v části `Technika` živé hledání podle názvu, SPZ i typu stroje.
 - Výběr techniky nově nabízí první volbu `Bez techniky`, aby šel uložit výkaz bez stroje.

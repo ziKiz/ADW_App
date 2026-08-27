@@ -31,7 +31,7 @@ async def create_notice(payload: dict, request: Request, session: AsyncSession =
 
 
 @router.post("/{notice_id}/archive")
-async def archive_notice(notice_id: int, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin"))):
+async def archive_notice(notice_id: int, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     before = (await session.execute(text("SELECT to_jsonb(notices.*) FROM notices WHERE id = :id"), {"id": notice_id})).scalar_one_or_none()
     await session.execute(

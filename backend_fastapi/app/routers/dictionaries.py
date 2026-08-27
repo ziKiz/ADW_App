@@ -36,7 +36,7 @@ async def work_types(session: AsyncSession = Depends(get_session), user=Depends(
 
 
 @router.post("/{collection}")
-async def create_dictionary(collection: str, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin"))):
+async def create_dictionary(collection: str, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     if collection == "fields":
         result = await session.execute(
@@ -58,7 +58,7 @@ async def create_dictionary(collection: str, payload: dict, request: Request, se
 
 
 @router.put("/{collection}/{item_id}")
-async def update_dictionary(collection: str, item_id: int, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin"))):
+async def update_dictionary(collection: str, item_id: int, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     table = {"fields": "fields", "tractors": "tractors", "work-types": "work_types"}.get(collection, collection)
     if table == "fields":
