@@ -33,3 +33,15 @@ node scripts/check-changelog.mjs
 ```
 
 Pokud skript hlásí chybějící changelog, doplň `CHANGELOG.md`.
+
+## Roští kompatibilita
+
+Před změnou Dockeru, deploye, databáze, runtime verzí, nových služeb nebo produkčních závislostí přečti `docs/ROSTI_COMPATIBILITY.md`.
+
+Před deployem na Roští spusť:
+
+```bash
+node scripts/check-rosti-compat.mjs
+```
+
+Produkční image musí být pinované digestem, `latest` je zakázané mimo lokálně sestavený `localhost/app:latest`. Běžný deploy nesmí mazat `pgsql-data` ani `backups`.

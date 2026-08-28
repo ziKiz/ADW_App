@@ -1,4 +1,4 @@
-FROM node:20-alpine AS frontend-build
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS frontend-build
 
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
@@ -12,7 +12,7 @@ ENV VITE_API_BASE=$VITE_API_BASE
 ENV VITE_BASE_PATH=$VITE_BASE_PATH
 RUN npm run build
 
-FROM python:3.11-slim AS runtime
+FROM python:3.11-slim@sha256:1042b61448fef4ba92d16a8c7eb4996d027568ce64792a7877fd88511e0af7c6 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1

@@ -81,8 +81,16 @@ Stack používá jednu veřejnou službu `app` na portu 80 a interní PostgreSQL
 - `docker/start.sh` spustí Alembic migrace, volitelně demo seed a potom Uvicorn + Nginx.
 - `docker-compose.rosti.yml` definuje `app` a `db` pro Roští Stack.
 - `.env.production.example` ukazuje potřebné produkční proměnné.
+- `docs/ROSTI_COMPATIBILITY.md` popisuje závazná pravidla kompatibility s Roští.
+- `scripts/check-rosti-compat.mjs` hlídá pinované image, port, volume, env proměnné a ochranu citlivých souborů.
 
 Lokální `.env` se necommituje. Pro pilot obsahuje PostgreSQL heslo, JWT secret, CORS origin a `ADW_SEED_DEMO=true`.
+
+Kontrola kompatibility před deployem:
+
+```bash
+node scripts/check-rosti-compat.mjs
+```
 
 Nasazení bez lokálního Dockeru:
 
@@ -99,10 +107,10 @@ COPYFILE_DISABLE=1 tar --no-xattrs \
   --exclude='./.DS_Store' \
   --exclude='./._*' \
   -czf - . | ssh -i "$HOME/Library/Application Support/rosti/ssh/id_ed25519" -p 29762 root@ssh.rosti.cz \
-  "bash -lc 'cd /srv/stack && find . -mindepth 1 -maxdepth 1 ! -name pgsql-data -exec rm -rf {} + && tar -xzf - && find . -name \"._*\" -delete && docker build -t localhost/app:latest . && docker compose -f docker-compose.rosti.yml --env-file .env up -d --remove-orphans'"
+  "bash -lc 'cd /srv/stack && find . -mindepth 1 -maxdepth 1 ! -name pgsql-data ! -name backups -exec rm -rf {} + && tar -xzf - && find . -name \"._*\" -delete && docker build -t localhost/app:latest . && docker compose -f docker-compose.rosti.yml --env-file .env up -d --remove-orphans'"
 ```
 
-Pozor: `rm -rf pgsql-data` používat jen při resetu pilotní databáze. V ostrém provozu by to smazalo data.
+Pozor: `rm -rf pgsql-data` používat jen při plánovaném resetu databáze se zálohou. V ostrém provozu by to smazalo data.
 
 ## GitHub Pages
 

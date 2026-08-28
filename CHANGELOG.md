@@ -14,6 +14,12 @@ Formát:
 
 ## 2026-08-28
 
+### Roští kompatibilita
+- Přidán závazný dokument `docs/ROSTI_COMPATIBILITY.md` s pravidly pro Docker Stack, databázi, zálohy, proměnné prostředí a budoucí změny infrastruktury.
+- Produkční Node, Python a PostgreSQL image jsou pinované digestem, aby se samovolně neměnily při buildu nebo deployi.
+- Přidána kontrola `scripts/check-rosti-compat.mjs`, která před nasazením hlídá kompatibilitu s Roští a ochranu citlivých přihlašovacích souborů.
+- README a pravidla pro další úpravy nově vyžadují kontrolu Roští kompatibility před deployem a chrání `backups` při nahrávání stacku.
+
 ### Ostrý provoz a schvalování
 - Přidán kontrolní účet `tomas.zika` s administrátorským přístupem a možností přepnout se do pracovního profilu.
 - Do speciálních typů výkazů pod `Ostatní` přibylo `Darování krve` jako celodenní absence.
