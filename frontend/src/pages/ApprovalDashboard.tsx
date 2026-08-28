@@ -26,6 +26,7 @@ interface PendingReport {
   fuel_date?: string;
   fuel_note?: string;
   field_entries?: FieldEntrySummary[] | string | null;
+  attachments?: Array<AttachmentSummary | string> | string | null;
   notes?: string;
   status: string;
 }
@@ -45,6 +46,15 @@ interface EditableFieldEntry {
   amount_ha: number;
   processed_percent: number;
   field_search: string;
+}
+
+interface AttachmentSummary {
+  order?: number;
+  attachment_id?: number;
+  attachment_code?: string;
+  name?: string;
+  attachment_name?: string;
+  license_plate?: string;
 }
 
 function calculateHours(timeStart: string, timeEnd: string) {
@@ -149,6 +159,27 @@ function parseFieldEntries(report: PendingReport, fields: FieldRecord[]): Editab
     }];
   }
   return [{ id: Date.now(), field_id: undefined, amount_ha: 0, processed_percent: 100, field_search: '' }];
+}
+
+function parseAttachments(report: PendingReport): Array<AttachmentSummary | string> {
+  if (Array.isArray(report.attachments)) return report.attachments;
+  if (typeof report.attachments === 'string' && report.attachments.trim()) {
+    try {
+      const parsed = JSON.parse(report.attachments) as Array<AttachmentSummary | string>;
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function formatAttachmentForApproval(attachment: AttachmentSummary | string) {
+  if (typeof attachment === 'string') return attachment;
+  const code = String(attachment.attachment_code ?? '').trim();
+  const name = String(attachment.attachment_name ?? attachment.name ?? '').trim();
+  const plate = String(attachment.license_plate ?? '').trim();
+  return [code, name, plate].filter(Boolean).join(' · ');
 }
 
 function getReportCenter(report: Pick<PendingReport, 'service_center' | 'notes'>) {
@@ -460,6 +491,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           liters: Number(selectedReport.fuel_liters ?? 0),
           note: selectedReport.fuel_note ?? ''
         } : undefined,
+        attachments: selectedReport.attachments ?? [],
         notes: selectedReport.notes ?? ''
       });
       setMessage('Výkaz byl uložen.');
@@ -676,6 +708,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className="detail-field detail-grid__wide">
+                  Přípojné zařízení
+                  <textarea
+                    rows={Math.max(2, parseAttachments(selectedReport).length)}
+                    value={parseAttachments(selectedReport).map(formatAttachmentForApproval).join('\n') || 'Bez přípojného zařízení'}
+                    disabled
+                  />
                 </label>
                 <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
                 <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>

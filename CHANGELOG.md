@@ -14,6 +14,13 @@ Formát:
 
 ## 2026-08-28
 
+### Přípojná zařízení a technika
+- Stroje a technika jsou ve výkazu dostupné pro všechna střediska bez filtrování podle zvoleného střediska.
+- Přípojná zařízení mají nový číselník z přiloženého Excelu; starý pevný frontend seznam byl nahrazen 94 položkami.
+- Pracovník při zadávání výkazu vidí u přípojného zařízení jen název a případně SPZ, schvalovatel v detailu vidí i interní označení.
+- Výběr přípojného zařízení ve výkazu má hledání podle názvu, SPZ i interního označení, ale interní označení se pracovníkovi nezobrazuje.
+- Přihlašovací pole je výslovně textové přihlašovací jméno, aby prohlížeč nevyžadoval e-mailový zavináč.
+
 ### Roští kompatibilita
 - Přidán závazný dokument `docs/ROSTI_COMPATIBILITY.md` s pravidly pro Docker Stack, databázi, zálohy, proměnné prostředí a budoucí změny infrastruktury.
 - Produkční Node, Python a PostgreSQL image jsou pinované digestem, aby se samovolně neměnily při buildu nebo deployi.

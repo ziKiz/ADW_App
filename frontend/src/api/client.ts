@@ -106,26 +106,6 @@ function appendDemoAudit(collection: string, recordId: number, action: string, b
   setStoredJson(storedAuditKey, audit);
 }
 
-function normalizeServiceCenter(value?: string) {
-  if (value === 'Bioplynová stanice') return 'BPS';
-  if (value === 'Mini Mlékárna') return 'Mini mlékárna';
-  return String(value ?? '').trim();
-}
-
-function isElevatedRole(role?: string) {
-  return ['admin', 'reditel'].includes(String(role ?? '').toLocaleLowerCase('cs'));
-}
-
-function filterTractorsForServiceCenter(tractors: any[], serviceCenter?: string, role?: string) {
-  const normalizedCenter = normalizeServiceCenter(serviceCenter);
-  if (!normalizedCenter) return tractors;
-  const elevated = isElevatedRole(role);
-  return tractors.filter((tractor) => {
-    const centers = Array.isArray(tractor.service_centers) ? tractor.service_centers : [];
-    return centers.includes(normalizedCenter) || (elevated && centers.length === 0);
-  });
-}
-
 function decorateReports(reports: any[], fields: any[], tractors: any[], workTypes: any[], fuelEntries: any[]) {
   return reports.map((report) => {
     const field = fields.find((item) => Number(item.id) === Number(report.field_id));
@@ -259,10 +239,9 @@ async function getDemoNotices() {
 async function createDemoReport(config: InternalAxiosRequestConfig) {
   const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
   const tractors = await loadDemoJson<any[]>('tractors.json');
-  const allowedTractors = filterTractorsForServiceCenter(tractors, body.service_center, getUser()?.role);
   const allowsNoTractor = !body.tractor_id;
-  if ((!body.report_kind || body.report_kind === 'work') && !allowsNoTractor && !allowedTractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
-    throw new Error('Vybraný stroj nepatří do zvoleného střediska.');
+  if ((!body.report_kind || body.report_kind === 'work') && !allowsNoTractor && !tractors.some((tractor) => Number(tractor.id) === Number(body.tractor_id))) {
+    throw new Error('Vybraný stroj není dostupný.');
   }
   const existingReports = await getDemoReports();
   if (hasDemoTimeOverlap(existingReports, body)) {
@@ -327,12 +306,10 @@ async function getDemoDataForRequest(config: InternalAxiosRequestConfig) {
     return responseFromDemo(config, await loadDemoJson('fields.json'));
   }
   if (endpoint === 'tractors') {
-    const tractors = await loadDemoJson<any[]>('tractors.json');
-    return responseFromDemo(config, filterTractorsForServiceCenter(
-      tractors,
-      (config.params as any)?.service_center,
-      getUser()?.role
-    ));
+    return responseFromDemo(config, await loadDemoJson('tractors.json'));
+  }
+  if (endpoint === 'attachments') {
+    return responseFromDemo(config, await loadDemoJson('attachments.json'));
   }
   if (endpoint === 'users') {
     return responseFromDemo(config, await getDemoUsers());

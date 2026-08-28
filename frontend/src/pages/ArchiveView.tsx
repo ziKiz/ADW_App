@@ -23,6 +23,7 @@ const collectionLabels: Record<string, string> = {
   users: 'Uživatel',
   fields: 'Pozemek',
   tractors: 'Stroj',
+  attachments: 'Přípojné zařízení',
   work_types: 'Typ práce',
   contacts: 'Kontakt'
 };
@@ -62,6 +63,7 @@ function recordTitle(entry: AuditEntry) {
     payload.full_name ??
     payload.field_name ??
     payload.tractor_name ??
+    payload.attachment_name ??
     payload.name ??
     `Záznam ${entry.record_id}`
   );

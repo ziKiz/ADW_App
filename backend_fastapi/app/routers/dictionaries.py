@@ -19,13 +19,13 @@ async def fields(session: AsyncSession = Depends(get_session), user=Depends(get_
 
 @router.get("/tractors")
 async def tractors(service_center: str | None = None, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
-    if service_center:
-        result = await session.execute(
-            text("SELECT id, tractor_code, tractor_name, service_centers, vehicle_type, status, created_at, created_by, updated_at, updated_by, last_change FROM tractors WHERE archived_at IS NULL AND status = 'active' AND (:elevated OR service_centers @> ARRAY[:center]::text[]) ORDER BY tractor_name, tractor_code"),
-            {"center": service_center, "elevated": user["role"] in ["admin", "reditel"]},
-        )
-    else:
-        result = await session.execute(text("SELECT id, tractor_code, tractor_name, service_centers, vehicle_type, status, created_at, created_by, updated_at, updated_by, last_change FROM tractors WHERE archived_at IS NULL AND status = 'active' ORDER BY tractor_name, tractor_code"))
+    result = await session.execute(text("SELECT id, tractor_code, tractor_name, service_centers, vehicle_type, status, created_at, created_by, updated_at, updated_by, last_change FROM tractors WHERE archived_at IS NULL AND status = 'active' ORDER BY tractor_name, tractor_code"))
+    return [dict(row) for row in result.mappings().all()]
+
+
+@router.get("/attachments")
+async def attachments(session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
+    result = await session.execute(text("SELECT id, attachment_code, attachment_name, license_plate, status, created_at, created_by, updated_at, updated_by, last_change FROM attachments WHERE archived_at IS NULL AND status = 'active' ORDER BY attachment_name, attachment_code"))
     return [dict(row) for row in result.mappings().all()]
 
 

@@ -4,7 +4,7 @@ import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { getUserServiceCenter, normalizeServiceCenter, serviceCenters, vacationBalance } from '../utils/employeeContext';
 import { formatCzechDate as formatSharedCzechDate } from '../utils/format';
-import { FieldRecord, Tractor, WorkType } from '../types';
+import { AttachmentDevice, FieldRecord, Tractor, WorkType } from '../types';
 
 function getLocalTodayDate() {
   const today = new Date();
@@ -31,13 +31,15 @@ interface FieldEntry {
 
 interface AttachmentEntry {
   id: number;
-  name: string;
+  attachmentId?: number;
+  attachmentSearch?: string;
 }
 
 interface LastReportPreferences {
   serviceCenter?: string;
   selectedTractor?: number;
   selectedWorkType?: number;
+  attachmentIds?: number[];
   attachmentNames?: string[];
 }
 
@@ -48,7 +50,7 @@ interface LastUsedReport {
   tractor_name?: string;
   work_type_id?: number;
   work_type?: string;
-  attachments?: Array<{ name?: string } | string>;
+  attachments?: Array<{ id?: number; attachment_id?: number; attachment_code?: string; name?: string; attachment_name?: string; license_plate?: string } | string>;
   date?: string;
 }
 
@@ -72,29 +74,7 @@ const defaultStartTime = '07:00';
 const followUpDurationMinutes = 60;
 const lastReportPreferencesKey = 'adw_last_report_preferences';
 const noTractorLabel = 'Bez techniky';
-const attachmentOptions = [
-  'Bez přípojného zařízení',
-  'Podv. Panav Dolly',
-  'Podv. Panav Dolly II.',
-  'METACO',
-  'WIELTON NW 3',
-  'PANAV NS 1 36',
-  'PANAV NS 144H',
-  'PANAV 3',
-  'SCHWARZMULLER',
-  'MV 2-022',
-  'BSS PS2 08.06 Agro',
-  'BSS P 73 SH',
-  'BSS PS2 09.07 Agro',
-  'BSS P93 S',
-  'MV 2-027 (TR 76-30)',
-  'NS 900 H',
-  'MEGA 25 č.1',
-  'MEGA 20 č.2',
-  'MEGA 20 č.3',
-  'ZDT NS 20 č.4',
-  'JOSKIN - přepr. dob.'
-];
+const noAttachmentLabel = 'Bez přípojného zařízení';
 
 function normalizeClockTime(value?: string) {
   return value ? value.slice(0, 5) : '';
@@ -141,19 +121,6 @@ function getLastReportPreferences(): LastReportPreferences {
 
 function saveLastReportPreferences(preferences: LastReportPreferences) {
   localStorage.setItem(lastReportPreferencesKey, JSON.stringify(preferences));
-}
-
-function isElevatedRole(role?: string) {
-  return ['admin', 'reditel'].includes(String(role ?? '').toLocaleLowerCase('cs'));
-}
-
-function filterTractorsForServiceCenter(tractors: Tractor[], serviceCenter: string, role?: string) {
-  const normalizedCenter = normalizeServiceCenter(serviceCenter);
-  const elevated = isElevatedRole(role);
-  return tractors.filter((tractor) => {
-    const centers = Array.isArray(tractor.service_centers) ? tractor.service_centers : [];
-    return centers.includes(normalizedCenter) || (elevated && centers.length === 0);
-  });
 }
 
 function isPersonalVehicle(tractor: Tractor) {
@@ -229,6 +196,15 @@ function tractorSearchText(tractor: Tractor) {
   return normalizeSearch(`${tractor.tractor_name} ${tractor.tractor_code} ${tractor.vehicle_type ?? ''}`);
 }
 
+function attachmentSearchText(attachment: AttachmentDevice) {
+  return normalizeSearch(`${attachment.attachment_name} ${attachment.license_plate ?? ''} ${attachment.attachment_code ?? ''}`);
+}
+
+function formatAttachmentForWorker(attachment?: AttachmentDevice) {
+  if (!attachment) return noAttachmentLabel;
+  return attachment.license_plate ? `${attachment.attachment_name} (${attachment.license_plate})` : attachment.attachment_name;
+}
+
 function workTypeSearchText(workType: WorkType) {
   return normalizeSearch(`${workType.name} ${workType.description ?? ''}`);
 }
@@ -246,17 +222,25 @@ function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
   return workTypes.some((item) => item.id === workTypeId && item.name === 'Ostatní');
 }
 
-function normalizeAttachmentNamesFromReport(attachments?: LastUsedReport['attachments']) {
-  if (!Array.isArray(attachments)) return [attachmentOptions[0]];
-  const names = attachments
-    .map((item) => typeof item === 'string' ? item : item?.name)
-    .filter((name): name is string => Boolean(name && attachmentOptions.includes(name) && name !== attachmentOptions[0]))
+function normalizeAttachmentIdsFromReport(reportAttachments: LastUsedReport['attachments'], attachments: AttachmentDevice[]) {
+  if (!Array.isArray(reportAttachments)) return [];
+  return reportAttachments
+    .map((item) => {
+      if (typeof item === 'string') {
+        return attachments.find((attachment) => formatAttachmentForWorker(attachment) === item || attachment.attachment_name === item)?.id;
+      }
+      const rawId = item?.attachment_id ?? item?.id;
+      if (rawId && attachments.some((attachment) => Number(attachment.id) === Number(rawId))) return Number(rawId);
+      const rawName = item?.attachment_name ?? item?.name;
+      return attachments.find((attachment) => attachment.attachment_name === rawName)?.id;
+    })
+    .filter((id): id is number => Boolean(id))
     .slice(0, 3);
-  return names.length > 0 ? names : [attachmentOptions[0]];
 }
 
-function buildAttachmentEntries(names: string[]) {
-  return names.slice(0, 3).map((name, index) => ({ id: Date.now() + index + 1, name }));
+function buildAttachmentEntries(attachmentIds: number[]) {
+  const entries = attachmentIds.slice(0, 3).map((attachmentId, index) => ({ id: Date.now() + index + 1, attachmentId, attachmentSearch: '' }));
+  return entries.length > 0 ? entries : [{ id: Date.now() + 1, attachmentId: undefined, attachmentSearch: '' }];
 }
 
 function belongsToCurrentUser(report: ReportTimeEntry, user: ReturnType<typeof getUser>) {
@@ -338,6 +322,7 @@ function ReportForm() {
     ? lastPreferences.serviceCenter!
     : getUserServiceCenter(user);
   const [tractors, setTractors] = useState<Tractor[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentDevice[]>([]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [reports, setReports] = useState<ReportTimeEntry[]>([]);
@@ -364,9 +349,7 @@ function ReportForm() {
   const [absenceNote, setAbsenceNote] = useState('');
   const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>(
-    (lastPreferences.attachmentNames?.length ? lastPreferences.attachmentNames : [attachmentOptions[0]])
-      .slice(0, 3)
-      .map((name, index) => ({ id: Date.now() + 1 + index, name }))
+    buildAttachmentEntries(lastPreferences.attachmentIds ?? [])
   );
   const [fuelEnabled, setFuelEnabled] = useState(false);
   const [fuelDate, setFuelDate] = useState(getLocalTodayDate);
@@ -387,8 +370,8 @@ function ReportForm() {
   const isAbsenceOverBalance = reportMode === 'leave' && selectedAbsenceUnits > vacationBalance.daysRemaining;
   const isLongAbsence = selectedModeDays > 20;
   const availableTractors = useMemo(
-    () => sortTractorsForWork(filterTractorsForServiceCenter(tractors, serviceCenter, user?.role)),
-    [serviceCenter, tractors, user?.role]
+    () => sortTractorsForWork(tractors),
+    [tractors]
   );
   const visibleTractors = useMemo(() => {
     const query = normalizeSearch(tractorSearch.trim());
@@ -405,9 +388,9 @@ function ReportForm() {
     return normalWorkTypes.filter((item) => workTypeSearchText(item).includes(query));
   }, [normalWorkTypes, workTypeSearch]);
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
-  const canAddAttachment = attachmentEntries.length < 3 && attachmentEntries[attachmentEntries.length - 1]?.name !== attachmentOptions[0];
-  const lastAttachmentNames = useMemo(() => normalizeAttachmentNamesFromReport(lastUsedReport?.attachments), [lastUsedReport]);
-  const hasLastAttachments = lastAttachmentNames.some((name) => name !== attachmentOptions[0]);
+  const canAddAttachment = attachmentEntries.length < 3 && Boolean(attachmentEntries[attachmentEntries.length - 1]?.attachmentId);
+  const lastAttachmentIds = useMemo(() => normalizeAttachmentIdsFromReport(lastUsedReport?.attachments, attachments), [attachments, lastUsedReport]);
+  const hasLastAttachments = lastAttachmentIds.length > 0;
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
   const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && normalWorkTypes.some((item) => item.id === lastUsedReport.work_type_id));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
@@ -424,21 +407,23 @@ function ReportForm() {
   useEffect(() => {
     const loadMetadata = async () => {
       setMetadataLoading(true);
-      const [tractorResponse, fieldResponse, workTypeResponse, reportResponse, lastUsedResponse] = await Promise.allSettled([
+      const [tractorResponse, fieldResponse, workTypeResponse, attachmentResponse, reportResponse, lastUsedResponse] = await Promise.allSettled([
         client.get('/tractors'),
         client.get('/fields'),
         client.get('/work-types'),
+        client.get('/attachments'),
         client.get('/reports'),
         client.get('/reports/last-used')
       ]);
       const loadedTractors = tractorResponse.status === 'fulfilled' ? tractorResponse.value.data as Tractor[] : [];
       const loadedWorkTypes = workTypeResponse.status === 'fulfilled' ? workTypeResponse.value.data as WorkType[] : [];
+      const loadedAttachments = attachmentResponse.status === 'fulfilled' ? attachmentResponse.value.data as AttachmentDevice[] : [];
       const lastUsed = lastUsedResponse.status === 'fulfilled' ? lastUsedResponse.value.data as LastUsedReport | null : null;
 
       if (tractorResponse.status === 'fulfilled') {
         setTractors(loadedTractors);
         if (loadedTractors.length > 0) {
-          const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
+          const matchingTractors = sortTractorsForWork(loadedTractors);
           const preferredTractorId = matchingTractors.some((tractor) => tractor.id === lastPreferences.selectedTractor)
             ? lastPreferences.selectedTractor
             : matchingTractors[0]?.id;
@@ -473,6 +458,12 @@ function ReportForm() {
         console.error(workTypeResponse.reason);
       }
 
+      if (attachmentResponse.status === 'fulfilled') {
+        setAttachments(loadedAttachments);
+      } else {
+        console.error(attachmentResponse.reason);
+      }
+
       if (reportResponse.status === 'fulfilled') {
         const loadedReports = reportResponse.value.data as ReportTimeEntry[];
         const suggestedTimes = getSuggestedTimesForDate(loadedReports, date, timeEnd, user);
@@ -485,7 +476,7 @@ function ReportForm() {
 
       if (lastUsed) {
         setLastUsedReport(lastUsed);
-        const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
+        const matchingTractors = sortTractorsForWork(loadedTractors);
         const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
         const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name));
         if (lastTractorIsValid) {
@@ -495,7 +486,7 @@ function ReportForm() {
         if (lastWorkTypeIsValid) {
           setSelectedWorkType(lastUsed.work_type_id);
         }
-        setAttachmentEntries(buildAttachmentEntries(normalizeAttachmentNamesFromReport(lastUsed.attachments)));
+        setAttachmentEntries(buildAttachmentEntries(normalizeAttachmentIdsFromReport(lastUsed.attachments, loadedAttachments)));
       } else if (lastUsedResponse.status === 'rejected') {
         console.error(lastUsedResponse.reason);
       }
@@ -503,7 +494,8 @@ function ReportForm() {
       if (
         tractorResponse.status === 'rejected' ||
         fieldResponse.status === 'rejected' ||
-        workTypeResponse.status === 'rejected'
+        workTypeResponse.status === 'rejected' ||
+        attachmentResponse.status === 'rejected'
       ) {
         showFormMessage('Nepodařilo se načíst číselníky. Zkontrolujte prosím, že běží backend.', 'error');
       } else {
@@ -536,7 +528,7 @@ function ReportForm() {
       setOtherUsesTractor(false);
       setOtherUsesAttachments(false);
       setSelectedTractor(undefined);
-      setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
+      setAttachmentEntries(buildAttachmentEntries([]));
       return;
     }
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
@@ -744,13 +736,29 @@ function ReportForm() {
       };
     });
     const attachmentSummary = attachmentEntries
-      .filter((entry) => showAttachmentSelection && entry.name && entry.name !== attachmentOptions[0])
-      .map((entry, index) => ({ order: index + 1, name: entry.name }));
+      .filter((entry) => showAttachmentSelection && entry.attachmentId)
+      .map((entry, index) => {
+        const attachment = attachments.find((item) => item.id === entry.attachmentId);
+        return {
+          order: index + 1,
+          attachment_id: attachment?.id ?? entry.attachmentId,
+          attachment_code: attachment?.attachment_code ?? '',
+          name: attachment?.attachment_name ?? '',
+          attachment_name: attachment?.attachment_name ?? '',
+          license_plate: attachment?.license_plate ?? ''
+        };
+      })
+      .filter((item) => item.name);
     const extendedNotes = [
       `Středisko: ${serviceCenter}`,
       fieldSummary.length ? `Pozemky: ${fieldSummary.map((item) => `${item.field_name} (${item.field_code}) - ${item.amount_ha} ha`).join('; ')}` : 'Pozemky: bez pozemku',
       isOtherWorkType ? `Technika: ${selectedTractor ? (availableTractors.find((tractor) => tractor.id === selectedTractor)?.tractor_name ?? 'zvolená technika') : noTractorLabel}` : '',
-      `Přípojné zařízení: ${attachmentSummary.length ? attachmentSummary.map((item) => item.name).join('; ') : 'bez přípojného zařízení'}`,
+      `Přípojné zařízení: ${attachmentSummary.length ? attachmentSummary.map((item) => formatAttachmentForWorker({
+        id: item.attachment_id ?? 0,
+        attachment_code: item.attachment_code,
+        attachment_name: item.attachment_name,
+        license_plate: item.license_plate
+      })).join('; ') : 'bez přípojného zařízení'}`,
       fuelEnabled && fuelLiters > 0 ? `Tankování PHM: ${fuelLiters} l dne ${fuelDate}` : '',
       isOtherWorkType && otherWorkNote ? `Poznámka k Ostatní práci: ${otherWorkNote}` : '',
       notes ? `Poznámka: ${notes}` : ''
@@ -814,7 +822,7 @@ function ReportForm() {
         serviceCenter,
         selectedTractor: showTractorSelection ? selectedTractor : undefined,
         selectedWorkType,
-        attachmentNames: showAttachmentSelection ? attachmentEntries.map((entry) => entry.name) : [attachmentOptions[0]]
+        attachmentIds: showAttachmentSelection ? attachmentEntries.map((entry) => entry.attachmentId).filter((id): id is number => Boolean(id)) : []
       });
       showFormMessage(`Výkaz byl uložen. Další práce navazuje od ${nextStart}.`, 'success');
       window.alert('Výkaz byl vytvořen.');
@@ -854,7 +862,7 @@ function ReportForm() {
       setOtherUsesAttachments(false);
       setSelectedTractor(undefined);
       setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
-      setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
+      setAttachmentEntries(buildAttachmentEntries([]));
       return;
     }
     setOtherUsesFields(false);
@@ -871,7 +879,7 @@ function ReportForm() {
   };
   const applyLastUsedTractor = () => {
     if (!lastUsedReport?.tractor_id || !canUseLastTractor) {
-      showFormMessage('Techniku z posledního výkazu nelze pro toto středisko převzít.', 'error');
+      showFormMessage('Techniku z posledního výkazu už není v číselníku dostupná.', 'error');
       return;
     }
     setSelectedTractor(lastUsedReport.tractor_id);
@@ -883,7 +891,7 @@ function ReportForm() {
       showFormMessage('Z posledního výkazu není dostupné přípojné zařízení.', 'error');
       return;
     }
-    setAttachmentEntries(buildAttachmentEntries(lastAttachmentNames));
+    setAttachmentEntries(buildAttachmentEntries(lastAttachmentIds));
     showFormMessage('Přípojné zařízení bylo převzato z posledního výkazu.', 'success');
   };
   const updateFieldEntry = (entryId: number, changes: Partial<FieldEntry>) => {
@@ -907,6 +915,24 @@ function ReportForm() {
     }
     return visibleFields;
   };
+  const getAvailableAttachments = (currentEntryId: number) => {
+    const selectedAttachmentIds = attachmentEntries
+      .filter((entry) => entry.id !== currentEntryId && entry.attachmentId !== undefined)
+      .map((entry) => entry.attachmentId);
+    return attachments.filter((attachment) => !selectedAttachmentIds.includes(attachment.id));
+  };
+  const getVisibleAttachments = (entry: AttachmentEntry) => {
+    const availableAttachments = getAvailableAttachments(entry.id);
+    const query = normalizeSearch(entry.attachmentSearch ?? '');
+    const visibleAttachments = query
+      ? availableAttachments.filter((attachment) => attachmentSearchText(attachment).includes(query))
+      : availableAttachments;
+    const selectedAttachment = attachments.find((attachment) => attachment.id === entry.attachmentId);
+    if (selectedAttachment && !visibleAttachments.some((attachment) => attachment.id === selectedAttachment.id)) {
+      return [selectedAttachment, ...visibleAttachments];
+    }
+    return visibleAttachments;
+  };
   const addFieldEntry = () => {
     const availableFields = getAvailableFields(-1);
     const firstFieldId = availableFields[0]?.id;
@@ -918,12 +944,12 @@ function ReportForm() {
     if (!window.confirm('Opravdu chcete odebrat tento pozemek z výkazu?')) return;
     setFieldEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
   };
-  const updateAttachmentEntry = (entryId: number, name: string) => {
-    setAttachmentEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, name } : entry));
+  const updateAttachmentEntry = (entryId: number, changes: Partial<AttachmentEntry>) => {
+    setAttachmentEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, ...changes } : entry));
   };
   const addAttachmentEntry = () => {
     if (!canAddAttachment) return;
-    setAttachmentEntries((entries) => [...entries, { id: Date.now(), name: attachmentOptions[0] }]);
+    setAttachmentEntries((entries) => [...entries, { id: Date.now(), attachmentId: undefined, attachmentSearch: '' }]);
   };
   const enableOtherFields = (enabled: boolean) => {
     setOtherUsesFields(enabled);
@@ -945,7 +971,7 @@ function ReportForm() {
   const enableOtherAttachments = (enabled: boolean) => {
     setOtherUsesAttachments(enabled);
     if (!enabled) {
-      setAttachmentEntries([{ id: Date.now(), name: attachmentOptions[0] }]);
+      setAttachmentEntries(buildAttachmentEntries([]));
     }
   };
   const removeAttachmentEntry = (entryId: number) => {
@@ -1342,7 +1368,7 @@ function ReportForm() {
                   <select id="tractor" value={selectedTractor ?? ''} onChange={handleSelectTractor}>
                     <option value="">{noTractorLabel}</option>
                     {metadataLoading && <option value="">Načítám traktory...</option>}
-                    {!metadataLoading && availableTractors.length === 0 && <option value="">Pro toto středisko není dostupná žádná technika</option>}
+                    {!metadataLoading && availableTractors.length === 0 && <option value="">Není dostupná žádná technika</option>}
                     {visibleTractors.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
@@ -1417,22 +1443,63 @@ function ReportForm() {
             {showAttachmentSelection ? (
               <>
                 <div className="repeat-list">
-                  {attachmentEntries.map((entry, index) => (
-                    <div className="repeat-row repeat-row--attachment" key={entry.id}>
-                      <span className="row-number">{index + 1}</span>
-                      <div className="field-row">
-                        <label htmlFor={`attachment-${entry.id}`}>Zařízení</label>
-                        <select
-                          id={`attachment-${entry.id}`}
-                          value={entry.name}
-                          onChange={(event: ChangeEvent<HTMLSelectElement>) => updateAttachmentEntry(entry.id, event.target.value)}
-                        >
-                          {attachmentOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-                        </select>
+                  {attachmentEntries.map((entry, index) => {
+                    const visibleAttachments = getVisibleAttachments(entry);
+                    return (
+                      <div className="repeat-row repeat-row--attachment" key={entry.id}>
+                        <span className="row-number">{index + 1}</span>
+                        <div className="field-row">
+                          <label htmlFor={`attachment-search-${entry.id}`}>Hledat zařízení</label>
+                          <input
+                            id={`attachment-search-${entry.id}`}
+                            type="search"
+                            placeholder="Název nebo SPZ"
+                            value={entry.attachmentSearch ?? ''}
+                            onChange={(event: ChangeEvent<HTMLInputElement>) => updateAttachmentEntry(entry.id, { attachmentSearch: event.target.value })}
+                          />
+                          {entry.attachmentSearch ? (
+                            <div className="field-search-results">
+                              <button
+                                type="button"
+                                className={entry.attachmentId === undefined ? 'active' : ''}
+                                onClick={() => updateAttachmentEntry(entry.id, { attachmentId: undefined, attachmentSearch: '' })}
+                              >
+                                <span>{noAttachmentLabel}</span>
+                                <small>bez zařízení</small>
+                              </button>
+                              {visibleAttachments.slice(0, 8).map((item) => (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  className={entry.attachmentId === item.id ? 'active' : ''}
+                                  onClick={() => updateAttachmentEntry(entry.id, { attachmentId: item.id, attachmentSearch: '' })}
+                                >
+                                  <span>{item.attachment_name}</span>
+                                  <small>{item.license_plate || 'bez SPZ'}</small>
+                                </button>
+                              ))}
+                              {visibleAttachments.length === 0 ? <p>Žádné zařízení neodpovídá hledání.</p> : null}
+                            </div>
+                          ) : null}
+                          <label className="sr-only" htmlFor={`attachment-${entry.id}`}>Zařízení</label>
+                          <select
+                            id={`attachment-${entry.id}`}
+                            value={entry.attachmentId ?? ''}
+                            onChange={(event: ChangeEvent<HTMLSelectElement>) => updateAttachmentEntry(entry.id, {
+                              attachmentId: event.target.value ? Number(event.target.value) : undefined,
+                              attachmentSearch: ''
+                            })}
+                          >
+                            <option value="">{noAttachmentLabel}</option>
+                            {visibleAttachments.map((item) => (
+                              <option key={item.id} value={item.id}>{formatAttachmentForWorker(item)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button type="button" className="danger repeat-remove" onClick={() => removeAttachmentEntry(entry.id)} disabled={attachmentEntries.length === 1}>Odebrat</button>
                       </div>
-                      <button type="button" className="danger repeat-remove" onClick={() => removeAttachmentEntry(entry.id)} disabled={attachmentEntries.length === 1}>Odebrat</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {attachmentEntries.length < 3 ? (
                   <button type="button" className="secondary add-row-button" onClick={addAttachmentEntry} disabled={!canAddAttachment}>

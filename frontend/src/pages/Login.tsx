@@ -66,7 +66,7 @@ function Login() {
           <form onSubmit={handleSubmit} className="login-form">
             <div className="field-row">
               <label htmlFor="loginName">Přihlašovací jméno</label>
-              <input id="loginName" type="text" autoComplete="username" placeholder="jmeno.prijmeni" value={loginName} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginName(event.target.value)} required />
+              <input id="loginName" name="login" type="text" inputMode="text" autoCapitalize="none" autoComplete="username" placeholder="jmeno.prijmeni" value={loginName} onChange={(event: ChangeEvent<HTMLInputElement>) => setLoginName(event.target.value)} required />
             </div>
             <div className="field-row">
               <label htmlFor="password">Heslo</label>

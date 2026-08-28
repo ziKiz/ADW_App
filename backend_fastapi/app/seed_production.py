@@ -13,6 +13,7 @@ from sqlalchemy import text
 from app.db import SessionLocal
 from app.security import hash_password
 from app.seed import load_json, parse_date, seed_contacts
+from app.seed_reference import sync_attachments_for_session
 
 
 CENTER_NAMES = {
@@ -144,6 +145,7 @@ async def reset_database(session) -> None:
               work_types,
               fields,
               tractors,
+              attachments,
               contacts,
               service_schedule
             RESTART IDENTITY CASCADE
@@ -344,6 +346,7 @@ async def seed_production(login_xlsx: Path, reset: bool) -> None:
         await seed_work_types(session)
         await seed_fields(session)
         await seed_tractors(session)
+        await sync_attachments_for_session(session)
         await seed_contacts(session)
         await seed_service_schedule(session)
         await session.commit()

@@ -38,6 +38,7 @@ async def seed() -> None:
     users = load_json("users.json", [])
     fields = load_json("fields.json", [])
     tractors = load_json("tractors.json", [])
+    attachments = load_json("attachments.json", [])
     work_types = load_json("work-types.json", [])
     reports = load_json("reports.json", [])
     fuel_entries = load_json("fuel-entries.json", [])
@@ -160,6 +161,33 @@ async def seed() -> None:
                 ),
                 {"id": work_type.get("id"), "name": work_type.get("name"), "description": work_type.get("description")},
             )
+
+        for attachment in attachments:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO attachments(id, attachment_code, attachment_name, license_plate, status, created_by, updated_by, last_change)
+                    VALUES (:id, :attachment_code, :attachment_name, :license_plate, :status, 'Seed demo dat', 'Seed demo dat', 'Import přípojného zařízení')
+                    ON CONFLICT (id) DO UPDATE SET
+                      attachment_code = EXCLUDED.attachment_code,
+                      attachment_name = EXCLUDED.attachment_name,
+                      license_plate = EXCLUDED.license_plate,
+                      status = EXCLUDED.status,
+                      archived_at = NULL,
+                      archived_by = NULL,
+                      updated_by = 'Seed demo dat',
+                      last_change = 'Aktualizace přípojného zařízení'
+                    """
+                ),
+                {
+                    "id": attachment.get("id"),
+                    "attachment_code": attachment.get("attachment_code") or None,
+                    "attachment_name": attachment.get("attachment_name"),
+                    "license_plate": attachment.get("license_plate") or None,
+                    "status": attachment.get("status") or "active",
+                },
+            )
+        await session.execute(text("SELECT setval('attachments_id_seq', COALESCE((SELECT MAX(id) FROM attachments), 1), true)"))
 
         for report in reports:
             await session.execute(

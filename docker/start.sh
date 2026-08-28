@@ -4,6 +4,7 @@ set -eu
 cd /app/backend_fastapi
 
 alembic upgrade head
+python -m app.seed_reference
 
 if [ "${ADW_SEED_DEMO:-false}" = "true" ]; then
   python -m app.seed
