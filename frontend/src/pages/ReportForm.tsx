@@ -574,6 +574,15 @@ function ReportForm() {
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
   };
 
+  const handleSpecialOptionsToggle = (enabled: boolean) => {
+    setSpecialOptionsOpen(enabled);
+    if (!enabled && reportMode !== 'work') {
+      setReportMode('work');
+      const workTypeId = findDefaultWorkTypeId(workTypes);
+      if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
+    }
+  };
+
   const handleAbsenceStartChange = (value: string) => {
     setAbsenceStart(value);
     if (reportMode === 'doctor' || reportMode === 'blood') {
@@ -1006,6 +1015,7 @@ function ReportForm() {
           <section className="report-section report-section--compact">
             <h2>Typ práce</h2>
             <div className="report-mode-row">
+              {(!specialOptionsOpen && reportMode === 'work') ? (
               <div className="field-row">
                 <label htmlFor="work-type-search">Hledat typ práce</label>
                 <input
@@ -1039,7 +1049,7 @@ function ReportForm() {
                 <label className="sr-only" htmlFor="workType">Typ práce</label>
                 <select
                   id="workType"
-                  value={reportMode === 'work' ? selectedWorkType ?? '' : ''}
+                  value={selectedWorkType ?? ''}
                   onChange={(event) => {
                     setReportMode('work');
                     setSpecialOptionsOpen(false);
@@ -1053,8 +1063,9 @@ function ReportForm() {
                   ))}
                 </select>
               </div>
+              ) : null}
               <label className="toggle-row special-type-toggle">
-                <input type="checkbox" checked={specialOptionsOpen || reportMode !== 'work'} onChange={(event) => setSpecialOptionsOpen(event.target.checked)} />
+                <input type="checkbox" checked={specialOptionsOpen || reportMode !== 'work'} onChange={(event) => handleSpecialOptionsToggle(event.target.checked)} />
                 Ostatní
               </label>
             </div>
@@ -1172,9 +1183,7 @@ function ReportForm() {
             <div className="section-line">
               <h2>Pozemky</h2>
             </div>
-            {!serviceCenterUsesFields ? (
-              <p className="field-hint">Pozemky se vybírají pouze pro středisko RV.</p>
-            ) : isOtherWorkType ? (
+            {serviceCenterUsesFields && isOtherWorkType ? (
               <label className="toggle-row">
                 <input type="checkbox" checked={otherUsesFields} onChange={(event) => enableOtherFields(event.target.checked)} />
                 Práce probíhala na pozemku

@@ -108,13 +108,15 @@ function isOverdue(report: ReportSummary) {
 }
 
 function getPreviousWeekdays(count: number) {
+  const productionStart = '2026-08-28';
   const dates: string[] = [];
   const current = new Date();
   current.setHours(12, 0, 0, 0);
-  current.setDate(current.getDate() - 1);
   while (dates.length < count) {
+    const isoDate = toIsoDate(current);
+    if (isoDate < productionStart) break;
     const day = current.getDay();
-    if (day !== 0 && day !== 6) dates.push(toIsoDate(current));
+    if (day !== 0 && day !== 6) dates.push(isoDate);
     current.setDate(current.getDate() - 1);
   }
   return dates;
