@@ -3,7 +3,7 @@
 from alembic import op
 
 revision = "0007_attachment_devices"
-down_revision = "0006_support_user_and_blood_donation"
+down_revision = "0006_support_blood"
 branch_labels = None
 depends_on = None
 

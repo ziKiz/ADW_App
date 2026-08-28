@@ -20,6 +20,7 @@ Formát:
 - Pracovník při zadávání výkazu vidí u přípojného zařízení jen název a případně SPZ, schvalovatel v detailu vidí i interní označení.
 - Výběr přípojného zařízení ve výkazu má hledání podle názvu, SPZ i interního označení, ale interní označení se pracovníkovi nezobrazuje.
 - Přihlašovací pole je výslovně textové přihlašovací jméno, aby prohlížeč nevyžadoval e-mailový zavináč.
+- Opravena návaznost databázové migrace přípojných zařízení na skutečné Alembic revision id.
 
 ### Roští kompatibilita
 - Přidán závazný dokument `docs/ROSTI_COMPATIBILITY.md` s pravidly pro Docker Stack, databázi, zálohy, proměnné prostředí a budoucí změny infrastruktury.
