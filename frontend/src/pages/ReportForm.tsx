@@ -64,7 +64,7 @@ interface ReportTimeEntry {
   created_at?: string;
 }
 
-type ReportMode = 'work' | 'leave' | 'training' | 'doctor';
+type ReportMode = 'work' | 'leave' | 'training' | 'doctor' | 'blood';
 type MessageTone = 'info' | 'success' | 'error';
 
 const processedPercentOptions = [25, 50, 75, 100];
@@ -210,6 +210,7 @@ function modeWorkTypeName(mode: ReportMode) {
   if (mode === 'leave') return 'Dovolená';
   if (mode === 'training') return 'Školení';
   if (mode === 'doctor') return 'Doktor';
+  if (mode === 'blood') return 'Darování krve';
   return '';
 }
 
@@ -238,7 +239,7 @@ function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
 }
 
 function findDefaultWorkTypeId(workTypes: WorkType[]) {
-  return workTypes.find((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name))?.id;
+  return workTypes.find((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name))?.id;
 }
 
 function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
@@ -282,7 +283,7 @@ function getSuggestedTimesForDate(reports: ReportTimeEntry[], targetDate: string
 }
 
 function isWorkReportEntry(report: ReportTimeEntry) {
-  return !['Dovolená', 'Školení', 'Doktor'].includes(String(report.work_type ?? ''));
+  return !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(String(report.work_type ?? ''));
 }
 
 function reportTimeRange(report: ReportTimeEntry) {
@@ -290,7 +291,7 @@ function reportTimeRange(report: ReportTimeEntry) {
   const end = normalizeClockTime(report.time_end);
   if (start && end) return { start, end };
   const type = String(report.work_type ?? '');
-  if (['Dovolená', 'Školení', 'Doktor'].includes(type)) return { start: '07:00', end: '15:00' };
+  if (['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(type)) return { start: '07:00', end: '15:00' };
   return null;
 }
 
@@ -378,6 +379,7 @@ function ReportForm() {
   const [otherUsesTractor, setOtherUsesTractor] = useState(false);
   const [otherUsesAttachments, setOtherUsesAttachments] = useState(false);
   const isOtherWorkType = workTypes.some((item) => item.id === selectedWorkType && item.name === 'Ostatní');
+  const serviceCenterUsesFields = normalizeServiceCenter(serviceCenter) === 'Rostlinná výroba';
   const selectedModeDays = countWeekdaysInclusive(absenceStart, absenceEnd);
   const selectedAbsenceUnits = halfDayLeave && reportMode === 'leave' ? 0.5 : selectedModeDays;
   const doctorEnd = doctorHours === 8 ? '15:00' : addMinutesToTime(doctorStart, 4 * 60);
@@ -394,7 +396,7 @@ function ReportForm() {
     return availableTractors.filter((tractor) => tractorSearchText(tractor).includes(query));
   }, [availableTractors, tractorSearch]);
   const normalWorkTypes = useMemo(
-    () => workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name)),
+    () => workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name)),
     [workTypes]
   );
   const visibleWorkTypes = useMemo(() => {
@@ -409,8 +411,8 @@ function ReportForm() {
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
   const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && normalWorkTypes.some((item) => item.id === lastUsedReport.work_type_id));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
-  const fieldsRequired = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
-  const showFieldSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesFields);
+  const fieldsRequired = reportMode === 'work' && serviceCenterUsesFields && (!isOtherWorkType || otherUsesFields);
+  const showFieldSelection = reportMode === 'work' && serviceCenterUsesFields && (!isOtherWorkType || otherUsesFields);
   const showTractorSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesTractor);
   const showAttachmentSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesAttachments);
 
@@ -461,7 +463,7 @@ function ReportForm() {
       if (workTypeResponse.status === 'fulfilled') {
         setWorkTypes(loadedWorkTypes);
         if (loadedWorkTypes.length > 0) {
-          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor'].includes(item.name));
+          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name));
           const preferredWorkTypeId = normalWorkTypes.some((item) => item.id === lastPreferences.selectedWorkType)
             ? lastPreferences.selectedWorkType
             : normalWorkTypes[0]?.id ?? loadedWorkTypes[0].id;
@@ -485,7 +487,7 @@ function ReportForm() {
         setLastUsedReport(lastUsed);
         const matchingTractors = sortTractorsForWork(filterTractorsForServiceCenter(loadedTractors, initialServiceCenter, user?.role));
         const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
-        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor'].includes(item.name));
+        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name));
         if (lastTractorIsValid) {
           setSelectedTractor(lastUsed.tractor_id);
           setFuelTractorId(lastUsed.tractor_id);
@@ -527,12 +529,13 @@ function ReportForm() {
 
   useEffect(() => {
     if (metadataLoading || fields.length === 0) return;
-    if (isOtherWorkType) {
+    if (isOtherWorkType || !serviceCenterUsesFields) {
       setOtherUsesFields(false);
+      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
+      if (!serviceCenterUsesFields) return;
       setOtherUsesTractor(false);
       setOtherUsesAttachments(false);
       setSelectedTractor(undefined);
-      setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
       setAttachmentEntries([{ id: Date.now() + 1, name: attachmentOptions[0] }]);
       return;
     }
@@ -541,7 +544,7 @@ function ReportForm() {
       const firstFieldId = fields[0].id;
       setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
-  }, [fields, isOtherWorkType, metadataLoading]);
+  }, [fields, isOtherWorkType, metadataLoading, serviceCenterUsesFields]);
 
   const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextDate = event.target.value;
@@ -566,14 +569,14 @@ function ReportForm() {
     setReportMode(mode);
     setSpecialOptionsOpen(false);
     if (mode !== 'leave') setHalfDayLeave(false);
-    if (mode === 'doctor') setAbsenceEnd(absenceStart);
+    if (mode === 'doctor' || mode === 'blood') setAbsenceEnd(absenceStart);
     const workTypeId = findWorkTypeId(workTypes, mode);
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
   };
 
   const handleAbsenceStartChange = (value: string) => {
     setAbsenceStart(value);
-    if (reportMode === 'doctor') {
+    if (reportMode === 'doctor' || reportMode === 'blood') {
       setAbsenceEnd(value);
       return;
     }
@@ -699,7 +702,7 @@ function ReportForm() {
       return;
     }
 
-    const selectedFields = fieldEntries.filter((entry) => entry.fieldId);
+    const selectedFields = showFieldSelection ? fieldEntries.filter((entry) => entry.fieldId) : [];
     if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
@@ -1060,7 +1063,8 @@ function ReportForm() {
                 {[
                   ['leave', 'Dovolená'],
                   ['training', 'Školení'],
-                  ['doctor', 'Doktor']
+                  ['doctor', 'Doktor'],
+                  ['blood', 'Darování krve']
                 ].map(([mode, label]) => (
                   <button
                     key={mode}
@@ -1094,7 +1098,7 @@ function ReportForm() {
                   <label htmlFor="absenceStart">Od dne</label>
                   <input id="absenceStart" type="date" value={absenceStart} onChange={(event) => handleAbsenceStartChange(event.target.value)} />
                 </div>
-                {reportMode !== 'doctor' ? (
+                {!['doctor', 'blood'].includes(reportMode) ? (
                   <div className="field-row">
                     <label htmlFor="absenceEnd">Do dne</label>
                     <input id="absenceEnd" type="date" min={absenceStart} value={absenceEnd} onChange={(event) => setAbsenceEnd(event.target.value)} />
@@ -1168,7 +1172,9 @@ function ReportForm() {
             <div className="section-line">
               <h2>Pozemky</h2>
             </div>
-            {isOtherWorkType ? (
+            {!serviceCenterUsesFields ? (
+              <p className="field-hint">Pozemky se vybírají pouze pro středisko RV.</p>
+            ) : isOtherWorkType ? (
               <label className="toggle-row">
                 <input type="checkbox" checked={otherUsesFields} onChange={(event) => enableOtherFields(event.target.checked)} />
                 Práce probíhala na pozemku
@@ -1261,7 +1267,7 @@ function ReportForm() {
                 <button type="button" className="secondary add-row-button" onClick={addFieldEntry}>Přidat pole</button>
               </>
             ) : (
-              <p className="field-hint">U typu práce Ostatní není pozemek povinný.</p>
+              <p className="field-hint">{serviceCenterUsesFields ? 'U typu práce Ostatní není pozemek povinný.' : 'Pozemky se vybírají pouze pro středisko RV.'}</p>
             )}
           </section>
 

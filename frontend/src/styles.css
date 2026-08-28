@@ -1283,6 +1283,90 @@ label,
   z-index: 1;
 }
 
+.approval-day-list {
+  display: grid;
+  gap: 12px;
+}
+
+.approval-day-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(17, 24, 21, 0.06);
+  overflow: hidden;
+}
+
+.approval-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  background: #fbfcfb;
+  padding: 12px 14px;
+}
+
+.approval-day-head strong,
+.approval-day-item strong {
+  display: block;
+  color: var(--ink);
+}
+
+.approval-day-head span,
+.approval-day-item small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.approval-day-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.approval-day-totals span {
+  border: 1px solid #d7e5dc;
+  border-radius: 999px;
+  background: #f6faf7;
+  color: var(--adw-green-dark);
+  padding: 5px 9px;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.approval-day-timeline {
+  display: grid;
+}
+
+.approval-day-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid #edf1ee;
+  padding: 11px 14px;
+}
+
+.approval-day-item:last-child {
+  border-bottom: 0;
+}
+
+.approval-day-time {
+  display: inline-flex;
+  margin-bottom: 3px;
+  color: var(--adw-green-dark);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.approval-day-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .approval-table-panel .approval-table th,
 .approval-table-panel .approval-table td {
   padding: 6px 8px;
@@ -2896,6 +2980,35 @@ label,
   .approval-table--approval-summary td[data-label="Datum"],
   .approval-table--approval-summary td[data-label="Činnost"] {
     display: flex;
+  }
+
+  .approval-day-head,
+  .approval-day-item,
+  .approval-day-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .approval-day-head {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .approval-day-totals {
+    justify-content: flex-start;
+  }
+
+  .approval-day-item {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .approval-day-actions {
+    gap: 8px;
+  }
+
+  .approval-day-actions .edit-action {
+    min-height: 38px;
   }
 
   .modal-backdrop {

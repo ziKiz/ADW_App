@@ -61,9 +61,11 @@ SPECIAL_WORK_TYPES = [
     ("Dovolená", "Celodenní nebo půldenní absence z důvodu dovolené"),
     ("Školení", "Účast na školení nebo interní vzdělávání"),
     ("Doktor", "Návštěva lékaře nebo zdravotní volno"),
+    ("Darování krve", "Celodenní absence z důvodu darování krve"),
 ]
 
 LEADER_LEVELS = {"Hlavní vedoucí", "Agronom", "Zootechnička", "Vedoucí střediska", "Vedoucí dílen"}
+APPROVED_VIEWER_NAMES = {"Jana Bulíčková", "Jana Bobulová"}
 
 
 def normalize_center(value: Any) -> str:
@@ -72,6 +74,8 @@ def normalize_center(value: Any) -> str:
 
 
 def role_for_level(level: str) -> str:
+    if level == "Schválené výkazy":
+        return "approved_viewer"
     if level == "Ředitel":
         return "reditel"
     if level in LEADER_LEVELS:
@@ -97,7 +101,7 @@ def read_users(path: Path) -> list[dict[str, Any]]:
         if not full_name or not username or not password:
             continue
 
-        role = role_for_level(level)
+        role = "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(level)
         manager_username = None
         manager_name = None
         if level == "Podřízený" and current_center in primary_lead_by_center:

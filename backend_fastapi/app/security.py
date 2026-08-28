@@ -20,6 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=Fals
 ALGORITHM = "HS256"
 ELEVATED_ROLES = {"admin", "reditel"}
 SCOPED_REVIEW_ROLES = {"schvalovatel", "specialista"}
+APPROVED_VIEWER_ROLES = {"approved_viewer"}
 
 
 def hash_password(password: str) -> str:
@@ -46,6 +47,8 @@ def user_scope_center(user: Mapping[str, Any]) -> str | None:
 def can_access_report(report: Mapping[str, Any], user: Mapping[str, Any], *, allow_scoped_review: bool = False) -> bool:
     if is_elevated_user(user):
         return True
+    if normalize_role(user.get("role")) in APPROVED_VIEWER_ROLES:
+        return report.get("status") == "approved"
     if report.get("user_id") == user.get("id"):
         return True
     if allow_scoped_review and normalize_role(user.get("role")) in SCOPED_REVIEW_ROLES:

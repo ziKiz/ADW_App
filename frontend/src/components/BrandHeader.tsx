@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import client from '../api/client';
-import { clearUser, getMartinaProfileMode, getOrCreateDemoUser, isMartinaUser, setMartinaProfileMode } from '../utils/auth';
+import { canSwitchProfile, clearUser, getOrCreateDemoUser, getProfileMode, setProfileMode } from '../utils/auth';
 import { appDataValidity } from '../utils/employeeContext';
 import packageJson from '../../package.json';
 
@@ -9,7 +9,7 @@ function BrandHeader() {
   const navigate = useNavigate();
   const user = getOrCreateDemoUser();
   const [pendingCount, setPendingCount] = useState(0);
-  const [profileMode, setProfileMode] = useState(getMartinaProfileMode);
+  const [profileModeState, setProfileModeState] = useState(getProfileMode);
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const versionLabel = packageJson.version;
   const validTo = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(`${appDataValidity}T12:00:00`));
@@ -20,18 +20,19 @@ function BrandHeader() {
   };
 
   const handleProfileToggle = () => {
-    const nextMode = profileMode === 'admin' ? 'work' : 'admin';
-    setMartinaProfileMode(nextMode);
+    const nextMode = profileModeState === 'admin' ? 'work' : 'admin';
     setProfileMode(nextMode);
+    setProfileModeState(nextMode);
     setMobileAccountOpen(false);
     navigate('/dashboard', { replace: true });
   };
 
-  const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
+  const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista', 'approved_viewer'].includes(user?.role ?? '');
+  const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
   const canCreateReport = !canSeeApprovals;
-  const canUseMartinaSwitch = import.meta.env.VITE_APP_MODE !== 'live' && isMartinaUser(user);
+  const canUseProfileSwitch = canSwitchProfile(user);
   const mobileUserName = (() => {
     const fullName = user?.full_name ?? 'Nepřihlášený';
     const nameWithoutTitle = fullName.replace(/^(Ing\.|Bc\.|Mgr\.|MUDr\.)\s+/i, '').trim();
@@ -68,7 +69,7 @@ function BrandHeader() {
         {canCreateReport ? <NavLink to="/report" end>Výkaz</NavLink> : null}
         {canSeeApprovals ? (
           <div className="nav-group">
-            <NavLink to="/approvals" end className="nav-group__parent">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
+            {canApproveReports ? <NavLink to="/approvals" end className="nav-group__parent">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink> : null}
             <div className="nav-children">
               <NavLink to="/approvals/approved" end>Schválené</NavLink>
             </div>
@@ -91,7 +92,8 @@ function BrandHeader() {
         {canCreateReport ? <NavLink to="/report" end>Výkaz</NavLink> : null}
         {canSeeApprovals && (
           <>
-            <NavLink to="/approvals">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink>
+            {canApproveReports ? <NavLink to="/approvals">Ke schválení <b className="badge-warning">{pendingCount}</b></NavLink> : null}
+            {!canApproveReports ? <NavLink to="/approvals/approved">Schválené</NavLink> : null}
             {canSeeDirectorOverview ? <NavLink to="/director" end>Ředitelství</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/dictionaries" end>Číselníky</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/export" end>Exporty</NavLink> : null}
@@ -114,17 +116,17 @@ function BrandHeader() {
           {mobileUserName}
         </button>
         <span>{user?.full_name ?? 'Nepřihlášený uživatel'}</span>
-        {canUseMartinaSwitch ? (
+        {canUseProfileSwitch ? (
           <button className="profile-switch-button" type="button" onClick={handleProfileToggle}>
-            {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
+            {profileModeState === 'admin' ? 'Pracovní profil' : 'Admin profil'}
           </button>
         ) : null}
         <button className="logout-button" type="button" onClick={handleLogout}>Odhlásit se</button>
         {mobileAccountOpen ? (
           <div className="mobile-account-menu" role="menu">
-            {canUseMartinaSwitch ? (
+            {canUseProfileSwitch ? (
               <button type="button" role="menuitem" onClick={handleProfileToggle}>
-                {profileMode === 'admin' ? 'Pracovní profil' : 'Admin profil'}
+                {profileModeState === 'admin' ? 'Pracovní profil' : 'Admin profil'}
               </button>
             ) : null}
             <button type="button" role="menuitem" onClick={handleLogout}>Odhlásit se</button>

@@ -16,7 +16,8 @@ import { getOrCreateDemoUser } from './utils/auth';
 function App() {
   const location = useLocation();
   const user = getOrCreateDemoUser();
-  const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
+  const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista', 'approved_viewer'].includes(user?.role ?? '');
+  const canApprove = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
   const canCreateReport = !canSeeApprovals;
@@ -39,7 +40,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/report" element={canCreateReport ? <ReportForm /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/approvals" element={canSeeApprovals ? <ApprovalDashboard /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/approvals" element={canApprove ? <ApprovalDashboard /> : canSeeApprovals ? <Navigate to="/approvals/approved" replace /> : <Navigate to="/dashboard" replace />} />
           <Route path="/approvals/approved" element={canSeeApprovals ? <ApprovalDashboard status="approved" /> : <Navigate to="/dashboard" replace />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/services" element={<ServiceSchedule />} />

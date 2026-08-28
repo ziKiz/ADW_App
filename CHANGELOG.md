@@ -12,6 +12,15 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-08-28
+
+### Ostrý provoz a schvalování
+- Přidán kontrolní účet `tomas.zika` s administrátorským přístupem a možností přepnout se do pracovního profilu.
+- Do speciálních typů výkazů pod `Ostatní` přibylo `Darování krve` jako celodenní absence.
+- Jana Bulíčková / Jana Bobulová má omezený režim pouze pro čtení schválených výkazů napříč všemi středisky.
+- Výběr pozemků při vytváření výkazu se zobrazuje jen pro středisko `Rostlinná výroba`.
+- Schvalování zobrazuje výkazy seskupené podle zaměstnance a pracovního dne, aby šel celý den zkontrolovat v jednom přehledu.
+
 ## 2026-08-26
 
 ### Ostré přihlášení a nový číselník prací

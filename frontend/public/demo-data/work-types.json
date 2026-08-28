@@ -27,5 +27,6 @@
   { "id": 26, "name": "Čištění stroje", "description": "Čištění stroje", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" },
   { "id": 101, "name": "Dovolená", "description": "Celodenní nebo půldenní absence z důvodu dovolené", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" },
   { "id": 102, "name": "Školení", "description": "Účast na školení nebo interní vzdělávání", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" },
-  { "id": 103, "name": "Doktor", "description": "Návštěva lékaře nebo zdravotní volno", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" }
+  { "id": 103, "name": "Doktor", "description": "Návštěva lékaře nebo zdravotní volno", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" },
+  { "id": 104, "name": "Darování krve", "description": "Celodenní absence z důvodu darování krve", "created_by": "Systém", "updated_by": "Systém", "last_change": "Vytvoření záznamu" }
 ]

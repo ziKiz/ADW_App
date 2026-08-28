@@ -14,9 +14,9 @@ export interface AppUser {
 
 const USER_STORAGE_KEY = 'adw_user';
 const LOGGED_OUT_STORAGE_KEY = 'adw_logged_out';
-const MARTINA_PROFILE_STORAGE_KEY = 'adw_martina_profile';
+const PROFILE_MODE_STORAGE_KEY = 'adw_profile_mode';
 const IS_LIVE_MODE = import.meta.env.VITE_APP_MODE === 'live';
-export type MartinaProfileMode = 'admin' | 'work';
+export type ProfileMode = 'admin' | 'work';
 
 export const DEMO_ADMIN_USER: AppUser = {
   id: 21,
@@ -64,17 +64,29 @@ export function isMartinaUser(user: AppUser | null | undefined) {
   return user?.username === 'martina.novotna' || user?.full_name === 'Ing. Martina Novotná';
 }
 
-export function getMartinaProfileMode(): MartinaProfileMode {
-  const saved = localStorage.getItem(MARTINA_PROFILE_STORAGE_KEY);
+export function canSwitchProfile(user: AppUser | null | undefined) {
+  return user?.username === 'martina.novotna' || user?.username === 'tomas.zika';
+}
+
+export function getProfileMode(): ProfileMode {
+  const saved = localStorage.getItem(PROFILE_MODE_STORAGE_KEY);
   return saved === 'work' ? 'work' : 'admin';
 }
 
-export function setMartinaProfileMode(mode: MartinaProfileMode) {
-  localStorage.setItem(MARTINA_PROFILE_STORAGE_KEY, mode);
+export function setProfileMode(mode: ProfileMode) {
+  localStorage.setItem(PROFILE_MODE_STORAGE_KEY, mode);
 }
 
-function applyMartinaProfile(user: AppUser) {
-  if (!isMartinaUser(user) || getMartinaProfileMode() !== 'work') return user;
+function applyProfileMode(user: AppUser) {
+  if (!canSwitchProfile(user) || getProfileMode() !== 'work') return user;
+  if (user.username === 'tomas.zika') {
+    return {
+      ...user,
+      role: 'traktorista',
+      department_name: user.department_name || 'Kontrola',
+      scope_department: user.scope_department || user.department_name || 'Kontrola'
+    };
+  }
   return {
     ...user,
     role: 'schvalovatel',
@@ -92,7 +104,7 @@ export function getUser(): AppUser | null {
   const saved = localStorage.getItem(USER_STORAGE_KEY);
   if (!saved) return null;
   try {
-    return applyMartinaProfile(JSON.parse(saved) as AppUser);
+    return applyProfileMode(JSON.parse(saved) as AppUser);
   } catch {
     return null;
   }

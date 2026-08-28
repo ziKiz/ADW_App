@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import can_access_report, get_current_user, is_elevated_user, normalize_role
+from app.security import APPROVED_VIEWER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role
 
 router = APIRouter()
 
@@ -108,6 +108,9 @@ def report_select(where: str = "") -> str:
 def reports_scope_clause(user: dict[str, Any], params: dict[str, Any], *, allow_scoped_review: bool = True) -> str:
     if is_elevated_user(user):
         return ""
+    if normalize_role(user.get("role")) in APPROVED_VIEWER_ROLES:
+        params["approved_status"] = "approved"
+        return " AND r.status = :approved_status"
     if allow_scoped_review and normalize_role(user.get("role")) in {"schvalovatel", "specialista"}:
         scope = user.get("scope_department") or user.get("department_name")
         if scope:
@@ -135,6 +138,8 @@ def report_identity_for_update(payload: dict[str, Any], user: dict[str, Any], cu
 async def list_reports(status: str | None = None, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
     params: dict[str, Any] = {}
     where = ""
+    if normalize_role(user.get("role")) in APPROVED_VIEWER_ROLES:
+        status = "approved"
     if status:
         where += " AND r.status = :status"
         params["status"] = status
@@ -164,7 +169,7 @@ async def get_last_used_report(session: AsyncSession = Depends(get_session), use
               AND r.report_kind = 'work'
               AND r.user_id = :user_id
               AND r.work_type_id IS NOT NULL
-              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení', 'Doktor')
+              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení', 'Doktor', 'Darování krve')
             ORDER BY r.date DESC, r.created_at DESC
             LIMIT 1
             """

@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
@@ -84,8 +84,10 @@ function isEndAfterStart(start: string, end: string) {
   return timeToMinutes(end) > timeToMinutes(start);
 }
 
+const absenceWorkTypes = ['Dovolená', 'Školení', 'Doktor', 'Darování krve'];
+
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
-  return report ? ['Dovolená', 'Školení', 'Doktor'].includes(report.work_type) : false;
+  return report ? absenceWorkTypes.includes(report.work_type) : false;
 }
 
 function displayTime(report: PendingReport) {
@@ -170,8 +172,31 @@ function hasCompanionWorkReport(reports: PendingReport[], report: PendingReport)
     item.id !== report.id &&
     String(item.date).slice(0, 10) === reportDate &&
     (item.employee_name ?? '') === (report.employee_name ?? '') &&
-    !['Dovolená', 'Školení', 'Doktor'].includes(item.work_type)
+    !absenceWorkTypes.includes(item.work_type)
   );
+}
+
+function workTypeKind(report: PendingReport) {
+  if (report.work_type === 'Dovolená') return 'leave';
+  if (report.work_type === 'Doktor') return 'doctor';
+  if (report.work_type === 'Školení') return 'training';
+  if (report.work_type === 'Darování krve') return 'blood';
+  return 'work';
+}
+
+function reportDayKey(report: PendingReport) {
+  return `${report.employee_name ?? report.report_number}|${String(report.date).slice(0, 10)}`;
+}
+
+function reportMinutes(report: PendingReport) {
+  if (isAbsenceReport(report)) return Number(report.hours_worked ?? 8) * 60;
+  const start = normalizeTime(report.time_start);
+  const end = normalizeTime(report.time_end);
+  return start && end ? Math.max(0, timeToMinutes(end) - timeToMinutes(start)) : Number(report.hours_worked ?? 0) * 60;
+}
+
+function formatHours(minutes: number) {
+  return `${(minutes / 60).toFixed(1)} h`;
 }
 
 interface ApprovalDashboardProps {
@@ -199,6 +224,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [message, setMessage] = useState('');
   const user = getUser();
   const requestedReportId = searchParams.get('report');
+  const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
 
   const loadReports = async () => {
     try {
@@ -275,6 +301,33 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const employeeOptions = [...new Set(reports.map((report) => report.employee_name ?? report.report_number))]
     .sort((first, second) => first.localeCompare(second, 'cs'));
+
+  const dayGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; employee: string; date: string; reports: PendingReport[]; hours: number; hectares: number; fuel: number }>();
+    for (const report of filteredReports) {
+      const key = reportDayKey(report);
+      const existing = groups.get(key) ?? {
+        key,
+        employee: report.employee_name ?? report.report_number,
+        date: String(report.date).slice(0, 10),
+        reports: [],
+        hours: 0,
+        hectares: 0,
+        fuel: 0
+      };
+      existing.reports.push(report);
+      existing.hours += reportMinutes(report);
+      existing.hectares += Number(report.amount_ha ?? 0);
+      existing.fuel += Number(report.fuel_liters ?? 0);
+      groups.set(key, existing);
+    }
+    return [...groups.values()]
+      .map((group) => ({
+        ...group,
+        reports: [...group.reports].sort((first, second) => timeToMinutes(normalizeTime(first.time_start) || '00:00') - timeToMinutes(normalizeTime(second.time_start) || '00:00'))
+      }))
+      .sort((first, second) => second.date.localeCompare(first.date) || first.employee.localeCompare(second.employee, 'cs-CZ'));
+  }, [filteredReports]);
 
   const openReportDetail = async (reportId: number) => {
     try {
@@ -387,7 +440,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
     try {
       await client.put(`/reports/${selectedReport.id}`, {
-        report_kind: absence ? (selectedReport.work_type === 'Dovolená' ? 'leave' : selectedReport.work_type === 'Doktor' ? 'doctor' : 'training') : 'work',
+        report_kind: absence ? workTypeKind(selectedReport) : 'work',
         tractor_id: selectedReport.tractor_id,
         user_id: selectedReport.user_id ?? user?.id ?? 1,
         field_id: fieldSummary[0]?.field_id ?? null,
@@ -442,7 +495,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           </div>
         </div>
         <div className="segmented-control approval-status-tabs">
-          <Link className={status === 'pending' ? 'active' : ''} to="/approvals">Ke schválení</Link>
+          {canApproveReports ? <Link className={status === 'pending' ? 'active' : ''} to="/approvals">Ke schválení</Link> : null}
           <Link className={status === 'approved' ? 'active' : ''} to="/approvals/approved">Schválené</Link>
         </div>
         <div className="filter-bar filter-bar--compact-approval">
@@ -465,43 +518,40 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           </label>
         </div>
         {message && <p className="form-message">{message}</p>}
-        {filteredReports.length === 0 ? (
+        {dayGroups.length === 0 ? (
           <p className="empty-state">{statusMeta[status].empty}</p>
         ) : (
-          <table className="approval-table approval-table--mobile-compact">
-            <thead>
-              <tr>
-                <th>Zaměstnanec</th>
-                <th>Datum</th>
-                <th>Činnost</th>
-                <th>Čas</th>
-                <th>Pozemek</th>
-                <th>Stroj</th>
-                <th>Ha</th>
-                <th>Tankování</th>
-                <th>Stav</th>
-                <th>Akce</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredReports.map((report) => (
-                <tr key={report.id}>
-                  <td data-label="Zaměstnanec">{report.employee_name ?? report.report_number}</td>
-                  <td data-label="Datum">{formatDate(report.date)}</td>
-                  <td data-label="Činnost">{report.work_type}</td>
-                  <td className="mobile-hide" data-label="Čas">{displayTime(report)}</td>
-                  <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
-                  <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
-                  <td className="mobile-hide" data-label="Ha">{Number(report.amount_ha ?? 0).toFixed(2)}</td>
-                  <td className="mobile-hide" data-label="Tankování">{Number(report.fuel_liters ?? 0).toFixed(1)} l</td>
-                  <td data-label="Stav"><span className={statusMeta[status].className}>{statusMeta[status].label}</span></td>
-                  <td data-label="Akce">
-                    <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="approval-day-list">
+            {dayGroups.map((group) => (
+              <section className="approval-day-card" key={group.key}>
+                <div className="approval-day-head">
+                  <div>
+                    <strong>{group.employee}</strong>
+                    <span>{formatDate(group.date)} · {group.reports.length} položky · {formatHours(group.hours)}</span>
+                  </div>
+                  <div className="approval-day-totals">
+                    <span>{group.hectares.toFixed(2)} ha</span>
+                    <span>{group.fuel.toFixed(1)} l PHM</span>
+                  </div>
+                </div>
+                <div className="approval-day-timeline">
+                  {group.reports.map((report) => (
+                    <article key={report.id} className="approval-day-item">
+                      <div>
+                        <span className="approval-day-time">{displayTime(report)}</span>
+                        <strong>{report.work_type}</strong>
+                        <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${report.field_name || 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
+                      </div>
+                      <div className="approval-day-actions">
+                        <span className={report.status === 'approved' ? 'status-green' : 'status-orange'}>{report.status === 'approved' ? 'Schváleno' : 'Ke schválení'}</span>
+                        <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{report.status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
         {selectedReport ? (
           (() => {
@@ -533,7 +583,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     <button type="button" className="secondary" disabled={absence || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
                   </div>
                   {absence ? (
-                    <p className="field-hint">Dovolená, školení a doktor pozemky nepotřebují.</p>
+                    <p className="field-hint">Dovolená, školení, doktor a darování krve pozemky nepotřebují.</p>
                   ) : (
                     <div className="repeat-list">
                       {detailFieldEntries.length === 0 ? (
@@ -631,7 +681,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
-              {status === 'pending' ? (
+              {status === 'pending' && canApproveReports ? (
                 <div className="modal-actions">
                   <button className="primary approve-large" type="button" onClick={handleDetailApproval}>Schválit výkaz</button>
                 </div>
