@@ -158,6 +158,19 @@ function sortTractorsForWork(tractors: Tractor[]) {
   });
 }
 
+function prioritizeByIds<T extends { id: number }>(items: T[], preferredIds: Array<number | undefined>) {
+  const priorities = new Map<number, number>();
+  preferredIds.forEach((id, index) => {
+    if (id !== undefined && !priorities.has(id)) priorities.set(id, index);
+  });
+  return [...items].sort((first, second) => {
+    const firstPriority = priorities.get(first.id) ?? Number.MAX_SAFE_INTEGER;
+    const secondPriority = priorities.get(second.id) ?? Number.MAX_SAFE_INTEGER;
+    if (firstPriority !== secondPriority) return firstPriority - secondPriority;
+    return 0;
+  });
+}
+
 function countWeekdaysInclusive(start: string, end: string) {
   if (!start || !end) return 0;
   const from = new Date(`${start}T12:00:00`);
@@ -370,8 +383,8 @@ function ReportForm() {
   const isAbsenceOverBalance = reportMode === 'leave' && selectedAbsenceUnits > vacationBalance.daysRemaining;
   const isLongAbsence = selectedModeDays > 20;
   const availableTractors = useMemo(
-    () => sortTractorsForWork(tractors),
-    [tractors]
+    () => prioritizeByIds(sortTractorsForWork(tractors), [lastUsedReport?.tractor_id, lastPreferences.selectedTractor]),
+    [lastPreferences.selectedTractor, lastUsedReport?.tractor_id, tractors]
   );
   const visibleTractors = useMemo(() => {
     const query = normalizeSearch(tractorSearch.trim());
@@ -379,8 +392,11 @@ function ReportForm() {
     return availableTractors.filter((tractor) => tractorSearchText(tractor).includes(query));
   }, [availableTractors, tractorSearch]);
   const normalWorkTypes = useMemo(
-    () => workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name)),
-    [workTypes]
+    () => prioritizeByIds(
+      workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name)),
+      [lastUsedReport?.work_type_id, lastPreferences.selectedWorkType]
+    ),
+    [lastPreferences.selectedWorkType, lastUsedReport?.work_type_id, workTypes]
   );
   const visibleWorkTypes = useMemo(() => {
     const query = normalizeSearch(workTypeSearch.trim());
@@ -390,6 +406,10 @@ function ReportForm() {
   const totalArea = fieldEntries.reduce((sum, entry) => sum + Number(entry.amountHa || 0), 0);
   const canAddAttachment = attachmentEntries.length < 3 && Boolean(attachmentEntries[attachmentEntries.length - 1]?.attachmentId);
   const lastAttachmentIds = useMemo(() => normalizeAttachmentIdsFromReport(lastUsedReport?.attachments, attachments), [attachments, lastUsedReport]);
+  const preferredAttachmentIds = useMemo(() => [
+    ...lastAttachmentIds,
+    ...(lastPreferences.attachmentIds ?? [])
+  ], [lastAttachmentIds, lastPreferences.attachmentIds]);
   const hasLastAttachments = lastAttachmentIds.length > 0;
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
   const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && normalWorkTypes.some((item) => item.id === lastUsedReport.work_type_id));
@@ -928,10 +948,11 @@ function ReportForm() {
       ? availableAttachments.filter((attachment) => attachmentSearchText(attachment).includes(query))
       : availableAttachments;
     const selectedAttachment = attachments.find((attachment) => attachment.id === entry.attachmentId);
-    if (selectedAttachment && !visibleAttachments.some((attachment) => attachment.id === selectedAttachment.id)) {
-      return [selectedAttachment, ...visibleAttachments];
+    const prioritized = prioritizeByIds(visibleAttachments, preferredAttachmentIds);
+    if (selectedAttachment && !prioritized.some((attachment) => attachment.id === selectedAttachment.id)) {
+      return [selectedAttachment, ...prioritized];
     }
-    return visibleAttachments;
+    return prioritized;
   };
   const addFieldEntry = () => {
     const availableFields = getAvailableFields(-1);

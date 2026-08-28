@@ -15,6 +15,9 @@ Formát:
 ## 2026-08-28
 
 ### Přípojná zařízení a technika
+- Formulář výkazu nově řadí naposledy použité stroje, typy práce a přípojná zařízení nahoru v běžném seznamu i ve výsledcích hledání.
+- Admin číselníky mají novou samostatnou záložku `Přípojná zařízení` s úpravou interního označení, názvu a SPZ.
+- Automatický sync základního seznamu přípojných zařízení při startu doplňuje jen chybějící položky, aby pozdější admin úpravy nepřepsal deploy.
 - Stroje a technika jsou ve výkazu dostupné pro všechna střediska bez filtrování podle zvoleného střediska.
 - Přípojná zařízení mají nový číselník z přiloženého Excelu; starý pevný frontend seznam byl nahrazen 94 položkami.
 - Pracovník při zadávání výkazu vidí u přípojného zařízení jen název a případně SPZ, schvalovatel v detailu vidí i interní označení.

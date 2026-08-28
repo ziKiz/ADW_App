@@ -48,6 +48,17 @@ async def create_dictionary(collection: str, payload: dict, request: Request, se
             text("INSERT INTO tractors(tractor_code, tractor_name, service_centers, vehicle_type, status, created_by, updated_by, last_change) VALUES (:tractor_code, :tractor_name, :service_centers, :vehicle_type, :status, :actor, :actor, 'Vytvoření záznamu') RETURNING *"),
             {**payload, "service_centers": payload.get("service_centers") or [], "status": payload.get("status") or "active", "actor": user["full_name"]},
         )
+    elif collection == "attachments":
+        result = await session.execute(
+            text("INSERT INTO attachments(attachment_code, attachment_name, license_plate, status, created_by, updated_by, last_change) VALUES (:attachment_code, :attachment_name, :license_plate, :status, :actor, :actor, 'Vytvoření přípojného zařízení') RETURNING *"),
+            {
+                "attachment_code": payload.get("attachment_code") or None,
+                "attachment_name": payload.get("attachment_name"),
+                "license_plate": payload.get("license_plate") or None,
+                "status": payload.get("status") or "active",
+                "actor": user["full_name"],
+            },
+        )
     else:
         result = await session.execute(
             text("INSERT INTO work_types(name, description, created_by, updated_by, last_change) VALUES (:name, :description, :actor, :actor, 'Vytvoření záznamu') RETURNING *"),
@@ -60,11 +71,23 @@ async def create_dictionary(collection: str, payload: dict, request: Request, se
 @router.put("/{collection}/{item_id}")
 async def update_dictionary(collection: str, item_id: int, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
-    table = {"fields": "fields", "tractors": "tractors", "work-types": "work_types"}.get(collection, collection)
+    table = {"fields": "fields", "tractors": "tractors", "attachments": "attachments", "work-types": "work_types"}.get(collection, collection)
     if table == "fields":
         result = await session.execute(text("UPDATE fields SET field_code=:field_code, field_name=:field_name, area=:area, culture=:culture, crop=:crop, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "id": item_id, "actor": user["full_name"]})
     elif table == "tractors":
         result = await session.execute(text("UPDATE tractors SET tractor_code=:tractor_code, tractor_name=:tractor_name, service_centers=:service_centers, vehicle_type=:vehicle_type, status=:status, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "service_centers": payload.get("service_centers") or [], "id": item_id, "actor": user["full_name"]})
+    elif table == "attachments":
+        result = await session.execute(
+            text("UPDATE attachments SET attachment_code=:attachment_code, attachment_name=:attachment_name, license_plate=:license_plate, status=:status, updated_by=:actor, last_change='Úprava přípojného zařízení' WHERE id=:id RETURNING *"),
+            {
+                "id": item_id,
+                "attachment_code": payload.get("attachment_code") or None,
+                "attachment_name": payload.get("attachment_name"),
+                "license_plate": payload.get("license_plate") or None,
+                "status": payload.get("status") or "active",
+                "actor": user["full_name"],
+            },
+        )
     else:
         result = await session.execute(text("UPDATE work_types SET name=:name, description=:description, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "id": item_id, "actor": user["full_name"]})
     await session.commit()

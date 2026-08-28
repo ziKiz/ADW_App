@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
-import { FieldRecord, Tractor } from '../types';
+import { AttachmentDevice, FieldRecord, Tractor } from '../types';
 import { formatCzechDateTime } from '../utils/format';
 import { getUser } from '../utils/auth';
 
 type EditedDictionary =
   | { kind: 'fields'; item: FieldRecord }
-  | { kind: 'tractors'; item: Tractor };
+  | { kind: 'tractors'; item: Tractor }
+  | { kind: 'attachments'; item: AttachmentDevice };
 
-type DictionaryTab = 'fields' | 'tractors';
+type DictionaryTab = 'fields' | 'tractors' | 'attachments';
 type SortDirection = 'asc' | 'desc';
 
 function formatAuditDate(value?: string) {
@@ -34,6 +35,7 @@ function DictionariesView() {
   const [activeTab, setActiveTab] = useState<DictionaryTab>('fields');
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [tractors, setTractors] = useState<Tractor[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentDevice[]>([]);
   const [edited, setEdited] = useState<EditedDictionary | null>(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,10 +46,12 @@ function DictionariesView() {
   useEffect(() => {
     Promise.allSettled([
       client.get('/fields'),
-      client.get('/tractors')
-    ]).then(([fieldResponse, tractorResponse]) => {
+      client.get('/tractors'),
+      client.get('/attachments')
+    ]).then(([fieldResponse, tractorResponse, attachmentResponse]) => {
       if (fieldResponse.status === 'fulfilled') setFields(fieldResponse.value.data);
       if (tractorResponse.status === 'fulfilled') setTractors(tractorResponse.value.data);
+      if (attachmentResponse.status === 'fulfilled') setAttachments(attachmentResponse.value.data);
     });
   }, []);
 
@@ -67,6 +71,14 @@ function DictionariesView() {
         { value: 'tractor_name', label: 'Název' },
         { value: 'tractor_code', label: 'SPZ' },
         { value: 'vehicle_type', label: 'Typ' },
+        { value: 'updated_at', label: 'Poslední úprava' }
+      ];
+    }
+    if (activeTab === 'attachments') {
+      return [
+        { value: 'attachment_name', label: 'Název' },
+        { value: 'license_plate', label: 'SPZ' },
+        { value: 'attachment_code', label: 'Interní označení' },
         { value: 'updated_at', label: 'Poslední úprava' }
       ];
     }
@@ -108,6 +120,19 @@ function DictionariesView() {
       .sort((first, second) => compareValues(first[sortKey as keyof Tractor], second[sortKey as keyof Tractor], sortDirection));
   }, [searchTerm, sortDirection, sortKey, tractors]);
 
+  const filteredAttachments = useMemo(() => {
+    const term = normalize(searchTerm);
+    return attachments
+      .filter((attachment) => [
+        attachment.attachment_code,
+        attachment.attachment_name,
+        attachment.license_plate,
+        attachment.status,
+        attachment.updated_by
+      ].some((value) => normalize(value).includes(term)))
+      .sort((first, second) => compareValues(first[sortKey as keyof AttachmentDevice], second[sortKey as keyof AttachmentDevice], sortDirection));
+  }, [attachments, searchTerm, sortDirection, sortKey]);
+
   const startNew = () => {
     if (activeTab === 'fields') {
       setEdited({
@@ -121,11 +146,17 @@ function DictionariesView() {
         item: { id: 0, tractor_code: '', tractor_name: '', vehicle_type: 'traktor', status: 'active' }
       });
     }
+    if (activeTab === 'attachments') {
+      setEdited({
+        kind: 'attachments',
+        item: { id: 0, attachment_code: '', attachment_name: '', license_plate: '', status: 'active' }
+      });
+    }
   };
 
   const saveEdited = async () => {
     if (!edited) return;
-    const endpoint = edited.kind === 'fields' ? 'fields' : 'tractors';
+    const endpoint = edited.kind;
     const request = edited.item.id
       ? client.put(`/${endpoint}/${edited.item.id}`, edited.item)
       : client.post(`/${endpoint}`, edited.item);
@@ -138,6 +169,10 @@ function DictionariesView() {
       if (edited.kind === 'tractors') {
         const saved = response.data as Tractor;
         setTractors((current) => edited.item.id ? current.map((item) => (item.id === saved.id ? saved : item)) : [...current, saved]);
+      }
+      if (edited.kind === 'attachments') {
+        const saved = response.data as AttachmentDevice;
+        setAttachments((current) => edited.item.id ? current.map((item) => (item.id === saved.id ? saved : item)) : [...current, saved]);
       }
       setEdited(null);
       setMessage('Záznam byl uložen.');
@@ -161,6 +196,7 @@ function DictionariesView() {
         <div className="tabs">
           <button className={activeTab === 'fields' ? 'active' : ''} type="button" onClick={() => selectTab('fields', 'field_name')}>Pozemky <b>{fields.length}</b></button>
           <button className={activeTab === 'tractors' ? 'active' : ''} type="button" onClick={() => selectTab('tractors', 'tractor_name')}>Stroje <b>{tractors.length}</b></button>
+          <button className={activeTab === 'attachments' ? 'active' : ''} type="button" onClick={() => selectTab('attachments', 'attachment_name')}>Přípojná zařízení <b>{attachments.length}</b></button>
         </div>
 
         <div className="filter-bar dictionary-filter">
@@ -182,7 +218,7 @@ function DictionariesView() {
             </select>
           </label>
           <p className="filter-result">
-            {activeTab === 'fields' ? filteredFields.length : filteredTractors.length} nalezeno
+            {activeTab === 'fields' ? filteredFields.length : activeTab === 'tractors' ? filteredTractors.length : filteredAttachments.length} nalezeno
           </p>
         </div>
 
@@ -247,6 +283,33 @@ function DictionariesView() {
           </table>
         ) : null}
 
+        {activeTab === 'attachments' ? (
+          <table className="approval-table">
+            <thead>
+              <tr>
+                <th>Interní označení</th>
+                <th>Název zařízení</th>
+                <th>SPZ</th>
+                <th>Poslední úprava</th>
+                <th>Upravil</th>
+                {isAdmin ? <th>Akce</th> : null}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAttachments.map((attachment) => (
+                <tr key={attachment.id}>
+                  <td data-label="Interní označení">{attachment.attachment_code || '-'}</td>
+                  <td data-label="Název zařízení">{attachment.attachment_name}</td>
+                  <td data-label="SPZ">{attachment.license_plate || '-'}</td>
+                  <td data-label="Poslední úprava">{formatAuditDate(attachment.updated_at)}</td>
+                  <td data-label="Upravil">{attachment.updated_by ?? '-'}</td>
+                  {isAdmin ? <td data-label="Akce"><button className="edit-action" type="button" onClick={() => setEdited({ kind: 'attachments', item: attachment })}>Upravit</button></td> : null}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
+
         {edited ? (
           <div className="modal-backdrop" role="presentation">
             <div className="modal-panel" role="dialog" aria-modal="true" aria-labelledby="dictionaryDetailTitle">
@@ -272,6 +335,13 @@ function DictionariesView() {
                     <label>SPZ<input value={edited.item.tractor_code} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, tractor_code: event.target.value } })} /></label>
                     <label>Název stroje<input value={edited.item.tractor_name} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, tractor_name: event.target.value } })} /></label>
                     <label>Typ<input value={edited.item.vehicle_type ?? ''} onChange={(event) => setEdited({ kind: 'tractors', item: { ...edited.item, vehicle_type: event.target.value } })} /></label>
+                  </>
+                ) : null}
+                {edited.kind === 'attachments' ? (
+                  <>
+                    <label>Interní označení<input value={edited.item.attachment_code ?? ''} onChange={(event) => setEdited({ kind: 'attachments', item: { ...edited.item, attachment_code: event.target.value } })} /></label>
+                    <label>Název zařízení<input value={edited.item.attachment_name} onChange={(event) => setEdited({ kind: 'attachments', item: { ...edited.item, attachment_name: event.target.value } })} /></label>
+                    <label>SPZ<input value={edited.item.license_plate ?? ''} onChange={(event) => setEdited({ kind: 'attachments', item: { ...edited.item, license_plate: event.target.value } })} /></label>
                   </>
                 ) : null}
               </div>
