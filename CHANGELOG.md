@@ -12,6 +12,16 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-08-30
+
+### Bezpečnostní opravy výkazů
+- Schvalování už nepřijímá libovolný stav z klienta a dovolí měnit jen výkazy ve stavu `Ke schválení`.
+- Backend serializuje ukládání výkazů stejného uživatele pro stejný den, aby souběžné odeslání neobešlo kontrolu překryvu času.
+- Backend odmítá uložit pozemky u výkazů mimo středisko `Rostlinná výroba`.
+- Schvalovací detail při uložení návštěvy doktora zachová čas od-do.
+- Pracovníci přes API přípojných zařízení nedostávají interní označení, schvalovatelé a admini ano.
+- Frontend přešel na `react-router-dom` 7.18.3, aby produkční audit závislostí nehlásil známé zranitelnosti routeru.
+
 ## 2026-08-28
 
 ### Přípojná zařízení a technika

@@ -13,6 +13,7 @@ from app.db import get_session
 from app.security import APPROVED_VIEWER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role
 
 router = APIRouter()
+FIELD_SERVICE_CENTER = "Rostlinná výroba"
 
 
 def parse_date_value(value: Any) -> date | None:
@@ -40,6 +41,22 @@ def is_timed_report(payload: dict[str, Any]) -> bool:
     return payload.get("report_kind") in (None, "work", "doctor") and payload.get("time_start") and payload.get("time_end")
 
 
+def normalize_service_center(value: Any) -> str:
+    return str(value or "").strip().casefold()
+
+
+def validate_field_scope(payload: dict[str, Any], is_work: bool) -> None:
+    if not is_work:
+        return
+    service_center = normalize_service_center(payload.get("service_center"))
+    if service_center == normalize_service_center(FIELD_SERVICE_CENTER):
+        return
+    field_entries = payload.get("field_entries") or []
+    has_field_entries = (isinstance(field_entries, list) and len(field_entries) > 0) or (isinstance(field_entries, str) and bool(field_entries.strip()))
+    if payload.get("field_id") or has_field_entries:
+        raise HTTPException(status_code=422, detail="Pozemky lze ukládat pouze pro středisko RV.")
+
+
 async def ensure_no_time_overlap(
     session: AsyncSession,
     user_id: Any,
@@ -51,6 +68,10 @@ async def ensure_no_time_overlap(
 ) -> None:
     if not user_id or not report_date or not time_start or not time_end:
         return
+    await session.execute(
+        text("SELECT pg_advisory_xact_lock(hashtextextended(CAST(:lock_key AS text), 0))"),
+        {"lock_key": f"reports:{user_id}:{report_date.isoformat()}"},
+    )
     params: dict[str, Any] = {
         "user_id": user_id,
         "date": report_date,
@@ -196,6 +217,7 @@ async def get_report(report_id: int, session: AsyncSession = Depends(get_session
 async def create_report(payload: dict[str, Any], request: Request, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     is_work = payload.get("report_kind") in (None, "work")
+    validate_field_scope(payload, is_work)
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
@@ -274,6 +296,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     if not can_access_report(before_row, user, allow_scoped_review=True):
         raise HTTPException(status_code=403, detail="Nemáte oprávnění upravit tento výkaz.")
     is_work = payload.get("report_kind") in (None, "work")
+    validate_field_scope(payload, is_work)
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))

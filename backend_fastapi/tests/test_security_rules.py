@@ -5,8 +5,10 @@ os.environ["APP_MODE"] = "local"
 
 from fastapi import HTTPException
 
+from app.routers.approvals import validate_approval_status
+from app.routers.dictionaries import can_view_attachment_code
 from app.config import Settings
-from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, validate_report_time_order
+from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, validate_field_scope, validate_report_time_order
 from app.security import can_access_report, is_elevated_user
 
 
@@ -63,6 +65,36 @@ class ReportTimeValidationTests(unittest.TestCase):
 
     def test_doctor_report_counts_as_timed_report(self):
         self.assertTrue(is_timed_report({"report_kind": "doctor", "time_start": "09:00:00", "time_end": "13:00:00"}))
+
+
+class ReportFieldScopeTests(unittest.TestCase):
+    def test_rv_work_report_accepts_field(self):
+        validate_field_scope({"service_center": "Rostlinná výroba", "field_id": 1, "field_entries": [{"field_id": 1}]}, True)
+
+    def test_non_rv_work_report_rejects_field(self):
+        with self.assertRaises(HTTPException):
+            validate_field_scope({"service_center": "Mechanizace", "field_id": 1, "field_entries": [{"field_id": 1}]}, True)
+
+    def test_non_work_report_ignores_field_scope(self):
+        validate_field_scope({"service_center": "Mechanizace", "field_id": 1, "field_entries": [{"field_id": 1}]}, False)
+
+
+class ApprovalStatusTests(unittest.TestCase):
+    def test_approval_accepts_allowed_statuses(self):
+        self.assertEqual(validate_approval_status("approved"), "approved")
+        self.assertEqual(validate_approval_status("rejected"), "rejected")
+
+    def test_approval_rejects_unknown_status(self):
+        with self.assertRaises(HTTPException):
+            validate_approval_status("admin")
+
+
+class AttachmentVisibilityTests(unittest.TestCase):
+    def test_worker_cannot_view_attachment_code(self):
+        self.assertFalse(can_view_attachment_code({"role": "traktorista"}))
+
+    def test_approver_can_view_attachment_code(self):
+        self.assertTrue(can_view_attachment_code({"role": "schvalovatel"}))
 
 
 class SettingsTests(unittest.TestCase):

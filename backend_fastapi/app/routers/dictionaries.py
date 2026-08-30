@@ -6,9 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context
 from app.db import get_session
-from app.security import get_current_user, require_roles
+from app.security import get_current_user, is_elevated_user, normalize_role, require_roles
 
 router = APIRouter()
+ATTACHMENT_CODE_ROLES = {"schvalovatel", "specialista"}
+
+
+def can_view_attachment_code(user: dict) -> bool:
+    return is_elevated_user(user) or normalize_role(user.get("role")) in ATTACHMENT_CODE_ROLES
 
 
 @router.get("/fields")
@@ -25,7 +30,8 @@ async def tractors(service_center: str | None = None, session: AsyncSession = De
 
 @router.get("/attachments")
 async def attachments(session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
-    result = await session.execute(text("SELECT id, attachment_code, attachment_name, license_plate, status, created_at, created_by, updated_at, updated_by, last_change FROM attachments WHERE archived_at IS NULL AND status = 'active' ORDER BY attachment_name, attachment_code"))
+    code_select = "attachment_code" if can_view_attachment_code(user) else "NULL AS attachment_code"
+    result = await session.execute(text(f"SELECT id, {code_select}, attachment_name, license_plate, status, created_at, created_by, updated_at, updated_by, last_change FROM attachments WHERE archived_at IS NULL AND status = 'active' ORDER BY attachment_name, attachment_code"))
     return [dict(row) for row in result.mappings().all()]
 
 

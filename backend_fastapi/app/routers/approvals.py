@@ -8,6 +8,13 @@ from app.db import get_session
 from app.security import can_access_report, require_roles
 
 router = APIRouter()
+ALLOWED_APPROVAL_STATUSES = {"approved", "rejected"}
+
+
+def validate_approval_status(status: str) -> str:
+    if status not in ALLOWED_APPROVAL_STATUSES:
+        raise HTTPException(status_code=422, detail="Neplatný stav schválení.")
+    return status
 
 
 @router.post("/{report_id}")
@@ -18,7 +25,9 @@ async def approve_report(report_id: int, payload: dict, request: Request, sessio
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
     if not can_access_report(report, user, allow_scoped_review=True):
         raise HTTPException(status_code=403, detail="Nemáte oprávnění schválit tento výkaz.")
-    status = payload.get("status") or "approved"
+    if report["status"] != "pending":
+        raise HTTPException(status_code=409, detail="Schvalovat lze pouze výkaz ve stavu ke schválení.")
+    status = validate_approval_status(payload.get("status") or "approved")
     await session.execute(text("UPDATE reports SET status = :status, updated_by = :actor WHERE id = :id"), {"status": status, "actor": user["full_name"], "id": report_id})
     await session.execute(
         text("INSERT INTO approvals(report_id, approver_id, status, comment) VALUES (:report_id, :approver_id, :status, :comment)"),

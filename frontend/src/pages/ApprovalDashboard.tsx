@@ -447,6 +447,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const saveReportDetail = async () => {
     if (!selectedReport) return false;
     const absence = isAbsenceReport(selectedReport);
+    const keepsTime = workTypeKind(selectedReport) === 'doctor';
     const timeStart = normalizeTime(selectedReport.time_start);
     const timeEnd = normalizeTime(selectedReport.time_end);
     if (!absence && !isEndAfterStart(timeStart, timeEnd)) {
@@ -478,8 +479,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         field_entries: fieldSummary,
         work_type_id: selectedReport.work_type_id,
         date: selectedReport.date,
-        time_start: absence || !timeStart ? null : `${timeStart}:00`,
-        time_end: absence || !timeEnd ? null : `${timeEnd}:00`,
+        time_start: (absence && !keepsTime) || !timeStart ? null : `${timeStart}:00`,
+        time_end: (absence && !keepsTime) || !timeEnd ? null : `${timeEnd}:00`,
         break_hours: 0,
         hours_worked: absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
         amount_ha: totalArea,
