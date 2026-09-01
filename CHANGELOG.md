@@ -22,6 +22,7 @@ Formát:
 - Schvalovací přehled i detail ukazují, kdo má potvrdit činnost, kdo provede finální schválení a která část už je hotová.
 - Přístup k novým výkazům se řídí konkrétním přiřazením vedoucích; původní výkazy jsou při migraci bezpečně přiřazené dosavadnímu hlavnímu vedoucímu.
 - Přibyly testy přístupu napříč středisky, pořadí obou schválení a zachování jednokrokového schválení pro běžné výkazy.
+- README nově popisuje stejný dvoustupňový schvalovací model jako aplikace, aby další úpravy nevycházely ze starého pravidla podle cílového střediska.
 
 ## 2026-08-30
 
