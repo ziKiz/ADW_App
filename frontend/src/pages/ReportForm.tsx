@@ -66,13 +66,6 @@ interface ReportTimeEntry {
   created_at?: string;
 }
 
-interface ApproverOption {
-  id: number;
-  full_name: string;
-  department_name?: string;
-  is_primary?: boolean;
-}
-
 type ReportMode = 'work' | 'leave' | 'training' | 'doctor' | 'blood';
 type MessageTone = 'info' | 'success' | 'error';
 
@@ -220,10 +213,6 @@ function attachmentSearchText(attachment: AttachmentDevice) {
   return normalizeSearch(`${attachment.attachment_name} ${attachment.license_plate ?? ''} ${attachment.attachment_code ?? ''}`);
 }
 
-function approverSearchText(approver: ApproverOption) {
-  return normalizeSearch(`${approver.full_name} ${approver.department_name ?? ''}`);
-}
-
 function formatAttachmentForWorker(attachment?: AttachmentDevice) {
   if (!attachment) return noAttachmentLabel;
   return attachment.license_plate ? `${attachment.attachment_name} (${attachment.license_plate})` : attachment.attachment_name;
@@ -349,7 +338,6 @@ function ReportForm() {
   const [attachments, setAttachments] = useState<AttachmentDevice[]>([]);
   const [fields, setFields] = useState<FieldRecord[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
-  const [approvers, setApprovers] = useState<ApproverOption[]>([]);
   const [reports, setReports] = useState<ReportTimeEntry[]>([]);
   const [lastUsedReport, setLastUsedReport] = useState<LastUsedReport | null>(null);
   const [selectedTractor, setSelectedTractor] = useState<number | undefined>(undefined);
@@ -364,9 +352,6 @@ function ReportForm() {
   const [timeStart, setTimeStart] = useState(defaultStartTime);
   const [timeEnd, setTimeEnd] = useState('15:30');
   const [serviceCenter, setServiceCenter] = useState(initialServiceCenter);
-  const [alternateApproverEnabled, setAlternateApproverEnabled] = useState(false);
-  const [selectedTaskApproverId, setSelectedTaskApproverId] = useState<number | undefined>(undefined);
-  const [approverSearch, setApproverSearch] = useState('');
   const [reportMode, setReportMode] = useState<ReportMode>('work');
   const [specialOptionsOpen, setSpecialOptionsOpen] = useState(false);
   const [halfDayLeave, setHalfDayLeave] = useState(false);
@@ -433,17 +418,6 @@ function ReportForm() {
   const showFieldSelection = reportMode === 'work' && serviceCenterUsesFields && (!isOtherWorkType || otherUsesFields);
   const showTractorSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesTractor);
   const showAttachmentSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesAttachments);
-  const primaryApprover = approvers.find((approver) => approver.is_primary);
-  const alternateApprovers = useMemo(
-    () => approvers.filter((approver) => approver.id !== primaryApprover?.id),
-    [approvers, primaryApprover?.id]
-  );
-  const visibleApprovers = useMemo(() => {
-    const query = normalizeSearch(approverSearch.trim());
-    return query ? alternateApprovers.filter((approver) => approverSearchText(approver).includes(query)) : alternateApprovers;
-  }, [alternateApprovers, approverSearch]);
-  const selectedTaskApprover = approvers.find((approver) => approver.id === selectedTaskApproverId);
-
   const showFormMessage = (text: string, tone: MessageTone = 'info') => {
     setMessage(text);
     setMessageTone(tone);
@@ -452,20 +426,18 @@ function ReportForm() {
   useEffect(() => {
     const loadMetadata = async () => {
       setMetadataLoading(true);
-      const [tractorResponse, fieldResponse, workTypeResponse, attachmentResponse, reportResponse, lastUsedResponse, approverResponse] = await Promise.allSettled([
+      const [tractorResponse, fieldResponse, workTypeResponse, attachmentResponse, reportResponse, lastUsedResponse] = await Promise.allSettled([
         client.get('/tractors'),
         client.get('/fields'),
         client.get('/work-types'),
         client.get('/attachments'),
         client.get('/reports'),
-        client.get('/reports/last-used'),
-        client.get('/users/approvers')
+        client.get('/reports/last-used')
       ]);
       const loadedTractors = tractorResponse.status === 'fulfilled' ? tractorResponse.value.data as Tractor[] : [];
       const loadedWorkTypes = workTypeResponse.status === 'fulfilled' ? workTypeResponse.value.data as WorkType[] : [];
       const loadedAttachments = attachmentResponse.status === 'fulfilled' ? attachmentResponse.value.data as AttachmentDevice[] : [];
       const lastUsed = lastUsedResponse.status === 'fulfilled' ? lastUsedResponse.value.data as LastUsedReport | null : null;
-      const loadedApprovers = approverResponse.status === 'fulfilled' ? approverResponse.value.data as ApproverOption[] : [];
 
       if (tractorResponse.status === 'fulfilled') {
         setTractors(loadedTractors);
@@ -538,20 +510,11 @@ function ReportForm() {
         console.error(lastUsedResponse.reason);
       }
 
-      if (approverResponse.status === 'fulfilled') {
-        setApprovers(loadedApprovers);
-        const primary = loadedApprovers.find((approver) => approver.is_primary);
-        setSelectedTaskApproverId(primary?.id);
-      } else {
-        console.error(approverResponse.reason);
-      }
-
       if (
         tractorResponse.status === 'rejected' ||
         fieldResponse.status === 'rejected' ||
         workTypeResponse.status === 'rejected' ||
-        attachmentResponse.status === 'rejected' ||
-        approverResponse.status === 'rejected'
+        attachmentResponse.status === 'rejected'
       ) {
         showFormMessage('Nepodařilo se načíst číselníky. Zkontrolujte prosím, že běží backend.', 'error');
       } else {
@@ -561,14 +524,6 @@ function ReportForm() {
     };
     loadMetadata();
   }, []);
-
-  useEffect(() => {
-    if (!alternateApproverEnabled || alternateApprovers.length === 0) return;
-    const selectedIsAvailable = alternateApprovers.some((approver) => approver.id === selectedTaskApproverId);
-    if (selectedIsAvailable) return;
-    const matchingCenter = alternateApprovers.find((approver) => normalizeServiceCenter(approver.department_name) === normalizeServiceCenter(serviceCenter));
-    setSelectedTaskApproverId(matchingCenter?.id ?? alternateApprovers[0].id);
-  }, [alternateApproverEnabled, alternateApprovers, selectedTaskApproverId, serviceCenter]);
 
   useEffect(() => {
     if (metadataLoading) return;
@@ -768,10 +723,6 @@ function ReportForm() {
     }
 
     const selectedFields = showFieldSelection ? fieldEntries.filter((entry) => entry.fieldId) : [];
-    if (alternateApproverEnabled && !selectedTaskApproverId) {
-      showFormMessage('Vyberte vedoucího, pro kterého byla práce provedena.', 'error');
-      return;
-    }
     if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
@@ -841,7 +792,6 @@ function ReportForm() {
         user_id: user?.id ?? 1,
         employee_name: user?.full_name,
         service_center: serviceCenter,
-        task_approver_id: alternateApproverEnabled ? selectedTaskApproverId : primaryApprover?.id,
         field_id: selectedFields[0]?.fieldId ?? null,
         field_entries: fieldSummary,
         work_type_id: selectedWorkType,
@@ -1107,79 +1057,6 @@ function ReportForm() {
               </select>
             </div>
           </section>
-
-          {reportMode === 'work' ? (
-            <section className="report-section approval-routing-section">
-              <h2>Schválení</h2>
-              <div className="approval-routing-summary">
-                <span>Hlavní vedoucí</span>
-                <strong>{primaryApprover?.full_name ?? 'Vedoucí bude přiřazen systémem'}</strong>
-              </div>
-              <label className="toggle-row">
-                <input
-                  type="checkbox"
-                  checked={alternateApproverEnabled}
-                  onChange={(event) => {
-                    const enabled = event.target.checked;
-                    setAlternateApproverEnabled(enabled);
-                    setApproverSearch('');
-                    if (!enabled) setSelectedTaskApproverId(primaryApprover?.id);
-                  }}
-                />
-                Práce pro jiného vedoucího
-              </label>
-              {alternateApproverEnabled ? (
-                <div className="field-row approval-routing-picker">
-                  <label htmlFor="approver-search">Hledat vedoucího</label>
-                  <input
-                    id="approver-search"
-                    type="search"
-                    placeholder="Jméno nebo středisko"
-                    value={approverSearch}
-                    onChange={(event) => setApproverSearch(event.target.value)}
-                  />
-                  {approverSearch ? (
-                    <div className="field-search-results">
-                      {visibleApprovers.slice(0, 8).map((approver) => (
-                        <button
-                          key={approver.id}
-                          type="button"
-                          className={selectedTaskApproverId === approver.id ? 'active' : ''}
-                          onClick={() => {
-                            setSelectedTaskApproverId(approver.id);
-                            setApproverSearch('');
-                          }}
-                        >
-                          <span>{approver.full_name}</span>
-                          <small>{approver.department_name || 'bez střediska'}</small>
-                        </button>
-                      ))}
-                      {visibleApprovers.length === 0 ? <p>Žádný vedoucí neodpovídá hledání.</p> : null}
-                    </div>
-                  ) : null}
-                  <label className="sr-only" htmlFor="taskApprover">Vedoucí činnosti</label>
-                  <select
-                    id="taskApprover"
-                    value={selectedTaskApproverId ?? ''}
-                    onChange={(event) => {
-                      setSelectedTaskApproverId(event.target.value ? Number(event.target.value) : undefined);
-                      setApproverSearch('');
-                    }}
-                  >
-                    <option value="" disabled>Vyberte vedoucího</option>
-                    {visibleApprovers.map((approver) => (
-                      <option key={approver.id} value={approver.id}>{approver.full_name} · {approver.department_name || 'bez střediska'}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-              <p className="field-hint">
-                {alternateApproverEnabled && selectedTaskApprover
-                  ? `${selectedTaskApprover.full_name} potvrdí tuto činnost. Finální schválení zůstává u ${primaryApprover?.full_name ?? 'hlavního vedoucího'}.`
-                  : `Výkaz schválí ${primaryApprover?.full_name ?? 'přiřazený hlavní vedoucí'}.`}
-              </p>
-            </section>
-          ) : null}
 
           <section className="report-section report-section--compact">
             <h2>Typ práce</h2>

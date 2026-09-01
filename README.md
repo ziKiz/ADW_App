@@ -161,7 +161,7 @@ Referenční struktura je převzatá z `Documents/ADW Databazovy model.xlsx` a v
 - `roles`, `permissions`, `role_permissions`, `user_roles` - základ RBAC
 - `reports`, `work_report_lines`, `approvals`, `helios_checks`, `notifications`, `audit_log` - výkazy, schvalování, kontrola Helios a historie
 
-Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího, který provádí finální schválení výkazu. Pokud konkrétní činnost vykonal pro jiného vedoucího nebo středisko, nejprve ji potvrdí vedoucí této činnosti; teprve potom ji může hlavní vedoucí finálně schválit. Běžná práce pro vlastního vedoucího zůstává jednokroková.
+Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího, který provádí finální schválení výkazu. Pokud konkrétní činnost vykonal pro jiné středisko, nejprve ji potvrdí vedoucí tohoto střediska; teprve potom ji může hlavní vedoucí finálně schválit. Vedoucího činnosti určuje backend automaticky podle střediska zvoleného ve výkazu, zaměstnanec jej nevybírá. Běžná práce pro vlastní středisko a vedoucího zůstává jednokroková.
 
 Aktuální backend už používá JWT přihlášení, Alembic migrace, auditní stopu a serverovou kontrolu oprávnění u výkazů. Před ostrým provozem zůstává doplnit produkční integraci Helios a finální správu uživatelských hesel.
 

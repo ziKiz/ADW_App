@@ -45,12 +45,40 @@ def normalize_service_center(value: Any) -> str:
     return str(value or "").strip().casefold()
 
 
+async def find_center_approver(session: AsyncSession, service_center: Any) -> int | None:
+    center = str(service_center or "").strip()
+    if not center:
+        return None
+    return await session.scalar(
+        text(
+            """
+            SELECT id
+            FROM users
+            WHERE active = TRUE
+              AND archived_at IS NULL
+              AND role IN ('admin', 'reditel', 'schvalovatel', 'specialista')
+              AND LOWER(TRIM(COALESCE(scope_department, department_name))) = LOWER(TRIM(:service_center))
+            ORDER BY
+              CASE approval_level
+                WHEN 'Hlavní vedoucí' THEN 0
+                WHEN 'Vedoucí střediska' THEN 1
+                ELSE 2
+              END,
+              CASE role WHEN 'schvalovatel' THEN 0 WHEN 'specialista' THEN 1 WHEN 'reditel' THEN 2 ELSE 3 END,
+              id
+            LIMIT 1
+            """
+        ),
+        {"service_center": center},
+    )
+
+
 async def resolve_approval_route(
     session: AsyncSession,
     report_user_id: Any,
-    requested_task_approver_id: Any,
+    service_center: Any,
     *,
-    allow_alternate: bool,
+    route_by_center: bool,
 ) -> tuple[int | None, int | None, str]:
     employee = (
         await session.execute(
@@ -76,56 +104,30 @@ async def resolve_approval_route(
 
     primary_approver_id = employee.get("manager_id")
     if primary_approver_id is None:
-        primary_approver_id = await session.scalar(
-            text(
-                """
-                SELECT id
-                FROM users
-                WHERE active = TRUE
-                  AND archived_at IS NULL
-                  AND role IN ('admin', 'reditel', 'schvalovatel', 'specialista')
-                  AND COALESCE(scope_department, department_name) = :employee_scope
-                ORDER BY CASE role WHEN 'schvalovatel' THEN 0 WHEN 'specialista' THEN 1 WHEN 'reditel' THEN 2 ELSE 3 END, id
-                LIMIT 1
-                """
-            ),
-            {
-                "employee_scope": employee.get("scope_department") or employee.get("department_name"),
-            },
+        primary_approver_id = await find_center_approver(
+            session,
+            employee.get("scope_department") or employee.get("department_name"),
         )
 
     if primary_approver_id is None and normalize_role(employee.get("role")) in APPROVER_ROLES:
         primary_approver_id = int(report_user_id)
-
-    task_approver_id = primary_approver_id
-    if allow_alternate and requested_task_approver_id not in (None, ""):
-        try:
-            candidate_id = int(requested_task_approver_id)
-        except (TypeError, ValueError):
-            raise HTTPException(status_code=422, detail="Vybraný vedoucí činnosti není platný.")
-        candidate = (
-            await session.execute(
-                text(
-                    """
-                    SELECT id, role
-                    FROM users
-                    WHERE id = :id AND active = TRUE AND archived_at IS NULL
-                    """
-                ),
-                {"id": candidate_id},
-            )
-        ).mappings().first()
-        if candidate is None or normalize_role(candidate.get("role")) not in APPROVER_ROLES:
-            raise HTTPException(status_code=422, detail="Vybraný vedoucí činnosti nemá oprávnění schvalovat výkazy.")
-        task_approver_id = candidate_id
 
     if primary_approver_id is None:
         raise HTTPException(
             status_code=422,
             detail="Zaměstnanec nemá přiřazeného hlavního vedoucího. Obraťte se na administrátora.",
         )
-    if task_approver_id is None:
-        task_approver_id = primary_approver_id
+    task_approver_id = primary_approver_id
+    if route_by_center:
+        target_center = str(service_center or "").strip()
+        if not target_center:
+            raise HTTPException(status_code=422, detail="Pro pracovní výkaz vyberte středisko.")
+        task_approver_id = await find_center_approver(session, target_center)
+        if task_approver_id is None:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Středisko {target_center} nemá přiřazeného vedoucího. Obraťte se na administrátora.",
+            )
     task_status = "pending" if task_approver_id and task_approver_id != primary_approver_id else "not_required"
     return primary_approver_id, task_approver_id, task_status
 
@@ -324,8 +326,8 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     primary_approver_id, task_approver_id, task_approval_status = await resolve_approval_route(
         session,
         report_user_id,
-        payload.get("task_approver_id"),
-        allow_alternate=is_work,
+        payload.get("service_center"),
+        route_by_center=is_work,
     )
     if is_timed_report(payload):
         await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end)

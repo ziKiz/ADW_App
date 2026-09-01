@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from app.routers.approvals import approval_action_for_user, validate_approval_status
 from app.routers.dictionaries import can_view_attachment_code
 from app.config import Settings
-from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, validate_field_scope, validate_report_time_order
+from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
 from app.security import can_access_report, is_elevated_user
 
 
@@ -162,6 +162,74 @@ class ApprovalRoutingTests(unittest.TestCase):
             approval_action_for_user(self.report, {"id": 99, "role": "admin"}, "rejected"),
             "override_primary",
         )
+
+
+class FakeMappingResult:
+    def __init__(self, row):
+        self.row = row
+
+    def mappings(self):
+        return self
+
+    def first(self):
+        return self.row
+
+
+class FakeApprovalRouteSession:
+    def __init__(self, employee, center_approvers):
+        self.employee = employee
+        self.center_approvers = list(center_approvers)
+        self.scalar_params = []
+
+    async def execute(self, _statement, _params):
+        return FakeMappingResult(self.employee)
+
+    async def scalar(self, _statement, params):
+        self.scalar_params.append(params)
+        return self.center_approvers.pop(0)
+
+
+class ApprovalRouteResolutionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_work_route_uses_selected_center_leader(self):
+        session = FakeApprovalRouteSession(
+            {"manager_id": 10, "role": "traktorista", "department_name": "Rostlinná výroba", "scope_department": "Rostlinná výroba"},
+            [11],
+        )
+
+        route = await resolve_approval_route(session, 5, "Mechanizace", route_by_center=True)
+
+        self.assertEqual(route, (10, 11, "pending"))
+        self.assertEqual(session.scalar_params, [{"service_center": "Mechanizace"}])
+
+    async def test_same_primary_and_center_leader_stays_one_step(self):
+        session = FakeApprovalRouteSession(
+            {"manager_id": 10, "role": "traktorista", "department_name": "Rostlinná výroba", "scope_department": "Rostlinná výroba"},
+            [10],
+        )
+
+        route = await resolve_approval_route(session, 5, "Rostlinná výroba", route_by_center=True)
+
+        self.assertEqual(route, (10, 10, "not_required"))
+
+    async def test_absence_uses_only_primary_approver(self):
+        session = FakeApprovalRouteSession(
+            {"manager_id": 10, "role": "traktorista", "department_name": "Rostlinná výroba", "scope_department": "Rostlinná výroba"},
+            [],
+        )
+
+        route = await resolve_approval_route(session, 5, "Mechanizace", route_by_center=False)
+
+        self.assertEqual(route, (10, 10, "not_required"))
+        self.assertEqual(session.scalar_params, [])
+
+    async def test_work_route_rejects_center_without_leader(self):
+        session = FakeApprovalRouteSession(
+            {"manager_id": 10, "role": "traktorista", "department_name": "Rostlinná výroba", "scope_department": "Rostlinná výroba"},
+            [None],
+        )
+
+        with self.assertRaises(HTTPException):
+            await resolve_approval_route(session, 5, "Neznámé středisko", route_by_center=True)
 
 
 class AttachmentVisibilityTests(unittest.TestCase):

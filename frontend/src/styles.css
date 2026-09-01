@@ -545,32 +545,6 @@ label,
   letter-spacing: 0;
 }
 
-.approval-routing-section {
-  max-width: 760px;
-}
-
-.approval-routing-summary {
-  display: grid;
-  gap: 3px;
-  border-left: 4px solid var(--adw-green);
-  background: #f6faf7;
-  padding: 10px 12px;
-}
-
-.approval-routing-summary span {
-  color: var(--muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.approval-routing-summary strong {
-  color: var(--ink);
-}
-
-.approval-routing-picker {
-  max-width: 560px;
-}
-
 .report-section--compact {
   max-width: 760px;
 }

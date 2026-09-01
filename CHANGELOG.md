@@ -14,11 +14,17 @@ Formát:
 
 ## 2026-09-01
 
+### Automatické směrování podle střediska
+- Zaměstnanec už ve výkazu nevybírá vedoucího ani nemusí přemýšlet, komu má práci poslat; vyplňuje pouze středisko stejně jako dříve.
+- Backend určí vedoucího činnosti automaticky ze zvoleného střediska. Přednost má `Hlavní vedoucí`, potom `Vedoucí střediska`.
+- ID vedoucího poslané klientem se ignoruje, takže směrování nelze podvrhnout ručním API požadavkem.
+- Nová migrace přesměruje stejným pravidlem také dosud čekající pracovní výkazy a zachová už platná potvrzení správného vedoucího.
+
 ### Schvalování práce pro více vedoucích
-- Každá pracovní činnost má nově hlavního vedoucího zaměstnance a volitelného vedoucího činnosti, pokud zaměstnanec pracoval pro někoho jiného.
+- Každá pracovní činnost má nově hlavního vedoucího zaměstnance a automaticky určeného vedoucího zvoleného střediska.
 - Hlavní vedoucí zůstává finálním schvalovatelem; u práce pro jiného vedoucího lze finální schválení provést až po potvrzení konkrétní činnosti.
 - Běžný výkaz pro vlastního vedoucího zůstává jednokrokový, takže dosavadní pracovní postup se zaměstnancům ani vedoucím nekomplikuje.
-- Formulář výkazu má skrytou volbu `Práce pro jiného vedoucího` s vyhledáním podle jména nebo střediska.
+- Formulář výkazu zůstal pro zaměstnance jednoduchý a žádnou volbu schvalovatele neobsahuje.
 - Schvalovací přehled i detail ukazují, kdo má potvrdit činnost, kdo provede finální schválení a která část už je hotová.
 - Přístup k novým výkazům se řídí konkrétním přiřazením vedoucích; původní výkazy jsou při migraci bezpečně přiřazené dosavadnímu hlavnímu vedoucímu.
 - Přibyly testy přístupu napříč středisky, pořadí obou schválení a zachování jednokrokového schválení pro běžné výkazy.
