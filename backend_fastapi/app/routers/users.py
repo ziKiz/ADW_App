@@ -4,9 +4,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context
 from app.db import get_session
-from app.security import hash_password, require_roles
+from app.security import get_current_user, hash_password, require_roles
 
 router = APIRouter()
+
+
+@router.get("/approvers")
+async def list_approvers(session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
+    result = await session.execute(
+        text(
+            """
+            SELECT id, full_name, COALESCE(scope_department, department_name) AS department_name,
+              CASE
+                WHEN username = :manager_username THEN TRUE
+                WHEN :manager_username = '' AND id = :current_user_id THEN TRUE
+                ELSE FALSE
+              END AS is_primary
+            FROM users
+            WHERE archived_at IS NULL
+              AND active = TRUE
+              AND role IN ('admin', 'reditel', 'schvalovatel', 'specialista')
+            ORDER BY
+              CASE
+                WHEN username = :manager_username THEN 0
+                WHEN :manager_username = '' AND id = :current_user_id THEN 0
+                ELSE 1
+              END,
+              full_name,
+              id
+            """
+        ),
+        {"manager_username": user.get("manager_username") or "", "current_user_id": user.get("id")},
+    )
+    return [dict(row) for row in result.mappings().all()]
 
 
 @router.get("")

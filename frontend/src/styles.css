@@ -545,6 +545,32 @@ label,
   letter-spacing: 0;
 }
 
+.approval-routing-section {
+  max-width: 760px;
+}
+
+.approval-routing-summary {
+  display: grid;
+  gap: 3px;
+  border-left: 4px solid var(--adw-green);
+  background: #f6faf7;
+  padding: 10px 12px;
+}
+
+.approval-routing-summary span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.approval-routing-summary strong {
+  color: var(--ink);
+}
+
+.approval-routing-picker {
+  max-width: 560px;
+}
+
 .report-section--compact {
   max-width: 760px;
 }
@@ -1365,6 +1391,62 @@ label,
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.approval-progress {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #d7e5dc;
+  border-radius: 8px;
+  background: #f8fbf9;
+  padding: 12px;
+}
+
+.approval-progress-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.approval-progress-row span {
+  display: grid;
+  gap: 2px;
+  color: var(--ink);
+  font-size: 0.84rem;
+}
+
+.approval-progress-row b {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.approval-progress-row small {
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+}
+
+.approval-progress--compact {
+  min-width: 230px;
+  margin: 0;
+  padding: 7px 9px;
+}
+
+.approval-progress--compact .approval-progress-row {
+  gap: 8px;
+}
+
+.approval-progress--compact .approval-progress-row span {
+  max-width: 150px;
+  overflow: hidden;
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.approval-progress--compact .approval-progress-row b {
+  display: none;
 }
 
 .approval-table-panel .approval-table th,
@@ -2987,6 +3069,15 @@ label,
   .approval-day-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .approval-progress--compact {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .approval-progress--compact .approval-progress-row span {
+    max-width: min(62vw, 260px);
   }
 
   .approval-day-head {

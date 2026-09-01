@@ -21,6 +21,7 @@ ALGORITHM = "HS256"
 ELEVATED_ROLES = {"admin", "reditel"}
 SCOPED_REVIEW_ROLES = {"schvalovatel", "specialista"}
 APPROVED_VIEWER_ROLES = {"approved_viewer"}
+APPROVER_ROLES = ELEVATED_ROLES | SCOPED_REVIEW_ROLES
 
 
 def hash_password(password: str) -> str:
@@ -52,7 +53,11 @@ def can_access_report(report: Mapping[str, Any], user: Mapping[str, Any], *, all
     if report.get("user_id") == user.get("id"):
         return True
     if allow_scoped_review and normalize_role(user.get("role")) in SCOPED_REVIEW_ROLES:
-        return bool(report.get("service_center") and report.get("service_center") == user_scope_center(user))
+        if report.get("primary_approver_id") == user.get("id") or report.get("task_approver_id") == user.get("id"):
+            return True
+        # Compatibility fallback for reports created before approval routing existed.
+        if report.get("primary_approver_id") is None and report.get("task_approver_id") is None:
+            return bool(report.get("service_center") and report.get("service_center") == user_scope_center(user))
     return False
 
 

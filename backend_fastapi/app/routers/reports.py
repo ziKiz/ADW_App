@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import APPROVED_VIEWER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role
+from app.security import APPROVED_VIEWER_ROLES, APPROVER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role
 
 router = APIRouter()
 FIELD_SERVICE_CENTER = "Rostlinná výroba"
@@ -43,6 +43,91 @@ def is_timed_report(payload: dict[str, Any]) -> bool:
 
 def normalize_service_center(value: Any) -> str:
     return str(value or "").strip().casefold()
+
+
+async def resolve_approval_route(
+    session: AsyncSession,
+    report_user_id: Any,
+    requested_task_approver_id: Any,
+    *,
+    allow_alternate: bool,
+) -> tuple[int | None, int | None, str]:
+    employee = (
+        await session.execute(
+            text(
+                """
+                SELECT employee.department_name, employee.scope_department, employee.role, manager.id AS manager_id
+                FROM users employee
+                LEFT JOIN users manager
+                 ON manager.username = employee.manager_username
+                 AND manager.active = TRUE
+                 AND manager.archived_at IS NULL
+                 AND manager.role IN ('admin', 'reditel', 'schvalovatel', 'specialista')
+                WHERE employee.id = :user_id
+                  AND employee.active = TRUE
+                  AND employee.archived_at IS NULL
+                """
+            ),
+            {"user_id": report_user_id},
+        )
+    ).mappings().first()
+    if employee is None:
+        raise HTTPException(status_code=422, detail="Zaměstnanec pro schválení nebyl nalezen.")
+
+    primary_approver_id = employee.get("manager_id")
+    if primary_approver_id is None:
+        primary_approver_id = await session.scalar(
+            text(
+                """
+                SELECT id
+                FROM users
+                WHERE active = TRUE
+                  AND archived_at IS NULL
+                  AND role IN ('admin', 'reditel', 'schvalovatel', 'specialista')
+                  AND COALESCE(scope_department, department_name) = :employee_scope
+                ORDER BY CASE role WHEN 'schvalovatel' THEN 0 WHEN 'specialista' THEN 1 WHEN 'reditel' THEN 2 ELSE 3 END, id
+                LIMIT 1
+                """
+            ),
+            {
+                "employee_scope": employee.get("scope_department") or employee.get("department_name"),
+            },
+        )
+
+    if primary_approver_id is None and normalize_role(employee.get("role")) in APPROVER_ROLES:
+        primary_approver_id = int(report_user_id)
+
+    task_approver_id = primary_approver_id
+    if allow_alternate and requested_task_approver_id not in (None, ""):
+        try:
+            candidate_id = int(requested_task_approver_id)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=422, detail="Vybraný vedoucí činnosti není platný.")
+        candidate = (
+            await session.execute(
+                text(
+                    """
+                    SELECT id, role
+                    FROM users
+                    WHERE id = :id AND active = TRUE AND archived_at IS NULL
+                    """
+                ),
+                {"id": candidate_id},
+            )
+        ).mappings().first()
+        if candidate is None or normalize_role(candidate.get("role")) not in APPROVER_ROLES:
+            raise HTTPException(status_code=422, detail="Vybraný vedoucí činnosti nemá oprávnění schvalovat výkazy.")
+        task_approver_id = candidate_id
+
+    if primary_approver_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Zaměstnanec nemá přiřazeného hlavního vedoucího. Obraťte se na administrátora.",
+        )
+    if task_approver_id is None:
+        task_approver_id = primary_approver_id
+    task_status = "pending" if task_approver_id and task_approver_id != primary_approver_id else "not_required"
+    return primary_approver_id, task_approver_id, task_status
 
 
 def validate_field_scope(payload: dict[str, Any], is_work: bool) -> None:
@@ -110,6 +195,10 @@ def report_select(where: str = "") -> str:
         r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
         COALESCE(fe.fuel_liters, r.fuel_liters, 0) AS fuel_liters, fe.fuel_date, fe.fuel_note,
         r.notes, r.status, r.field_entries, r.attachments,
+        r.primary_approver_id, primary_approver.full_name AS primary_approver_name,
+        r.task_approver_id, task_approver.full_name AS task_approver_name,
+        r.primary_approval_status, r.task_approval_status,
+        r.primary_approved_at, r.task_approved_at, r.primary_approved_by, r.task_approved_by,
         t.tractor_name, f.field_name, w.name AS work_type,
         r.tractor_id, r.field_id, r.work_type_id
       FROM reports r
@@ -122,6 +211,8 @@ def report_select(where: str = "") -> str:
       LEFT JOIN tractors t ON r.tractor_id = t.id
       LEFT JOIN fields f ON r.field_id = f.id
       LEFT JOIN work_types w ON r.work_type_id = w.id
+      LEFT JOIN users primary_approver ON r.primary_approver_id = primary_approver.id
+      LEFT JOIN users task_approver ON r.task_approver_id = task_approver.id
       WHERE r.archived_at IS NULL {where}
     """
 
@@ -133,11 +224,18 @@ def reports_scope_clause(user: dict[str, Any], params: dict[str, Any], *, allow_
         params["approved_status"] = "approved"
         return " AND r.status = :approved_status"
     if allow_scoped_review and normalize_role(user.get("role")) in {"schvalovatel", "specialista"}:
-        scope = user.get("scope_department") or user.get("department_name")
-        if scope:
-            params["scope_center"] = scope
-            params["current_user_id"] = user["id"]
-            return " AND (r.user_id = :current_user_id OR r.service_center = :scope_center)"
+        params["current_user_id"] = user["id"]
+        params["scope_center"] = user.get("scope_department") or user.get("department_name")
+        return """ AND (
+          r.user_id = :current_user_id
+          OR r.primary_approver_id = :current_user_id
+          OR r.task_approver_id = :current_user_id
+          OR (
+            r.primary_approver_id IS NULL
+            AND r.task_approver_id IS NULL
+            AND r.service_center = :scope_center
+          )
+        )"""
     params["current_user_id"] = user["id"]
     return " AND r.user_id = :current_user_id"
 
@@ -223,6 +321,12 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     time_end = parse_time_value(payload.get("time_end"))
     validate_report_time_order(is_work or is_timed_report(payload), time_start, time_end)
     report_user_id, employee_name = report_identity_for_create(payload, user)
+    primary_approver_id, task_approver_id, task_approval_status = await resolve_approval_route(
+        session,
+        report_user_id,
+        payload.get("task_approver_id"),
+        allow_alternate=is_work,
+    )
     if is_timed_report(payload):
         await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end)
     result = await session.execute(
@@ -232,11 +336,13 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
               report_number, report_kind, tractor_id, user_id, employee_name, service_center, field_id, field_entries,
               work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, fuel_liters,
               half_day_leave, attachments, notes, status, submitted_at, created_by, updated_by
+              , primary_approver_id, task_approver_id, primary_approval_status, task_approval_status
             )
             VALUES (
               :report_number, :report_kind, :tractor_id, :user_id, :employee_name, :service_center, :field_id, CAST(:field_entries AS jsonb),
               :work_type_id, :date, :time_start, :time_end, :break_hours, :hours_worked, :amount_ha, 0,
               :half_day_leave, CAST(:attachments AS jsonb), :notes, 'pending', NOW(), :actor, :actor
+              , :primary_approver_id, :task_approver_id, 'pending', :task_approval_status
             )
             RETURNING id
             """
@@ -261,6 +367,9 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),
             "actor": user["full_name"],
+            "primary_approver_id": primary_approver_id,
+            "task_approver_id": task_approver_id,
+            "task_approval_status": task_approval_status,
         },
     )
     report_id = result.scalar_one()

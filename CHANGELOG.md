@@ -12,6 +12,17 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-09-01
+
+### Schvalování práce pro více vedoucích
+- Každá pracovní činnost má nově hlavního vedoucího zaměstnance a volitelného vedoucího činnosti, pokud zaměstnanec pracoval pro někoho jiného.
+- Hlavní vedoucí zůstává finálním schvalovatelem; u práce pro jiného vedoucího lze finální schválení provést až po potvrzení konkrétní činnosti.
+- Běžný výkaz pro vlastního vedoucího zůstává jednokrokový, takže dosavadní pracovní postup se zaměstnancům ani vedoucím nekomplikuje.
+- Formulář výkazu má skrytou volbu `Práce pro jiného vedoucího` s vyhledáním podle jména nebo střediska.
+- Schvalovací přehled i detail ukazují, kdo má potvrdit činnost, kdo provede finální schválení a která část už je hotová.
+- Přístup k novým výkazům se řídí konkrétním přiřazením vedoucích; původní výkazy jsou při migraci bezpečně přiřazené dosavadnímu hlavnímu vedoucímu.
+- Přibyly testy přístupu napříč středisky, pořadí obou schválení a zachování jednokrokového schválení pro běžné výkazy.
+
 ## 2026-08-30
 
 ### Bezpečnostní opravy výkazů

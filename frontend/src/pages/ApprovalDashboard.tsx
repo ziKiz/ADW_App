@@ -29,6 +29,14 @@ interface PendingReport {
   attachments?: Array<AttachmentSummary | string> | string | null;
   notes?: string;
   status: string;
+  primary_approver_id?: number;
+  primary_approver_name?: string;
+  task_approver_id?: number;
+  task_approver_name?: string;
+  primary_approval_status?: 'pending' | 'approved' | 'rejected';
+  task_approval_status?: 'not_required' | 'pending' | 'approved' | 'rejected';
+  primary_approved_by?: string;
+  task_approved_by?: string;
 }
 
 interface FieldEntrySummary {
@@ -226,6 +234,74 @@ function reportMinutes(report: PendingReport) {
   return start && end ? Math.max(0, timeToMinutes(end) - timeToMinutes(start)) : Number(report.hours_worked ?? 0) * 60;
 }
 
+type ApprovalAction = 'task' | 'primary' | 'override_task' | 'override_primary' | 'waiting_task' | 'waiting_primary' | 'none';
+
+function hasSeparateTaskApprover(report: PendingReport) {
+  return Boolean(report.task_approver_id && report.primary_approver_id && report.task_approver_id !== report.primary_approver_id);
+}
+
+function approvalStatusText(status?: string) {
+  if (status === 'approved') return 'Schváleno';
+  if (status === 'rejected') return 'Zamítnuto';
+  return 'Čeká';
+}
+
+function approvalStatusClass(status?: string) {
+  return status === 'approved' ? 'status-green' : status === 'rejected' ? 'status-red' : 'status-orange';
+}
+
+function approvalActionForViewer(report: PendingReport, user: ReturnType<typeof getUser>): ApprovalAction {
+  if (!user || report.status !== 'pending') return 'none';
+  const userId = Number(user.id);
+  const separate = hasSeparateTaskApprover(report);
+  if (separate && Number(report.task_approver_id) === userId && report.task_approval_status === 'pending') return 'task';
+  if (separate && Number(report.task_approver_id) === userId && report.task_approval_status === 'approved') return 'waiting_primary';
+  if (Number(report.primary_approver_id) === userId && report.primary_approval_status !== 'approved') {
+    return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'primary';
+  }
+  if (['admin', 'reditel'].includes(user.role)) {
+    if (separate && report.task_approval_status === 'pending') return 'override_task';
+    if (report.primary_approval_status !== 'approved') return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'override_primary';
+  }
+  return 'none';
+}
+
+function approvalActionLabel(action: ApprovalAction) {
+  if (action === 'task' || action === 'override_task') return 'Potvrdit činnost';
+  if (action === 'primary' || action === 'override_primary') return 'Finálně schválit';
+  if (action === 'waiting_task') return 'Čeká na vedoucího činnosti';
+  if (action === 'waiting_primary') return 'Čeká na finální schválení';
+  return 'Bez akce';
+}
+
+function canRunApprovalAction(action: ApprovalAction) {
+  return ['task', 'primary', 'override_task', 'override_primary'].includes(action);
+}
+
+function ApprovalProgress({ report, compact = false }: { report: PendingReport; compact?: boolean }) {
+  const separate = hasSeparateTaskApprover(report);
+  const primaryStatus = report.primary_approval_status ?? (report.status === 'approved' ? 'approved' : 'pending');
+  const taskStatus = report.task_approval_status ?? (separate ? 'pending' : 'not_required');
+  return (
+    <div className={`approval-progress${compact ? ' approval-progress--compact' : ''}`}>
+      {separate ? (
+        <div className="approval-progress-row">
+          <span><b>Vedoucí činnosti</b>{report.task_approver_name || 'Nepřiřazen'}</span>
+          <small className={approvalStatusClass(taskStatus)}>
+            {approvalStatusText(taskStatus)}{report.task_approved_by && report.task_approved_by !== report.task_approver_name ? ` · ${report.task_approved_by}` : ''}
+          </small>
+        </div>
+      ) : null}
+      <div className="approval-progress-row">
+        <span><b>Hlavní vedoucí</b>{report.primary_approver_name || 'Přiřazen systémem'}</span>
+        <small className={approvalStatusClass(primaryStatus)}>
+          {approvalStatusText(primaryStatus)}{report.primary_approved_by && report.primary_approved_by !== report.primary_approver_name ? ` · ${report.primary_approved_by}` : ''}
+        </small>
+      </div>
+    </div>
+  );
+}
+
 function formatHours(minutes: number) {
   return `${(minutes / 60).toFixed(1)} h`;
 }
@@ -267,9 +343,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         if (!isScopedApprovalRole(user?.role)) return items;
         const scope = user?.scope_department || user?.department_name;
         return items.filter((report) => (
-          getReportCenter(report) === scope ||
           Number(report.user_id) === Number(user?.id) ||
-          report.employee_name === user?.full_name
+          report.employee_name === user?.full_name ||
+          Number(report.primary_approver_id) === Number(user?.id) ||
+          Number(report.task_approver_id) === Number(user?.id) ||
+          (!report.primary_approver_id && !report.task_approver_id && getReportCenter(report) === scope)
         ));
       };
       setReports(filterForScope(response.data as PendingReport[]));
@@ -317,16 +395,18 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const handleApproval = async (reportId: number) => {
     try {
-      await client.post(`/approvals/${reportId}`, {
+      const response = await client.post(`/approvals/${reportId}`, {
         status: 'approved',
         approver_id: user?.id ?? 2,
         comment: 'Schváleno'
       });
-      setMessage('Výkaz schválen.');
+      setMessage(response.data?.message ?? 'Výkaz schválen.');
       loadReports();
+      return true;
     } catch (error) {
       console.error(error);
       setMessage('Chyba při aktualizaci výkazu.');
+      return false;
     }
   };
 
@@ -514,8 +594,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     const saved = await saveReportDetail();
     if (!saved) return;
 
-    await handleApproval(selectedReport.id);
-    setSelectedReport(null);
+    const approved = await handleApproval(selectedReport.id);
+    if (approved) setSelectedReport(null);
   };
 
   return (
@@ -568,7 +648,9 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </div>
                 </div>
                 <div className="approval-day-timeline">
-                  {group.reports.map((report) => (
+                  {group.reports.map((report) => {
+                    const reportAction = approvalActionForViewer(report, user);
+                    return (
                     <article key={report.id} className="approval-day-item">
                       <div>
                         <span className="approval-day-time">{displayTime(report)}</span>
@@ -576,11 +658,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                         <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${report.field_name || 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
                       </div>
                       <div className="approval-day-actions">
-                        <span className={report.status === 'approved' ? 'status-green' : 'status-orange'}>{report.status === 'approved' ? 'Schváleno' : 'Ke schválení'}</span>
-                        <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>{report.status === 'pending' ? 'Vyřešit' : 'Detail'}</button>
+                        <ApprovalProgress report={report} compact />
+                        <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>
+                          {report.status === 'pending' && canRunApprovalAction(reportAction) ? 'Vyřešit' : 'Detail'}
+                        </button>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             ))}
@@ -589,6 +674,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         {selectedReport ? (
           (() => {
             const absence = isAbsenceReport(selectedReport);
+            const approvalAction = approvalActionForViewer(selectedReport, user);
             return (
           <div className="modal-backdrop" role="presentation">
             <div className="modal-panel approval-detail-modal" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle">
@@ -599,6 +685,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 </div>
                 <button className="icon-action view" type="button" aria-label="Zavřít" onClick={() => setSelectedReport(null)}>×</button>
               </div>
+              <ApprovalProgress report={selectedReport} />
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
                 <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
@@ -724,7 +811,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               </div>
               {status === 'pending' && canApproveReports ? (
                 <div className="modal-actions">
-                  <button className="primary approve-large" type="button" onClick={handleDetailApproval}>Schválit výkaz</button>
+                  <button
+                    className="primary approve-large"
+                    type="button"
+                    disabled={!canRunApprovalAction(approvalAction)}
+                    onClick={handleDetailApproval}
+                  >
+                    {approvalActionLabel(approvalAction)}
+                  </button>
                 </div>
               ) : null}
             </div>

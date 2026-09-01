@@ -7,7 +7,7 @@ from app.config import settings
 from app.routers import approvals, audit, auth, contacts, dictionaries, export, notices, organization, reports, service_schedule, service_tasks, users
 
 
-app = FastAPI(title="ADW Live API", version="0.1.0")
+app = FastAPI(title="ADW Live API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
