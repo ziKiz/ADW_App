@@ -7,7 +7,7 @@ Revises: 0008_cross_manager_approvals
 from alembic import op
 
 
-revision = "0009_center_based_approval_routing"
+revision = "0009_center_approval"
 down_revision = "0008_cross_manager_approvals"
 branch_labels = None
 depends_on = None
