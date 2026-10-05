@@ -4,25 +4,41 @@ import { serviceCenters } from '../utils/employeeContext';
 
 function ExportView() {
   const [status, setStatus] = useState('');
+  const [exporting, setExporting] = useState(false);
   const [center, setCenter] = useState('all');
+  const now = new Date();
+  const [month, setMonth] = useState(String(now.getMonth() + 1));
+  const [year, setYear] = useState(String(now.getFullYear()));
+  const years = Array.from({ length: Math.max(1, now.getFullYear() - 2025 + 1) }, (_, index) => String(now.getFullYear() - index));
+  const months = [
+    'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
+    'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
+  ];
 
   const handleExport = async () => {
+    setExporting(true);
+    setStatus('');
     try {
       const response = await client.get('/export/csv', {
         responseType: 'blob',
-        params: { center }
+        params: { center, year: Number(year), month: month === 'all' ? undefined : Number(month) }
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'adw_reports.csv');
+      const disposition = String(response.headers['content-disposition'] ?? '');
+      const serverFilename = disposition.match(/filename="?([^";]+)"?/i)?.[1];
+      link.setAttribute('download', serverFilename ?? `adw_schvalene_${year}_${month}_${center}.csv`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
       setStatus('Export byl připraven.');
     } catch (error) {
       console.error(error);
       setStatus('Chyba při exportu.');
+    } finally {
+      setExporting(false);
     }
   };
   return (
@@ -31,18 +47,25 @@ function ExportView() {
         <div className="page-heading">
           <div>
             <p className="eyebrow">Webová aplikace - exporty</p>
-            <h1 className="page-title">Exporty</h1>
+            <h1 className="page-title">Export schválených výkazů</h1>
           </div>
-          <button type="button" className="primary" onClick={handleExport}>Export do Excelu</button>
+          <button type="button" className="primary" onClick={handleExport} disabled={exporting}>
+            {exporting ? 'Připravuji...' : 'Stáhnout CSV'}
+          </button>
         </div>
         <div className="filter-bar">
           <label>
             Měsíc
-            <select defaultValue="may"><option value="may">Květen</option></select>
+            <select value={month} onChange={(event) => setMonth(event.target.value)}>
+              <option value="all">Celý rok</option>
+              {months.map((item, index) => <option key={item} value={index + 1}>{item}</option>)}
+            </select>
           </label>
           <label>
             Rok
-            <select defaultValue="2026"><option value="2026">2026</option></select>
+            <select value={year} onChange={(event) => setYear(event.target.value)}>
+              {years.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </label>
           <label>
             Středisko
@@ -51,39 +74,7 @@ function ExportView() {
               {serviceCenters.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </label>
-          <label>
-            Stav výkazů
-            <select defaultValue="approved"><option value="approved">Schválené</option></select>
-          </label>
         </div>
-        <h2 className="table-title">Historie exportů</h2>
-        <table className="approval-table">
-          <thead>
-            <tr>
-              <th>Datum exportu</th>
-              <th>Období</th>
-              <th>Středisko</th>
-              <th>Soubor</th>
-              <th>Stav</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td data-label="Datum exportu">25. 5. 2026 10:15</td>
-              <td data-label="Období">Květen 2026</td>
-              <td data-label="Středisko">Vše</td>
-              <td data-label="Soubor">Vykazy_2026_05.xlsx</td>
-              <td data-label="Stav"><span className="status-green">Stáhnout</span></td>
-            </tr>
-            <tr>
-              <td data-label="Datum exportu">30. 4. 2026 09:20</td>
-              <td data-label="Období">Duben 2026</td>
-              <td data-label="Středisko">Vše</td>
-              <td data-label="Soubor">Vykazy_2026_04.xlsx</td>
-              <td data-label="Stav"><span className="status-green">Stáhnout</span></td>
-            </tr>
-          </tbody>
-        </table>
         {status && <p className="form-message">{status}</p>}
       </div>
     </div>

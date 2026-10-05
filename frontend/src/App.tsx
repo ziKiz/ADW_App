@@ -20,6 +20,7 @@ function App() {
   const canApprove = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
+  const canExportReports = canSeeAdminModules || user?.role === 'approved_viewer';
   const canCreateReport = !canSeeApprovals;
 
   if (!user && location.pathname !== '/login') {
@@ -45,7 +46,7 @@ function App() {
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/services" element={<ServiceSchedule />} />
           <Route path="/director" element={canSeeDirectorOverview ? <DirectorOverview /> : <Navigate to="/dashboard" replace />} />
-          <Route path="/export" element={canSeeAdminModules ? <ExportView /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/export" element={canExportReports ? <ExportView /> : <Navigate to="/dashboard" replace />} />
           <Route path="/archive" element={canSeeAdminModules ? <ArchiveView /> : <Navigate to="/dashboard" replace />} />
           <Route path="/users" element={canSeeAdminModules ? <UsersView /> : <Navigate to="/dashboard" replace />} />
           <Route path="/dictionaries" element={canSeeAdminModules ? <DictionariesView /> : <Navigate to="/dashboard" replace />} />

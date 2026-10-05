@@ -165,6 +165,8 @@ Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího, který prová
 
 Aktuální backend už používá JWT přihlášení, Alembic migrace, auditní stopu a serverovou kontrolu oprávnění u výkazů. Před ostrým provozem zůstává doplnit produkční integraci Helios a finální správu uživatelských hesel.
 
+Role `approved_viewer` slouží ekonomce pro čtení a export schválených výkazů napříč středisky. Export podporuje filtr roku, měsíce a střediska a neposkytuje této roli přístup k organizaci, číselníkům ani archivu.
+
 ## Poznámky
 
 - `frontend` používá `localStorage` pro uchování přihlášeného uživatele.

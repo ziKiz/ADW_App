@@ -12,6 +12,15 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-05
+
+### Exporty pro ekonomku
+- Role `approved_viewer`, kterou používá ekonomka Jana, má nově přístup pouze k exportu schválených výkazů; ostatní administrátorské části zůstávají nepřístupné.
+- Export lze skutečně omezit podle roku, měsíce a střediska. Filtry období už nejsou pouze grafické.
+- Výstup je pojmenovaný podle zvoleného období a střediska, používá stabilní CSV strukturu v UTF-8 a neutralizuje nebezpečné tabulkové vzorce.
+- CSV obsahuje přihlašovací identifikátor a jméno zaměstnance, druh výkazu a kód stroje, aby šel jednoznačněji zpracovat v navazujících systémech.
+- Z obrazovky byla odstraněna ukázková historie exportů, která nepředstavovala skutečně vytvořené soubory.
+
 ## 2026-09-01
 
 ### Automatické směrování podle střediska

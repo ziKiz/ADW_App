@@ -31,6 +31,7 @@ function BrandHeader() {
   const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeDirectorOverview = user?.role === 'admin' || user?.role === 'reditel';
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
+  const canExportReports = canSeeAdminModules || user?.role === 'approved_viewer';
   const canCreateReport = !canSeeApprovals;
   const canUseProfileSwitch = canSwitchProfile(user);
   const mobileUserName = (() => {
@@ -80,10 +81,10 @@ function BrandHeader() {
             {canSeeDirectorOverview ? <NavLink to="/director" end>Přehled ředitelství</NavLink> : null}
             <NavLink to="/users" end>Organizace</NavLink>
             <NavLink to="/dictionaries" end>Číselníky</NavLink>
-            <NavLink to="/export" end>Exporty</NavLink>
             <NavLink to="/archive" end>Archiv</NavLink>
           </>
         )}
+        {canExportReports ? <NavLink to="/export" end>Exporty</NavLink> : null}
         <NavLink to="/services" end>Služby</NavLink>
         <NavLink to="/contacts" end>Kontakty</NavLink>
       </nav>
@@ -96,7 +97,7 @@ function BrandHeader() {
             {!canApproveReports ? <NavLink to="/approvals/approved">Schválené</NavLink> : null}
             {canSeeDirectorOverview ? <NavLink to="/director" end>Ředitelství</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/dictionaries" end>Číselníky</NavLink> : null}
-            {canSeeAdminModules ? <NavLink to="/export" end>Exporty</NavLink> : null}
+            {canExportReports ? <NavLink to="/export" end>Exporty</NavLink> : null}
             {canSeeAdminModules ? <NavLink to="/archive" end>Archiv</NavLink> : null}
           </>
         )}

@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import date
 
 os.environ["APP_MODE"] = "local"
 
@@ -7,6 +8,7 @@ from fastapi import HTTPException
 
 from app.routers.approvals import approval_action_for_user, validate_approval_status
 from app.routers.dictionaries import can_view_attachment_code
+from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, export_period
 from app.config import Settings
 from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
 from app.security import can_access_report, is_elevated_user
@@ -238,6 +240,31 @@ class AttachmentVisibilityTests(unittest.TestCase):
 
     def test_approver_can_view_attachment_code(self):
         self.assertTrue(can_view_attachment_code({"role": "schvalovatel"}))
+
+
+class ExportTests(unittest.TestCase):
+    def test_approved_viewer_can_use_export_endpoint(self):
+        self.assertIn("approved_viewer", EXPORT_ROLES)
+        self.assertNotIn("traktorista", EXPORT_ROLES)
+
+    def test_export_period_handles_month_and_full_year(self):
+        self.assertEqual(export_period(2026, 10), (date(2026, 10, 1), date(2026, 11, 1)))
+        self.assertEqual(export_period(2026, None), (date(2026, 1, 1), date(2027, 1, 1)))
+
+    def test_export_requires_year_for_month(self):
+        with self.assertRaises(HTTPException):
+            export_period(None, 10)
+
+    def test_export_filename_is_stable_ascii(self):
+        self.assertEqual(export_filename(2026, 10, "Živočišná výroba"), "adw_schvalene_2026_10_zivocisna_vyroba.csv")
+
+    def test_csv_cell_neutralizes_spreadsheet_formula(self):
+        self.assertEqual(cell("=2+2"), '"\'=2+2"')
+
+    def test_export_contains_stable_employee_identifiers(self):
+        self.assertIn("Uživatel", HEADERS)
+        self.assertIn("Zaměstnanec", HEADERS)
+        self.assertIn("Kód stroje", HEADERS)
 
 
 class SettingsTests(unittest.TestCase):
