@@ -66,7 +66,9 @@ SPECIAL_WORK_TYPES = [
 ]
 
 LEADER_LEVELS = {"Hlavní vedoucí", "Agronom", "Zootechnička", "Vedoucí střediska", "Vedoucí dílen"}
-APPROVED_VIEWER_NAMES = {"Jana Bulíčková", "Jana Bobulová"}
+APPROVED_VIEWER_NAMES = {"Jana Bulíčková"}
+STANDARD_EMPLOYEE_NAMES = {"Jana Bobulová"}
+JANA_BULICKOVA_PASSWORD_HASH = "$2b$12$h.QFS5mIWGXzNtEdMqmzK.EGvHMrUd0EwnTcwQOvkhnBaWXhXoOuW"
 
 
 def normalize_center(value: Any) -> str:
@@ -102,12 +104,13 @@ def read_users(path: Path) -> list[dict[str, Any]]:
         if not full_name or not username or not password:
             continue
 
-        role = "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(level)
+        effective_level = "Podřízený" if full_name in STANDARD_EMPLOYEE_NAMES else level
+        role = "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(effective_level)
         manager_username = None
         manager_name = None
-        if level == "Podřízený" and current_center in primary_lead_by_center:
+        if effective_level == "Podřízený" and current_center in primary_lead_by_center:
             manager_username, manager_name = primary_lead_by_center[current_center]
-        elif level in LEADER_LEVELS and current_center not in primary_lead_by_center:
+        elif effective_level in LEADER_LEVELS and current_center not in primary_lead_by_center:
             primary_lead_by_center[current_center] = (username, full_name)
 
         rows.append({
@@ -119,8 +122,8 @@ def read_users(path: Path) -> list[dict[str, Any]]:
             "full_name": full_name,
             "department_name": current_center,
             "scope_department": current_center,
-            "position": "",
-            "approval_level": level,
+            "position": level if full_name in STANDARD_EMPLOYEE_NAMES else "",
+            "approval_level": effective_level,
             "manager_username": manager_username,
             "manager_name": manager_name,
             "active": True,
@@ -208,6 +211,42 @@ async def seed_users(session, users: list[dict[str, Any]]) -> None:
             ),
             user,
         )
+    await session.execute(text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true)"))
+
+
+async def seed_export_user(session) -> None:
+    await session.execute(
+        text(
+            """
+            INSERT INTO users(
+              username, email, password_hash, role, full_name, department_name, scope_department,
+              position, active, manager_username, manager_name, approval_level, created_by, updated_by, last_change
+            )
+            VALUES (
+              'jana.bulickova', 'jana.bulickova@lesonice.local', :password_hash, 'approved_viewer',
+              'Jana Bulíčková', NULL, NULL, 'Mzdová a personální kontrola / Helios', TRUE,
+              NULL, NULL, 'Schválené výkazy', 'Produkční seed', 'Produkční seed', 'Import exportního účtu'
+            )
+            ON CONFLICT (username) DO UPDATE SET
+              email = EXCLUDED.email,
+              password_hash = EXCLUDED.password_hash,
+              role = EXCLUDED.role,
+              full_name = EXCLUDED.full_name,
+              department_name = NULL,
+              scope_department = NULL,
+              position = EXCLUDED.position,
+              active = TRUE,
+              manager_username = NULL,
+              manager_name = NULL,
+              approval_level = EXCLUDED.approval_level,
+              archived_at = NULL,
+              archived_by = NULL,
+              updated_by = 'Produkční seed',
+              last_change = 'Aktualizace exportního účtu'
+            """
+        ),
+        {"password_hash": JANA_BULICKOVA_PASSWORD_HASH},
+    )
     await session.execute(text("SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1), true)"))
 
 
@@ -343,6 +382,7 @@ async def seed_production(login_xlsx: Path, reset: bool) -> None:
             await reset_database(session)
         await seed_departments(session)
         await seed_users(session, users)
+        await seed_export_user(session)
         await seed_work_types(session)
         await seed_fields(session)
         await seed_tractors(session)

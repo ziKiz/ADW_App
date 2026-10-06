@@ -12,6 +12,14 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-06
+
+### Oddělení účtů Jany Bulíčkové a Jany Bobulové
+- Vznikl samostatný účet `jana.bulickova` pro mzdovou a personální kontrolu, čtení schválených výkazů a exporty pro navazující systémy.
+- Jana Bobulová už nemá exportní výjimku a je vedena jako běžný zaměstnanec Živočišné výroby s vedoucím Vítem Špačkem.
+- Produkční seed i databázová migrace rozlišují obě osoby, aby se role při budoucí obnově databáze znovu nesloučily.
+- Případné čekající výkazy přiřazené Janě Bobulové ke schválení se při migraci převedou na jejího vedoucího.
+
 ## 2026-10-05
 
 ### Exporty pro ekonomku

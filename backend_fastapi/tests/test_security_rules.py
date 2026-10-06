@@ -11,6 +11,7 @@ from app.routers.dictionaries import can_view_attachment_code
 from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, export_period
 from app.config import Settings
 from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
+from app.seed_production import APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
 
 
@@ -265,6 +266,14 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Uživatel", HEADERS)
         self.assertIn("Zaměstnanec", HEADERS)
         self.assertIn("Kód stroje", HEADERS)
+
+    def test_only_jana_bulickova_has_named_export_exception(self):
+        self.assertIn("Jana Bulíčková", APPROVED_VIEWER_NAMES)
+        self.assertNotIn("Jana Bobulová", APPROVED_VIEWER_NAMES)
+
+    def test_jana_bobulova_is_forced_to_standard_employee(self):
+        self.assertIn("Jana Bobulová", STANDARD_EMPLOYEE_NAMES)
+        self.assertEqual(role_for_level("Podřízený"), "traktorista")
 
 
 class SettingsTests(unittest.TestCase):
