@@ -19,7 +19,6 @@ const collectionLabels: Record<string, string> = {
   notices: 'Informace',
   machine_service_tasks: 'Servis',
   reports: 'Výkaz',
-  fuel_entries: 'Tankování PHM',
   users: 'Uživatel',
   fields: 'Pozemek',
   tractors: 'Stroj',
@@ -78,8 +77,7 @@ function recordDescription(entry: AuditEntry) {
     payload.created_at ? `Od: ${formatCzechDateTime(String(payload.created_at))}` : '',
     payload.archived_at ? `Do: ${formatCzechDateTime(String(payload.archived_at))}` : '',
     payload.date ? `Datum: ${String(payload.date).slice(0, 10)}` : '',
-    payload.time_start && payload.time_end ? `Čas: ${String(payload.time_start).slice(0, 5)}-${String(payload.time_end).slice(0, 5)}` : '',
-    payload.liters ? `PHM: ${payload.liters} l` : ''
+    payload.time_start && payload.time_end ? `Čas: ${String(payload.time_start).slice(0, 5)}-${String(payload.time_end).slice(0, 5)}` : ''
   ].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'Bez detailního popisu.';
 }
@@ -91,7 +89,7 @@ function ArchiveView() {
 
   useEffect(() => {
     client.get('/audit', { params: { limit: 300 } })
-      .then((response) => setEntries(response.data as AuditEntry[]))
+      .then((response) => setEntries((response.data as AuditEntry[]).filter((entry) => entry.collection !== 'fuel_entries')))
       .catch((error) => {
         console.error(error);
         setMessage('Archiv se nepodařilo načíst.');

@@ -41,7 +41,6 @@ async def seed() -> None:
     attachments = load_json("attachments.json", [])
     work_types = load_json("work-types.json", [])
     reports = load_json("reports.json", [])
-    fuel_entries = load_json("fuel-entries.json", [])
     services = load_json("service-schedule.json", [])
 
     async with SessionLocal() as session:
@@ -64,8 +63,8 @@ async def seed() -> None:
             await session.execute(
                 text(
                     """
-                    INSERT INTO users(id, username, email, password_hash, role, full_name, department_name, scope_department, position, active, created_by, updated_by, last_change)
-                    VALUES (:id, :username, :email, :password_hash, :role, :full_name, :department_name, :scope_department, :position, :active, 'Seed demo dat', 'Seed demo dat', 'Import demo účtu')
+                    INSERT INTO users(id, username, email, password_hash, role, full_name, department_name, scope_department, position, active, approval_centers, default_field_group, created_by, updated_by, last_change)
+                    VALUES (:id, :username, :email, :password_hash, :role, :full_name, :department_name, :scope_department, :position, :active, :approval_centers, :default_field_group, 'Seed demo dat', 'Seed demo dat', 'Import demo účtu')
                     ON CONFLICT (id) DO UPDATE SET
                       username = EXCLUDED.username,
                       email = EXCLUDED.email,
@@ -74,6 +73,8 @@ async def seed() -> None:
                       department_name = EXCLUDED.department_name,
                       scope_department = EXCLUDED.scope_department,
                       position = EXCLUDED.position,
+                      approval_centers = EXCLUDED.approval_centers,
+                      default_field_group = EXCLUDED.default_field_group,
                       active = EXCLUDED.active,
                       updated_by = 'Seed demo dat',
                       last_change = 'Aktualizace demo účtu'
@@ -90,6 +91,8 @@ async def seed() -> None:
                     "scope_department": user.get("scope_department"),
                     "position": user.get("position"),
                     "active": user.get("active", True),
+                    "approval_centers": user.get("approval_centers") or [],
+                    "default_field_group": user.get("default_field_group"),
                 },
             )
 
@@ -97,11 +100,12 @@ async def seed() -> None:
             await session.execute(
                 text(
                     """
-                    INSERT INTO fields(id, field_code, field_name, quadrant, area, culture, crop, erosion, created_by, updated_by, last_change)
-                    VALUES (:id, :field_code, :field_name, :quadrant, :area, :culture, :crop, :erosion, 'Seed demo dat', 'Seed demo dat', 'Import pozemku')
+                    INSERT INTO fields(id, field_code, field_name, field_group, quadrant, area, culture, crop, erosion, created_by, updated_by, last_change)
+                    VALUES (:id, :field_code, :field_name, :field_group, :quadrant, :area, :culture, :crop, :erosion, 'Seed demo dat', 'Seed demo dat', 'Import pozemku')
                     ON CONFLICT (id) DO UPDATE SET
                       field_code = EXCLUDED.field_code,
                       field_name = EXCLUDED.field_name,
+                      field_group = EXCLUDED.field_group,
                       quadrant = EXCLUDED.quadrant,
                       area = EXCLUDED.area,
                       culture = EXCLUDED.culture,
@@ -114,6 +118,7 @@ async def seed() -> None:
                     "id": field.get("id"),
                     "field_code": field.get("field_code") or str(field.get("id")),
                     "field_name": field.get("field_name") or field.get("name") or f"Pozemek {field.get('id')}",
+                    "field_group": field.get("field_group") or "RSL",
                     "quadrant": field.get("quadrant"),
                     "area": field.get("area"),
                     "culture": field.get("culture"),
@@ -223,31 +228,11 @@ async def seed() -> None:
                     "break_hours": report.get("break_hours") or 0,
                     "hours_worked": report.get("hours_worked") or 0,
                     "amount_ha": report.get("amount_ha") or 0,
-                    "fuel_liters": report.get("fuel_liters") or 0,
+                    "fuel_liters": 0,
                     "half_day_leave": "Půldenní dovolená" in str(report.get("notes") or ""),
                     "attachments": json.dumps(report.get("attachments") or []),
                     "notes": report.get("notes"),
                     "status": report.get("status") or "pending",
-                },
-            )
-
-        for entry in fuel_entries:
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO fuel_entries(id, report_id, date, tractor_id, user_id, liters, note)
-                    VALUES (:id, :report_id, :date, :tractor_id, :user_id, :liters, :note)
-                    ON CONFLICT (id) DO NOTHING
-                    """
-                ),
-                {
-                    "id": entry.get("id"),
-                    "report_id": entry.get("report_id"),
-                    "date": parse_date(entry.get("date")),
-                    "tractor_id": entry.get("tractor_id"),
-                    "user_id": entry.get("user_id"),
-                    "liters": entry.get("liters") or 0,
-                    "note": entry.get("note"),
                 },
             )
 

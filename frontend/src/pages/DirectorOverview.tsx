@@ -8,7 +8,6 @@ interface ReportSummary {
   date: string;
   hours_worked?: number | string;
   amount_ha?: number | string;
-  fuel_liters?: number | string;
   tractor_name: string;
   work_type: string;
   notes?: string;
@@ -74,7 +73,6 @@ function DirectorOverview() {
     return [...rows.entries()].sort((a, b) => b[1].hectares - a[1].hectares);
   }, [centerReports]);
   const hectares = centerReports.reduce((sum, report) => sum + asNumber(report.amount_ha), 0);
-  const fuelTotal = centerReports.reduce((sum, report) => sum + asNumber(report.fuel_liters), 0);
   const showHectares = selectedCenter === 'Rostlinná výroba';
 
   return (
@@ -113,10 +111,6 @@ function DirectorOverview() {
               <div><span>Hektary za {periodLabel}</span><strong>{hectares.toFixed(1)}</strong></div>
             </article>
           ) : null}
-          <article className="approval-metric approval-metric--orange">
-            <span className="approval-metric__icon">PHM</span>
-            <div><span>PHM za {periodLabel}</span><strong>{fuelTotal.toFixed(0)} l</strong></div>
-          </article>
           <article className="approval-metric approval-metric--orange">
             <span className="approval-metric__icon">#</span>
             <div><span>Výkazy za {periodLabel}</span><strong>{centerReports.length}</strong></div>

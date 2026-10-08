@@ -98,6 +98,7 @@ function DictionariesView() {
       .filter((field) => [
         field.field_code,
         field.field_name,
+        field.field_group,
         field.area,
         field.culture,
         field.crop,
@@ -137,7 +138,7 @@ function DictionariesView() {
     if (activeTab === 'fields') {
       setEdited({
         kind: 'fields',
-        item: { id: 0, field_code: '', field_name: '', area: 0, culture: '', crop: '' }
+        item: { id: 0, field_code: '', field_name: '', field_group: 'RSL', area: 0, culture: '', crop: '' }
       });
     }
     if (activeTab === 'tractors') {
@@ -228,6 +229,7 @@ function DictionariesView() {
             <table className="approval-table">
               <thead>
                 <tr>
+                  <th>Oblast</th>
                   <th>DPB</th>
                   <th>Název pozemku</th>
                   <th>Výměra</th>
@@ -241,6 +243,7 @@ function DictionariesView() {
               <tbody>
                 {filteredFields.slice(0, 120).map((field) => (
                   <tr key={field.id}>
+                    <td data-label="Oblast">{field.field_group ?? '-'}</td>
                     <td data-label="DPB">{field.field_code}</td>
                     <td data-label="Název pozemku">{field.field_name}</td>
                     <td data-label="Výměra">{field.area ? `${field.area} ha` : '-'}</td>
@@ -323,6 +326,7 @@ function DictionariesView() {
               <div className="detail-grid">
                 {edited.kind === 'fields' ? (
                   <>
+                    <label>Oblast<select value={edited.item.field_group ?? 'RSL'} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_group: event.target.value as 'RSL' | 'MOHE' } })}><option value="RSL">RSL</option><option value="MOHE">MOHE</option></select></label>
                     <label>DPB<input value={edited.item.field_code} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_code: event.target.value } })} /></label>
                     <label>Název pozemku<input value={edited.item.field_name} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, field_name: event.target.value } })} /></label>
                     <label>Výměra<input type="number" step="0.01" value={edited.item.area ?? 0} onChange={(event) => setEdited({ kind: 'fields', item: { ...edited.item, area: Number(event.target.value) } })} /></label>

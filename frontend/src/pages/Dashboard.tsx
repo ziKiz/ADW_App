@@ -15,8 +15,6 @@ interface ReportSummary {
   time_end?: string;
   hours_worked?: number | string;
   amount_ha?: number | string;
-  fuel_liters?: number | string;
-  fuel_date?: string;
   notes?: string;
   report_kind?: string;
   status: string;
@@ -62,7 +60,7 @@ function parseCzechDate(value: string) {
 }
 
 function getAbsenceRange(report: ReportSummary) {
-  const noteRange = String(report.notes ?? '').match(/(?:Dovolená|Školení|Doktor|Darování krve):\s*(\d{2}\.\d{2}\.\d{4})\s*(?:až\s*)?(\d{2}\.\d{2}\.\d{4})?/);
+  const noteRange = String(report.notes ?? '').match(/(?:Dovolená|Školení|Doktor|Darování krve|Nemoc):\s*(\d{2}\.\d{2}\.\d{4})\s*(?:až\s*)?(\d{2}\.\d{2}\.\d{4})?/);
   const start = noteRange ? parseCzechDate(noteRange[1]) : String(report.date).slice(0, 10);
   const end = noteRange?.[2] ? parseCzechDate(noteRange[2]) : String(report.date).slice(0, 10);
   return { start: start ?? String(report.date).slice(0, 10), end: end ?? String(report.date).slice(0, 10) };
@@ -75,7 +73,6 @@ function activityText(entry: AuditEntry) {
     users: 'organizaci',
     workTypes: 'činnost',
     reports: 'výkaz',
-    fuel_entries: 'tankování PHM',
     notices: 'informaci na panelu',
     machine_service_tasks: 'servis stroje'
   };
@@ -128,7 +125,7 @@ function getReportCenter(report: Pick<ReportSummary, 'notes'>) {
 }
 
 function isAbsenceReport(report: Pick<ReportSummary, 'work_type'>) {
-  return ['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(report.work_type);
+  return ['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(report.work_type);
 }
 
 function isScopedApprovalRole(role?: string) {
@@ -195,34 +192,13 @@ function Dashboard() {
   const overdueReports = useMemo(() => pendingReports.filter(isOverdue), [pendingReports]);
   const lastUpdated = useMemo(() => formatCzechDateTime(new Date()), [reports]);
 
-  const fuelReports = useMemo(() => pendingReports.filter((report) => asNumber(report.fuel_liters) > 0), [pendingReports]);
-
   const longShiftReports = useMemo(() => pendingReports.filter((report) =>
     calculateHours(report.time_start, report.time_end) > 10
   ), [pendingReports]);
 
-  const fuelSourceReports = useMemo(() => {
-    if (user?.role === 'schvalovatel' || user?.role === 'specialista') {
-      return visibleReports.filter((report) => getReportCenter(report) === userServiceCenter);
-    }
-    return visibleReports;
-  }, [user?.role, userServiceCenter, visibleReports]);
-
-  const machineFuel = useMemo(() => {
-    const totals = new Map<string, number>();
-    for (const report of fuelSourceReports) {
-      totals.set(report.tractor_name, (totals.get(report.tractor_name) ?? 0) + asNumber(report.fuel_liters));
-    }
-    return [...totals.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((first, second) => second.value - first.value)
-      .slice(0, 20);
-  }, [fuelSourceReports]);
-
   const canManageNotices = user?.role === 'admin' || user?.role === 'reditel';
   const canArchiveNotices = user?.role === 'admin';
   const canManageService = user?.role === 'admin' || user?.role === 'schvalovatel';
-  const canSeeFuelOverview = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canSeeActivity = user?.role === 'admin' || user?.role === 'reditel';
   const isTractorOperator = user?.role === 'traktorista' || user?.role === 'zamestnanec';
 
@@ -254,23 +230,11 @@ function Dashboard() {
   const absencesToday = useMemo(() => {
     const today = toIsoDate(new Date());
     return visibleReports
-      .filter((report) => ['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(report.work_type))
+      .filter((report) => ['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(report.work_type))
       .map((report) => ({ report, range: getAbsenceRange(report) }))
       .filter((item) => item.range.start <= today && item.range.end >= today)
       .sort((first, second) => String(first.report.employee_name ?? '').localeCompare(String(second.report.employee_name ?? ''), 'cs-CZ'));
   }, [visibleReports]);
-  const fuelOverview = useMemo(() => {
-    const now = new Date();
-    const sumForDays = (days: number) => fuelSourceReports
-      .filter((report) => {
-        const reportDate = new Date(`${String(report.fuel_date || report.date).slice(0, 10)}T12:00:00`);
-        return (now.getTime() - reportDate.getTime()) / (24 * 60 * 60 * 1000) <= days;
-      })
-      .reduce((sum, report) => sum + asNumber(report.fuel_liters), 0);
-    return [
-      { label: userServiceCenter, value: sumForDays(7) }
-    ];
-  }, [fuelSourceReports, userServiceCenter]);
 
   const submitNotice = async () => {
     if (!noticeTitle.trim() || !noticeMessage.trim()) {
@@ -498,7 +462,6 @@ function Dashboard() {
                   <div><span>Pozemek</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.field_name}</strong></div>
                   <div><span>Stroj</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.tractor_name}</strong></div>
                   <div><span>Výkon</span><strong>{displayReportPerformance(selectedUserReport)}</strong></div>
-                  <div><span>Tankování</span><strong>{asNumber(selectedUserReport.fuel_liters).toFixed(1)} l</strong></div>
                   <div className="readonly-detail-grid__wide"><span>Poznámka</span><p>{selectedUserReport.notes || '-'}</p></div>
                 </div>
               </div>
@@ -533,24 +496,10 @@ function Dashboard() {
         <section className="attention-panel">
           <h2>Na co si dát pozor</h2>
           <div className="attention-grid">
-            <article><strong>{fuelReports.length}</strong><span>výkazů obsahuje tankování PHM</span></article>
             <article><strong>{longShiftReports.length}</strong><span>výkazů obsahuje směnu nad 10 hodin</span></article>
-            <article><strong>{absencesToday.length}</strong><span>lidí dnes na dovolené nebo školení</span></article>
+            <article><strong>{absencesToday.length}</strong><span>lidí dnes nepřítomných nebo na školení</span></article>
           </div>
         </section>
-        {canSeeFuelOverview ? (
-          <section className="attention-panel">
-            <h2>Tankování PHM</h2>
-            <div className="fuel-overview-grid">
-              {fuelOverview.map((item) => (
-                <article key={item.label}>
-                  <span>{item.label} za 7 dní</span>
-                  <strong>{item.value.toFixed(0)} l</strong>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
 
         <section className="approval-table-panel">
           <div className="approval-panel-heading">
@@ -587,7 +536,7 @@ function Dashboard() {
                         <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
                         <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
                         <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
-                        <td className="mobile-hide" data-label="Výkon">{isAbsenceReport(report) ? '-' : `${asNumber(report.amount_ha).toFixed(1)} ha · tankování ${asNumber(report.fuel_liters).toFixed(0)} l`}</td>
+                        <td className="mobile-hide" data-label="Výkon">{isAbsenceReport(report) ? '-' : `${asNumber(report.amount_ha).toFixed(1)} ha`}</td>
                         <td data-label="Akce"><Link className="edit-action" to={`/approvals?report=${report.id}`}>Otevřít</Link></td>
                       </tr>
                     );
@@ -601,23 +550,6 @@ function Dashboard() {
         <div className="approval-bottom-grid">
           {ServicePanel}
           {AbsencePanel}
-          {canSeeFuelOverview ? (
-            <section className="approval-small-panel">
-              <h2>Tankování PHM podle strojů</h2>
-              <div className="machine-fuel-list small-panel-scroll">
-                {machineFuel.length === 0 ? (
-                  <p className="empty-state empty-state--compact">Žádné tankování PHM v aktuálním přehledu.</p>
-                ) : (
-                  machineFuel.map((item) => (
-                    <div key={item.name} className="machine-fuel-row">
-                      <span>{item.name}</span>
-                      <strong>{item.value.toFixed(0)} l</strong>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          ) : null}
           {canSeeActivity ? (
           <section className="approval-small-panel">
             <h2>Poslední aktivita</h2>

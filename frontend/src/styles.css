@@ -721,6 +721,12 @@ label,
   background: var(--adw-green-soft);
 }
 
+.field-group-selector {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 360px;
+  margin-bottom: 14px;
+}
+
 .repeat-list {
   display: grid;
   gap: 10px;
@@ -2827,6 +2833,18 @@ label,
     min-height: 44px;
     padding: 0 14px;
     white-space: nowrap;
+  }
+
+  .field-group-selector {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+
+  .field-group-selector button {
+    min-width: 0;
+    width: auto;
+    flex: initial;
   }
 
   .approval-status-tabs {

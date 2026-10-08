@@ -148,9 +148,7 @@ node scripts/check-changelog.mjs
 
 ## Přihlášení
 
-Lokální prototyp používá demo přihlášení přes `localStorage`. Výchozí demo uživatel:
-
-- Ing. Martina Novotná, administrátor systému
+Živá aplikace používá přihlašovací jméno, bcrypt hash hesla a dlouhodobý JWT token. Přihlášení zůstává uložené do ručního odhlášení nebo zneplatnění účtu/tokenu.
 
 ## Organizační model
 
@@ -161,11 +159,13 @@ Referenční struktura je převzatá z `Documents/ADW Databazovy model.xlsx` a v
 - `roles`, `permissions`, `role_permissions`, `user_roles` - základ RBAC
 - `reports`, `work_report_lines`, `approvals`, `helios_checks`, `notifications`, `audit_log` - výkazy, schvalování, kontrola Helios a historie
 
-Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího, který provádí finální schválení výkazu. Pokud konkrétní činnost vykonal pro jiné středisko, nejprve ji potvrdí vedoucí tohoto střediska; teprve potom ji může hlavní vedoucí finálně schválit. Vedoucího činnosti určuje backend automaticky podle střediska zvoleného ve výkazu, zaměstnanec jej nevybírá. Běžná práce pro vlastní středisko a vedoucího zůstává jednokroková.
+Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího. Pokud konkrétní činnost vykonal pro jiné středisko, nejprve ji potvrdí vedoucí tohoto střediska; teprve potom ji může hlavní vedoucí finálně schválit. Vedoucího činnosti určuje backend automaticky podle střediska zvoleného ve výkazu, zaměstnanec jej nevybírá. RV společně schvalují Zbyněk Pokorný a Filip Daňhel, Mechanizaci Martina Novotná a Karel Trnka. U těchto dvojic stačí jedno schválení a druhý vedoucí ihned vidí výsledek i auditní údaje.
+
+Pozemky jsou rozdělené do oblastí `RSL` a `MOHE`. Uživatelé RV začínají v oblasti RSL, mohou přepnout na MOHE a pracovní výkaz RV lze podle povahy práce uložit i bez pozemku.
 
 Aktuální backend už používá JWT přihlášení, Alembic migrace, auditní stopu a serverovou kontrolu oprávnění u výkazů. Před ostrým provozem zůstává doplnit produkční integraci Helios a finální správu uživatelských hesel.
 
-Role `approved_viewer` slouží ekonomce Janě Bulíčkové pro čtení a export schválených výkazů napříč středisky. Export podporuje filtr roku, měsíce a střediska a neposkytuje této roli přístup k organizaci, číselníkům ani archivu. Jana Bobulová je samostatný běžný zaměstnanecký účet Živočišné výroby.
+Role `approved_viewer` slouží kontrolorce Janě Bulíčkové pro čtení a export schválených výkazů napříč středisky. Export podporuje filtr roku, měsíce a střediska a neposkytuje této roli přístup k organizaci, číselníkům ani archivu. Jana Bobulová je samostatný běžný zaměstnanecký účet Živočišné výroby.
 
 ## Poznámky
 

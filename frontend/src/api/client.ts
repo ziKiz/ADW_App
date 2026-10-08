@@ -7,7 +7,6 @@ export const APP_MODE = import.meta.env.VITE_APP_MODE || 'static-demo';
 export const isLiveMode = APP_MODE === 'live';
 const demoDataBase = `${import.meta.env.BASE_URL}demo-data`;
 const storedReportsKey = 'adw_demo_reports';
-const storedFuelEntriesKey = 'adw_demo_fuel_entries';
 const storedUsersKey = 'adw_demo_users';
 const storedAuditKey = 'adw_demo_audit';
 const storedNoticesKey = 'adw_notice_board';
@@ -65,7 +64,7 @@ function csvCell(value: unknown) {
 }
 
 function buildReportsCsv(reports: any[]) {
-  const headers = ['Číslo výkazu', 'Datum', 'Od', 'Do', 'Pauza', 'Hodiny', 'Počet ha', 'Tankování PHM (l)', 'Datum tankování', 'Stroj tankování', 'Traktor práce', 'Pole', 'Typ práce', 'Poznámka'];
+  const headers = ['Číslo výkazu', 'Datum', 'Od', 'Do', 'Pauza', 'Hodiny', 'Počet ha', 'Traktor práce', 'Pole', 'Typ práce', 'Poznámka'];
   const rows = reports.map((report) => [
     report.report_number,
     String(report.date ?? '').slice(0, 10),
@@ -74,9 +73,6 @@ function buildReportsCsv(reports: any[]) {
     report.break_hours,
     report.hours_worked,
     report.amount_ha,
-    report.fuel_liters,
-    report.fuel_date ? String(report.fuel_date).slice(0, 10) : '',
-    report.tractor_name,
     report.tractor_name,
     report.field_name,
     report.work_type,
@@ -106,19 +102,13 @@ function appendDemoAudit(collection: string, recordId: number, action: string, b
   setStoredJson(storedAuditKey, audit);
 }
 
-function decorateReports(reports: any[], fields: any[], tractors: any[], workTypes: any[], fuelEntries: any[]) {
+function decorateReports(reports: any[], fields: any[], tractors: any[], workTypes: any[]) {
   return reports.map((report) => {
     const field = fields.find((item) => Number(item.id) === Number(report.field_id));
     const tractor = tractors.find((item) => Number(item.id) === Number(report.tractor_id));
     const workType = workTypes.find((item) => Number(item.id) === Number(report.work_type_id));
-    const reportFuelEntries = fuelEntries.filter((item) => Number(item.report_id) === Number(report.id));
-    const fuelLiters = reportFuelEntries.reduce((sum, item) => sum + Number(item.liters || 0), 0);
     return {
       ...report,
-      fuel_entries: reportFuelEntries,
-      fuel_liters: fuelLiters > 0 ? fuelLiters : Number(report.fuel_liters || 0),
-      fuel_date: reportFuelEntries[0]?.date,
-      fuel_note: reportFuelEntries[0]?.note,
       field_name: report.field_name ?? field?.field_name ?? (report.field_id ? `Pole ${report.field_id}` : '-'),
       tractor_name: report.tractor_name ?? tractor?.tractor_name ?? (report.tractor_id ? `Stroj ${report.tractor_id}` : '-'),
       work_type: report.work_type ?? workType?.name ?? `Činnost ${report.work_type_id}`
@@ -189,16 +179,14 @@ async function getDemoLastUsedReport() {
 }
 
 async function getDemoReports() {
-  const [reports, fields, tractors, workTypes, fuelEntries] = await Promise.all([
+  const [reports, fields, tractors, workTypes] = await Promise.all([
     loadDemoJson<any[]>('reports.json'),
     loadDemoJson<any[]>('fields.json'),
     loadDemoJson<any[]>('tractors.json'),
-    loadDemoJson<any[]>('work-types.json'),
-    loadDemoJson<any[]>('fuel-entries.json').catch(() => [])
+    loadDemoJson<any[]>('work-types.json')
   ]);
   const storedReports = getStoredJson<any[]>(storedReportsKey, []);
-  const storedFuelEntries = getStoredJson<any[]>(storedFuelEntriesKey, []);
-  return decorateReports([...reports, ...storedReports], fields, tractors, workTypes, [...fuelEntries, ...storedFuelEntries])
+  return decorateReports([...reports, ...storedReports], fields, tractors, workTypes)
     .sort((first, second) => String(second.created_at ?? '').localeCompare(String(first.created_at ?? '')));
 }
 
@@ -248,31 +236,18 @@ async function createDemoReport(config: InternalAxiosRequestConfig) {
     throw new Error('V zadaném čase už existuje jiný výkaz.');
   }
   const storedReports = getStoredJson<any[]>(storedReportsKey, []);
-  const storedFuelEntries = getStoredJson<any[]>(storedFuelEntriesKey, []);
   const now = new Date().toISOString();
   const id = existingReports.reduce((maxId, report) => Math.max(maxId, Number(report.id || 0)), 0) + 1;
   const report = {
     ...body,
     id,
-    fuel_liters: 0,
     status: 'pending',
     created_at: now,
     updated_at: now
   };
 
   storedReports.push(report);
-  if (body.fuel_entry && Number(body.fuel_entry.liters || 0) > 0) {
-    storedFuelEntries.push({
-      ...body.fuel_entry,
-      id: storedFuelEntries.reduce((maxId, entry) => Math.max(maxId, Number(entry.id || 0)), 0) + 10000,
-      report_id: id,
-      created_at: now,
-      updated_at: now
-    });
-  }
-
   setStoredJson(storedReportsKey, storedReports);
-  setStoredJson(storedFuelEntriesKey, storedFuelEntries);
   appendDemoAudit('reports', id, 'create', null, report);
   return responseFromDemo(config, { id, local: true });
 }

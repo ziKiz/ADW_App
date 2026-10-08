@@ -56,6 +56,7 @@ WORK_TYPES = [
     "Úklid",
     "Práce BPS",
     "Čištění stroje",
+    "Kypření",
 ]
 
 SPECIAL_WORK_TYPES = [
@@ -63,6 +64,7 @@ SPECIAL_WORK_TYPES = [
     ("Školení", "Účast na školení nebo interní vzdělávání"),
     ("Doktor", "Návštěva lékaře nebo zdravotní volno"),
     ("Darování krve", "Celodenní absence z důvodu darování krve"),
+    ("Nemoc", "Celodenní absence z důvodu nemoci"),
 ]
 
 LEADER_LEVELS = {"Hlavní vedoucí", "Agronom", "Zootechnička", "Vedoucí střediska", "Vedoucí dílen"}
@@ -124,6 +126,8 @@ def read_users(path: Path) -> list[dict[str, Any]]:
             "scope_department": current_center,
             "position": level if full_name in STANDARD_EMPLOYEE_NAMES else "",
             "approval_level": effective_level,
+            "approval_centers": [current_center] if role in {"schvalovatel", "specialista"} else [],
+            "default_field_group": "RSL" if current_center == "Rostlinná výroba" else None,
             "manager_username": manager_username,
             "manager_name": manager_name,
             "active": True,
@@ -186,11 +190,13 @@ async def seed_users(session, users: list[dict[str, Any]]) -> None:
                 """
                 INSERT INTO users(
                   id, username, email, password_hash, role, full_name, department_name, scope_department,
-                  position, active, manager_username, manager_name, approval_level, created_by, updated_by, last_change
+                  position, active, manager_username, manager_name, approval_level, approval_centers,
+                  default_field_group, created_by, updated_by, last_change
                 )
                 VALUES (
                   :id, :username, :email, :password_hash, :role, :full_name, :department_name, :scope_department,
-                  :position, :active, :manager_username, :manager_name, :approval_level,
+                  :position, :active, :manager_username, :manager_name, :approval_level, :approval_centers,
+                  :default_field_group,
                   'Produkční seed', 'Produkční seed', 'Import ostrých účtů'
                 )
                 ON CONFLICT (username) DO UPDATE SET
@@ -205,6 +211,8 @@ async def seed_users(session, users: list[dict[str, Any]]) -> None:
                   manager_username = EXCLUDED.manager_username,
                   manager_name = EXCLUDED.manager_name,
                   approval_level = EXCLUDED.approval_level,
+                  approval_centers = EXCLUDED.approval_centers,
+                  default_field_group = EXCLUDED.default_field_group,
                   updated_by = 'Produkční seed',
                   last_change = 'Aktualizace ostrého účtu'
                 """
@@ -224,7 +232,7 @@ async def seed_export_user(session) -> None:
             )
             VALUES (
               'jana.bulickova', 'jana.bulickova@lesonice.local', :password_hash, 'approved_viewer',
-              'Jana Bulíčková', NULL, NULL, 'Mzdová a personální kontrola / Helios', TRUE,
+              'Jana Bulíčková', NULL, NULL, 'Kontrolorka', TRUE,
               NULL, NULL, 'Schválené výkazy', 'Produkční seed', 'Produkční seed', 'Import exportního účtu'
             )
             ON CONFLICT (username) DO UPDATE SET
@@ -294,11 +302,12 @@ async def seed_fields(session) -> None:
         await session.execute(
             text(
                 """
-                INSERT INTO fields(id, field_code, field_name, quadrant, area, culture, crop, erosion, created_by, updated_by, last_change)
-                VALUES (:id, :field_code, :field_name, :quadrant, :area, :culture, :crop, :erosion, 'Produkční seed', 'Produkční seed', 'Import pozemku')
+                INSERT INTO fields(id, field_code, field_name, field_group, quadrant, area, culture, crop, erosion, created_by, updated_by, last_change)
+                VALUES (:id, :field_code, :field_name, :field_group, :quadrant, :area, :culture, :crop, :erosion, 'Produkční seed', 'Produkční seed', 'Import pozemku')
                 ON CONFLICT (id) DO UPDATE SET
                   field_code = EXCLUDED.field_code,
                   field_name = EXCLUDED.field_name,
+                  field_group = EXCLUDED.field_group,
                   quadrant = EXCLUDED.quadrant,
                   area = EXCLUDED.area,
                   culture = EXCLUDED.culture,
@@ -311,6 +320,7 @@ async def seed_fields(session) -> None:
                 "id": field.get("id"),
                 "field_code": field.get("field_code") or str(field.get("id")),
                 "field_name": field.get("field_name") or field.get("name") or f"Pozemek {field.get('id')}",
+                "field_group": field.get("field_group") or "RSL",
                 "quadrant": field.get("quadrant"),
                 "area": field.get("area"),
                 "culture": field.get("culture"),

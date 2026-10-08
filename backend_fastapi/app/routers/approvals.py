@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import can_access_report, is_elevated_user, require_roles
+from app.security import can_access_report, is_elevated_user, require_roles, user_can_review_center
 
 router = APIRouter()
 ALLOWED_APPROVAL_STATUSES = {"approved", "rejected"}
@@ -22,10 +22,12 @@ def approval_action_for_user(report: dict, user: dict, requested_status: str) ->
     primary_id = int(report["primary_approver_id"]) if report.get("primary_approver_id") is not None else None
     task_id = int(report["task_approver_id"]) if report.get("task_approver_id") is not None else None
     separate_task_approval = task_id is not None and task_id != primary_id
+    can_act_for_task_center = separate_task_approval and user_can_review_center(user, report.get("service_center"))
+    can_act_for_primary_center = user_can_review_center(user, report.get("employee_center"))
 
-    if separate_task_approval and user_id == task_id and report.get("task_approval_status") == "pending":
+    if separate_task_approval and (user_id == task_id or can_act_for_task_center) and report.get("task_approval_status") == "pending":
         return "task" if requested_status == "approved" else "task_rejection_forbidden"
-    if user_id == primary_id and report.get("primary_approval_status") == "pending":
+    if (user_id == primary_id or can_act_for_primary_center) and report.get("primary_approval_status") == "pending":
         if requested_status == "approved" and separate_task_approval and report.get("task_approval_status") != "approved":
             return "waiting_for_task"
         return "primary"
@@ -44,7 +46,20 @@ def approval_action_for_user(report: dict, user: dict, requested_status: str) ->
 @router.post("/{report_id}")
 async def approve_report(report_id: int, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel", "schvalovatel", "specialista"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
-    report = (await session.execute(text("SELECT * FROM reports WHERE id = :id AND archived_at IS NULL FOR UPDATE"), {"id": report_id})).mappings().first()
+    report = (
+        await session.execute(
+            text(
+                """
+                SELECT r.*, COALESCE(employee.scope_department, employee.department_name) AS employee_center
+                FROM reports r
+                LEFT JOIN users employee ON employee.id = r.user_id
+                WHERE r.id = :id AND r.archived_at IS NULL
+                FOR UPDATE OF r
+                """
+            ),
+            {"id": report_id},
+        )
+    ).mappings().first()
     if report is None:
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
     if not can_access_report(report, user, allow_scoped_review=True):

@@ -14,6 +14,7 @@ interface PendingReport {
   work_type_id?: number;
   user_id?: number;
   service_center?: string;
+  employee_center?: string;
   date: string;
   time_start?: string | null;
   time_end?: string | null;
@@ -22,9 +23,6 @@ interface PendingReport {
   work_type: string;
   hours_worked?: number | string;
   amount_ha?: number | string;
-  fuel_liters?: number | string;
-  fuel_date?: string;
-  fuel_note?: string;
   field_entries?: FieldEntrySummary[] | string | null;
   attachments?: Array<AttachmentSummary | string> | string | null;
   notes?: string;
@@ -37,6 +35,8 @@ interface PendingReport {
   task_approval_status?: 'not_required' | 'pending' | 'approved' | 'rejected';
   primary_approved_by?: string;
   task_approved_by?: string;
+  primary_approved_at?: string;
+  task_approved_at?: string;
 }
 
 interface FieldEntrySummary {
@@ -102,7 +102,7 @@ function isEndAfterStart(start: string, end: string) {
   return timeToMinutes(end) > timeToMinutes(start);
 }
 
-const absenceWorkTypes = ['Dovolená', 'Školení', 'Doktor', 'Darování krve'];
+const absenceWorkTypes = ['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'];
 
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
   return report ? absenceWorkTypes.includes(report.work_type) : false;
@@ -220,6 +220,7 @@ function workTypeKind(report: PendingReport) {
   if (report.work_type === 'Doktor') return 'doctor';
   if (report.work_type === 'Školení') return 'training';
   if (report.work_type === 'Darování krve') return 'blood';
+  if (report.work_type === 'Nemoc') return 'sick';
   return 'work';
 }
 
@@ -254,9 +255,14 @@ function approvalActionForViewer(report: PendingReport, user: ReturnType<typeof 
   if (!user || report.status !== 'pending') return 'none';
   const userId = Number(user.id);
   const separate = hasSeparateTaskApprover(report);
-  if (separate && Number(report.task_approver_id) === userId && report.task_approval_status === 'pending') return 'task';
-  if (separate && Number(report.task_approver_id) === userId && report.task_approval_status === 'approved') return 'waiting_primary';
-  if (Number(report.primary_approver_id) === userId && report.primary_approval_status !== 'approved') {
+  const centers = [...(user.approval_centers ?? []), user.scope_department ?? '', user.department_name ?? '']
+    .filter(Boolean)
+    .map((center) => center.toLocaleLowerCase('cs-CZ'));
+  const canActForTaskCenter = centers.includes(String(report.service_center ?? '').toLocaleLowerCase('cs-CZ'));
+  const canActForPrimaryCenter = centers.includes(String(report.employee_center ?? '').toLocaleLowerCase('cs-CZ'));
+  if (separate && (Number(report.task_approver_id) === userId || canActForTaskCenter) && report.task_approval_status === 'pending') return 'task';
+  if (separate && (Number(report.task_approver_id) === userId || canActForTaskCenter) && report.task_approval_status === 'approved') return 'waiting_primary';
+  if ((Number(report.primary_approver_id) === userId || canActForPrimaryCenter) && report.primary_approval_status !== 'approved') {
     return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'primary';
   }
   if (['admin', 'reditel'].includes(user.role)) {
@@ -264,6 +270,21 @@ function approvalActionForViewer(report: PendingReport, user: ReturnType<typeof 
     if (report.primary_approval_status !== 'approved') return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'override_primary';
   }
   return 'none';
+}
+
+function canEditReport(report: PendingReport, user: ReturnType<typeof getUser>) {
+  if (!user) return false;
+  if (['admin', 'reditel'].includes(user.role)) return true;
+  const centers = [...(user.approval_centers ?? []), user.scope_department ?? '', user.department_name ?? '']
+    .filter(Boolean)
+    .map((center) => center.toLocaleLowerCase('cs-CZ'));
+  return centers.includes(String(report.service_center ?? '').toLocaleLowerCase('cs-CZ')) ||
+    centers.includes(String(report.employee_center ?? '').toLocaleLowerCase('cs-CZ'));
+}
+
+function formatApprovalTime(value?: string) {
+  if (!value) return '';
+  return new Intl.DateTimeFormat('cs-CZ', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
 
 function approvalActionLabel(action: ApprovalAction) {
@@ -288,14 +309,14 @@ function ApprovalProgress({ report, compact = false }: { report: PendingReport; 
         <div className="approval-progress-row">
           <span><b>Vedoucí činnosti</b>{report.task_approver_name || 'Nepřiřazen'}</span>
           <small className={approvalStatusClass(taskStatus)}>
-            {approvalStatusText(taskStatus)}{report.task_approved_by && report.task_approved_by !== report.task_approver_name ? ` · ${report.task_approved_by}` : ''}
+            {approvalStatusText(taskStatus)}{report.task_approved_by ? ` · ${report.task_approved_by}` : ''}{report.task_approved_at ? ` · ${formatApprovalTime(report.task_approved_at)}` : ''}
           </small>
         </div>
       ) : null}
       <div className="approval-progress-row">
         <span><b>Hlavní vedoucí</b>{report.primary_approver_name || 'Přiřazen systémem'}</span>
         <small className={approvalStatusClass(primaryStatus)}>
-          {approvalStatusText(primaryStatus)}{report.primary_approved_by && report.primary_approved_by !== report.primary_approver_name ? ` · ${report.primary_approved_by}` : ''}
+          {approvalStatusText(primaryStatus)}{report.primary_approved_by ? ` · ${report.primary_approved_by}` : ''}{report.primary_approved_at ? ` · ${formatApprovalTime(report.primary_approved_at)}` : ''}
         </small>
       </div>
     </div>
@@ -366,7 +387,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     loadReports();
     Promise.allSettled([
       client.get('/tractors'),
-      client.get('/fields'),
+      client.get('/fields?include_archived=true'),
       client.get('/work-types')
     ]).then(([tractorResponse, fieldResponse, workTypeResponse]) => {
       if (tractorResponse.status === 'fulfilled') setTractors(tractorResponse.value.data);
@@ -414,7 +435,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     .sort((first, second) => first.localeCompare(second, 'cs'));
 
   const dayGroups = useMemo(() => {
-    const groups = new Map<string, { key: string; employee: string; date: string; reports: PendingReport[]; hours: number; hectares: number; fuel: number }>();
+    const groups = new Map<string, { key: string; employee: string; date: string; reports: PendingReport[]; hours: number; hectares: number }>();
     for (const report of filteredReports) {
       const key = reportDayKey(report);
       const existing = groups.get(key) ?? {
@@ -423,13 +444,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         date: String(report.date).slice(0, 10),
         reports: [],
         hours: 0,
-        hectares: 0,
-        fuel: 0
+        hectares: 0
       };
       existing.reports.push(report);
       existing.hours += reportMinutes(report);
       existing.hectares += Number(report.amount_ha ?? 0);
-      existing.fuel += Number(report.fuel_liters ?? 0);
       groups.set(key, existing);
     }
     return [...groups.values()]
@@ -480,7 +499,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     updateSelectedReport({ time_end: isEndAfterStart(start, value) ? value : addMinutesToTime(start, 60) });
   };
 
-  const handleDetailNumberChange = (field: 'tractor_id' | 'work_type_id' | 'fuel_liters') =>
+  const handleDetailNumberChange = (field: 'tractor_id' | 'work_type_id') =>
     (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       updateSelectedReport({ [field]: Number(event.target.value) } as Partial<PendingReport>);
     };
@@ -555,6 +574,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         report_kind: absence ? workTypeKind(selectedReport) : 'work',
         tractor_id: selectedReport.tractor_id,
         user_id: selectedReport.user_id ?? user?.id ?? 1,
+        service_center: selectedReport.service_center,
         field_id: fieldSummary[0]?.field_id ?? null,
         field_entries: fieldSummary,
         work_type_id: selectedReport.work_type_id,
@@ -564,14 +584,6 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         break_hours: 0,
         hours_worked: absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
         amount_ha: totalArea,
-        fuel_liters: 0,
-        fuel_entry: !absence && Number(selectedReport.fuel_liters ?? 0) > 0 ? {
-          date: selectedReport.fuel_date ?? selectedReport.date,
-          tractor_id: selectedReport.tractor_id,
-          user_id: selectedReport.user_id ?? user?.id ?? 1,
-          liters: Number(selectedReport.fuel_liters ?? 0),
-          note: selectedReport.fuel_note ?? ''
-        } : undefined,
         attachments: selectedReport.attachments ?? [],
         notes: selectedReport.notes ?? ''
       });
@@ -644,7 +656,6 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   </div>
                   <div className="approval-day-totals">
                     <span>{group.hectares.toFixed(2)} ha</span>
-                    <span>{group.fuel.toFixed(1)} l PHM</span>
                   </div>
                 </div>
                 <div className="approval-day-timeline">
@@ -674,6 +685,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         {selectedReport ? (
           (() => {
             const absence = isAbsenceReport(selectedReport);
+            const keepsEditableTime = workTypeKind(selectedReport) === 'doctor';
             const approvalAction = approvalActionForViewer(selectedReport, user);
             return (
           <div className="modal-backdrop" role="presentation">
@@ -689,8 +701,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
                 <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
-                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence} onChange={(event) => updateDetailTimeStart(event.target.value)} /></label>
-                <label className="detail-field">Do<input type="time" min={normalizeTime(selectedReport.time_start)} value={normalizeTime(selectedReport.time_end)} disabled={absence} onChange={(event) => updateDetailTimeEnd(event.target.value)} /></label>
+                <label className="detail-field">Od<input type="time" value={normalizeTime(selectedReport.time_start)} disabled={absence && !keepsEditableTime} onChange={(event) => updateDetailTimeStart(event.target.value)} /></label>
+                <label className="detail-field">Do<input type="time" min={normalizeTime(selectedReport.time_start)} value={normalizeTime(selectedReport.time_end)} disabled={absence && !keepsEditableTime} onChange={(event) => updateDetailTimeEnd(event.target.value)} /></label>
                 <label className="detail-field">
                   Činnost
                   <select value={selectedReport.work_type_id ?? ''} onChange={handleDetailNumberChange('work_type_id')}>
@@ -703,7 +715,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     <button type="button" className="secondary" disabled={absence || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
                   </div>
                   {absence ? (
-                    <p className="field-hint">Dovolená, školení, doktor a darování krve pozemky nepotřebují.</p>
+                    <p className="field-hint">Dovolená, školení, doktor, darování krve a nemoc pozemky nepotřebují.</p>
                   ) : (
                     <div className="repeat-list">
                       {detailFieldEntries.length === 0 ? (
@@ -805,8 +817,6 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     disabled
                   />
                 </label>
-                <label className="detail-field detail-field--fuel-liters">Tankování PHM (l)<input type="number" min="0" step="0.1" value={selectedReport.fuel_liters ?? 0} disabled={absence} onChange={handleDetailNumberChange('fuel_liters')} /></label>
-                <label className="detail-field detail-field--fuel-date">Datum tankování<input type="date" value={(selectedReport.fuel_date ?? selectedReport.date).slice(0, 10)} disabled={absence} onChange={(event) => updateSelectedReport({ fuel_date: event.target.value })} /></label>
                 <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
               </div>
               {status === 'pending' && canApproveReports ? (
@@ -819,6 +829,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   >
                     {approvalActionLabel(approvalAction)}
                   </button>
+                </div>
+              ) : status === 'approved' && canEditReport(selectedReport, user) ? (
+                <div className="modal-actions">
+                  <button className="primary approve-large" type="button" onClick={saveReportDetail}>Uložit změny</button>
                 </div>
               ) : null}
             </div>

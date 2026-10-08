@@ -12,6 +12,31 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-08
+
+### Ostré účty a role
+- Přihlašovací údaje byly křížově zkontrolovány proti seznamu platnému od 8. 10. 2026. Opraveno je heslo Zbyňka Pokorného a překlepy v přihlašovacích jménech Rostislava Kabelky a Martiny Skucius.
+- Jana Bulíčková zůstává samostatnou kontrolorkou se stejným přístupem ke schváleným výkazům a exportům; změnil se pouze zobrazený název funkce.
+
+### Pozemky RSL a MOHE
+- Původní aktivní číselník pozemků se při migraci archivuje, aby zůstaly čitelné historické výkazy.
+- Nový číselník obsahuje 397 pozemků RSL a 286 pozemků MOHE ze čtyř dodaných souborů. Pozemky mají nově uloženou oblast RSL/MOHE.
+- Pracovníci RV mají jako výchozí oblast RSL a ve formuláři ji mohou přepnout na MOHE.
+- Pozemek už u pracovního výkazu RV není povinný; výkaz lze uložit také bez něj.
+- Admin může oblast RSL/MOHE vidět a upravit v číselníku pozemků.
+
+### Schvalování
+- Zbyněk Pokorný a Filip Daňhel sdílejí schvalování RV; Martina Novotná a Karel Trnka sdílejí schvalování Mechanizace.
+- Schválení jedním členem dvojice je okamžitě viditelné druhému. Oba mají přístup k čekajícím i schváleným výkazům svého střediska.
+- Vedoucí mohou auditovaně upravit také schválený výkaz. Detail ukazuje skutečného schvalujícího i datum a čas schválení.
+- Opraveno uložení změn pozemků při schválení: detail nyní zachovává středisko a po odebrání pozemku se schválený výkaz načte z aktuálních databázových dat.
+
+### Výkazy a činnosti
+- Tankování PHM bylo odstraněno z formulářů, přehledů, detailů, exportů i demo režimu; existující provozní záznamy tankování migrace odstraní.
+- Přidána činnost `Kypření`.
+- Přidána celodenní absence `Nemoc`, automaticky v rozsahu 7:00-15:00.
+- Export schválených výkazů už neobsahuje sloupce tankování.
+
 ## 2026-10-06
 
 ### Oddělení účtů Jany Bulíčkové a Jany Bobulové

@@ -43,7 +43,11 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL",
+    "approval_centers": [
+      "Rostlinná výroba"
+    ]
   },
   {
     "id": 3,
@@ -66,7 +70,11 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL",
+    "approval_centers": [
+      "Rostlinná výroba"
+    ]
   },
   {
     "id": 4,
@@ -89,7 +97,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 5,
@@ -112,7 +121,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 6,
@@ -135,7 +145,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 7,
@@ -158,7 +169,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 8,
@@ -181,7 +193,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 9,
@@ -204,7 +217,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 10,
@@ -227,7 +241,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 11,
@@ -250,7 +265,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 12,
@@ -273,7 +289,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 13,
@@ -296,7 +313,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 14,
@@ -319,7 +337,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 15,
@@ -342,7 +361,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 16,
@@ -365,7 +385,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 17,
@@ -388,7 +409,8 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "default_field_group": "RSL"
   },
   {
     "id": 18,
@@ -411,7 +433,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Živočišná výroba"
+    ]
   },
   {
     "id": 19,
@@ -434,7 +459,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Živočišná výroba"
+    ]
   },
   {
     "id": 20,
@@ -457,7 +485,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Živočišná výroba"
+    ]
   },
   {
     "id": 21,
@@ -503,7 +534,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Mechanizace"
+    ]
   },
   {
     "id": 23,
@@ -664,7 +698,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "BPS"
+    ]
   },
   {
     "id": 30,
@@ -756,7 +793,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Stavební skupina"
+    ]
   },
   {
     "id": 34,
@@ -825,7 +865,10 @@
     "created_by": "Import organizačního modelu",
     "updated_at": "2026-06-03T19:09:08.646Z",
     "updated_by": "Import organizačního modelu",
-    "last_change": "Vytvoření záznamu"
+    "last_change": "Vytvoření záznamu",
+    "approval_centers": [
+      "Mini mlékárna"
+    ]
   },
   {
     "id": 37,
@@ -839,7 +882,7 @@
     "active": true,
     "department_id": null,
     "department_name": "Mimo středisko / speciální role",
-    "position": "Mzdová a personální kontrola / Helios",
+    "position": "Kontrolorka",
     "manager_employee_id": null,
     "manager_name": "",
     "scope_department_id": null,

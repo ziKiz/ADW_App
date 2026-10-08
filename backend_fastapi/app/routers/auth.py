@@ -23,7 +23,8 @@ async def login(payload: LoginInput, session: AsyncSession = Depends(get_session
     result = await session.execute(
         text(
             """
-            SELECT id, username, email, password_hash, role, full_name, department_name, scope_department, manager_username, manager_name
+            SELECT id, username, email, password_hash, role, full_name, department_name, scope_department,
+                   manager_username, manager_name, position, approval_centers, default_field_group
             FROM users
             WHERE (username = :login OR email = :login) AND active = TRUE AND archived_at IS NULL
             """

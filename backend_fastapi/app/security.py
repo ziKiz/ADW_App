@@ -45,6 +45,17 @@ def user_scope_center(user: Mapping[str, Any]) -> str | None:
     return str(center).strip() if center else None
 
 
+def user_approval_centers(user: Mapping[str, Any]) -> set[str]:
+    values = user.get("approval_centers") or []
+    if isinstance(values, str):
+        values = [values]
+    return {str(value).strip().casefold() for value in values if str(value).strip()}
+
+
+def user_can_review_center(user: Mapping[str, Any], center: Any) -> bool:
+    return bool(center) and str(center).strip().casefold() in user_approval_centers(user)
+
+
 def can_access_report(report: Mapping[str, Any], user: Mapping[str, Any], *, allow_scoped_review: bool = False) -> bool:
     if is_elevated_user(user):
         return True
@@ -54,6 +65,8 @@ def can_access_report(report: Mapping[str, Any], user: Mapping[str, Any], *, all
         return True
     if allow_scoped_review and normalize_role(user.get("role")) in SCOPED_REVIEW_ROLES:
         if report.get("primary_approver_id") == user.get("id") or report.get("task_approver_id") == user.get("id"):
+            return True
+        if user_can_review_center(user, report.get("service_center")) or user_can_review_center(user, report.get("employee_center")):
             return True
         # Compatibility fallback for reports created before approval routing existed.
         if report.get("primary_approver_id") is None and report.get("task_approver_id") is None:
@@ -83,7 +96,8 @@ async def get_current_user(
     result = await session.execute(
         text(
             """
-            SELECT id, username, email, role, full_name, active, department_name, scope_department, manager_username, manager_name
+            SELECT id, username, email, role, full_name, active, department_name, scope_department,
+                   manager_username, manager_name, position, approval_centers, default_field_group
             FROM users
             WHERE id = :id AND active = TRUE AND archived_at IS NULL
             """

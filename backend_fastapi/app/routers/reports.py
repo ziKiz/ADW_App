@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import APPROVED_VIEWER_ROLES, APPROVER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role
+from app.security import APPROVED_VIEWER_ROLES, APPROVER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role, user_approval_centers
 
 router = APIRouter()
 FIELD_SERVICE_CENTER = "Rostlinná výroba"
@@ -195,21 +195,16 @@ def report_select(where: str = "") -> str:
     return f"""
       SELECT r.id, r.report_number, r.report_kind, r.user_id, r.employee_name, r.service_center,
         r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
-        COALESCE(fe.fuel_liters, r.fuel_liters, 0) AS fuel_liters, fe.fuel_date, fe.fuel_note,
         r.notes, r.status, r.field_entries, r.attachments,
         r.primary_approver_id, primary_approver.full_name AS primary_approver_name,
         r.task_approver_id, task_approver.full_name AS task_approver_name,
         r.primary_approval_status, r.task_approval_status,
         r.primary_approved_at, r.task_approved_at, r.primary_approved_by, r.task_approved_by,
-        t.tractor_name, f.field_name, w.name AS work_type,
+        t.tractor_name, f.field_name, f.field_group, w.name AS work_type,
+        COALESCE(employee.scope_department, employee.department_name) AS employee_center,
         r.tractor_id, r.field_id, r.work_type_id
       FROM reports r
-      LEFT JOIN (
-        SELECT report_id, SUM(liters) AS fuel_liters, MIN(date) AS fuel_date, STRING_AGG(NULLIF(note, ''), '; ') AS fuel_note
-        FROM fuel_entries
-        WHERE archived_at IS NULL
-        GROUP BY report_id
-      ) fe ON fe.report_id = r.id
+      LEFT JOIN users employee ON r.user_id = employee.id
       LEFT JOIN tractors t ON r.tractor_id = t.id
       LEFT JOIN fields f ON r.field_id = f.id
       LEFT JOIN work_types w ON r.work_type_id = w.id
@@ -228,10 +223,17 @@ def reports_scope_clause(user: dict[str, Any], params: dict[str, Any], *, allow_
     if allow_scoped_review and normalize_role(user.get("role")) in {"schvalovatel", "specialista"}:
         params["current_user_id"] = user["id"]
         params["scope_center"] = user.get("scope_department") or user.get("department_name")
+        params["approval_centers"] = list(user_approval_centers(user))
         return """ AND (
           r.user_id = :current_user_id
           OR r.primary_approver_id = :current_user_id
           OR r.task_approver_id = :current_user_id
+          OR LOWER(TRIM(r.service_center)) = ANY(CAST(:approval_centers AS text[]))
+          OR EXISTS (
+            SELECT 1 FROM users report_employee
+            WHERE report_employee.id = r.user_id
+              AND LOWER(TRIM(COALESCE(report_employee.scope_department, report_employee.department_name))) = ANY(CAST(:approval_centers AS text[]))
+          )
           OR (
             r.primary_approver_id IS NULL
             AND r.task_approver_id IS NULL
@@ -290,7 +292,7 @@ async def get_last_used_report(session: AsyncSession = Depends(get_session), use
               AND r.report_kind = 'work'
               AND r.user_id = :user_id
               AND r.work_type_id IS NOT NULL
-              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení', 'Doktor', 'Darování krve')
+              AND COALESCE(w.name, '') NOT IN ('Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc')
             ORDER BY r.date DESC, r.created_at DESC
             LIMIT 1
             """
@@ -375,24 +377,6 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
         },
     )
     report_id = result.scalar_one()
-    fuel = payload.get("fuel_entry") or {}
-    if float(fuel.get("liters") or 0) > 0:
-        await session.execute(
-            text(
-                """
-                INSERT INTO fuel_entries(report_id, date, tractor_id, user_id, liters, note)
-                VALUES (:report_id, :date, :tractor_id, :user_id, :liters, :note)
-                """
-            ),
-            {
-                "report_id": report_id,
-                "date": parse_date_value(fuel.get("date") or payload.get("date")),
-                "tractor_id": fuel.get("tractor_id") or payload.get("tractor_id"),
-                "user_id": report_user_id,
-                "liters": fuel.get("liters") or 0,
-                "note": fuel.get("note"),
-            },
-        )
     await write_app_audit(session, "reports", report_id, "submit", None, json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
     return {"id": report_id}
@@ -401,11 +385,27 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
 @router.put("/{report_id}")
 async def update_report(report_id: int, payload: dict[str, Any], request: Request, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
-    before_row = (await session.execute(text("SELECT * FROM reports WHERE id = :id AND archived_at IS NULL"), {"id": report_id})).mappings().first()
+    before_row = (
+        await session.execute(
+            text(
+                """
+                SELECT r.*, COALESCE(employee.scope_department, employee.department_name) AS employee_center
+                FROM reports r
+                LEFT JOIN users employee ON employee.id = r.user_id
+                WHERE r.id = :id AND r.archived_at IS NULL
+                """
+            ),
+            {"id": report_id},
+        )
+    ).mappings().first()
     if before_row is None:
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
     if not can_access_report(before_row, user, allow_scoped_review=True):
         raise HTTPException(status_code=403, detail="Nemáte oprávnění upravit tento výkaz.")
+    if before_row.get("status") != "pending" and not (
+        is_elevated_user(user) or normalize_role(user.get("role")) in {"schvalovatel", "specialista"}
+    ):
+        raise HTTPException(status_code=409, detail="Schválený výkaz může upravit pouze vedoucí nebo administrátor.")
     is_work = payload.get("report_kind") in (None, "work")
     validate_field_scope(payload, is_work)
     report_date = parse_date_value(payload.get("date"))
@@ -450,13 +450,6 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "actor": user["full_name"],
         },
     )
-    await session.execute(text("DELETE FROM fuel_entries WHERE report_id = :id"), {"id": report_id})
-    fuel = payload.get("fuel_entry") or {}
-    if float(fuel.get("liters") or 0) > 0:
-        await session.execute(
-            text("INSERT INTO fuel_entries(report_id, date, tractor_id, user_id, liters, note) VALUES (:report_id, :date, :tractor_id, :user_id, :liters, :note)"),
-            {"report_id": report_id, "date": parse_date_value(fuel.get("date") or payload.get("date")), "tractor_id": fuel.get("tractor_id") or payload.get("tractor_id"), "user_id": report_user_id, "liters": fuel.get("liters") or 0, "note": fuel.get("note")},
-        )
     await write_app_audit(session, "reports", report_id, "save", json.dumps(before_dict, default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
     return {"id": report_id, "message": "Výkaz byl uložen."}

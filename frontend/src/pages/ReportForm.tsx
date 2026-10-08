@@ -66,7 +66,7 @@ interface ReportTimeEntry {
   created_at?: string;
 }
 
-type ReportMode = 'work' | 'leave' | 'training' | 'doctor' | 'blood';
+type ReportMode = 'work' | 'leave' | 'training' | 'doctor' | 'blood' | 'sick';
 type MessageTone = 'info' | 'success' | 'error';
 
 const processedPercentOptions = [25, 50, 75, 100];
@@ -191,6 +191,7 @@ function modeWorkTypeName(mode: ReportMode) {
   if (mode === 'training') return 'Školení';
   if (mode === 'doctor') return 'Doktor';
   if (mode === 'blood') return 'Darování krve';
+  if (mode === 'sick') return 'Nemoc';
   return '';
 }
 
@@ -228,7 +229,7 @@ function findWorkTypeId(workTypes: WorkType[], mode: ReportMode) {
 }
 
 function findDefaultWorkTypeId(workTypes: WorkType[]) {
-  return workTypes.find((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name))?.id;
+  return workTypes.find((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(item.name))?.id;
 }
 
 function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
@@ -280,7 +281,7 @@ function getSuggestedTimesForDate(reports: ReportTimeEntry[], targetDate: string
 }
 
 function isWorkReportEntry(report: ReportTimeEntry) {
-  return !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(String(report.work_type ?? ''));
+  return !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(String(report.work_type ?? ''));
 }
 
 function reportTimeRange(report: ReportTimeEntry) {
@@ -288,7 +289,7 @@ function reportTimeRange(report: ReportTimeEntry) {
   const end = normalizeClockTime(report.time_end);
   if (start && end) return { start, end };
   const type = String(report.work_type ?? '');
-  if (['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(type)) return { start: '07:00', end: '15:00' };
+  if (['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(type)) return { start: '07:00', end: '15:00' };
   return null;
 }
 
@@ -361,14 +362,10 @@ function ReportForm() {
   const [doctorStart, setDoctorStart] = useState(defaultStartTime);
   const [absenceNote, setAbsenceNote] = useState('');
   const [fieldEntries, setFieldEntries] = useState<FieldEntry[]>([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
+  const [fieldGroup, setFieldGroup] = useState<'RSL' | 'MOHE'>(user?.default_field_group === 'MOHE' ? 'MOHE' : 'RSL');
   const [attachmentEntries, setAttachmentEntries] = useState<AttachmentEntry[]>(
     buildAttachmentEntries(lastPreferences.attachmentIds ?? [])
   );
-  const [fuelEnabled, setFuelEnabled] = useState(false);
-  const [fuelDate, setFuelDate] = useState(getLocalTodayDate);
-  const [fuelTractorId, setFuelTractorId] = useState<number | undefined>(undefined);
-  const [fuelLiters, setFuelLiters] = useState(0);
-  const [fuelNote, setFuelNote] = useState('');
   const [notes, setNotes] = useState('');
   const [otherWorkNote, setOtherWorkNote] = useState('');
   const [otherUsesFields, setOtherUsesFields] = useState(false);
@@ -393,7 +390,7 @@ function ReportForm() {
   }, [availableTractors, tractorSearch]);
   const normalWorkTypes = useMemo(
     () => prioritizeByIds(
-      workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name)),
+      workTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(item.name)),
       [lastUsedReport?.work_type_id, lastPreferences.selectedWorkType]
     ),
     [lastPreferences.selectedWorkType, lastUsedReport?.work_type_id, workTypes]
@@ -414,7 +411,6 @@ function ReportForm() {
   const canUseLastTractor = Boolean(lastUsedReport?.tractor_id && availableTractors.some((tractor) => tractor.id === lastUsedReport.tractor_id));
   const canUseLastWorkType = Boolean(lastUsedReport?.work_type_id && normalWorkTypes.some((item) => item.id === lastUsedReport.work_type_id));
   const hasUsableLastReport = Boolean(lastUsedReport && (canUseLastTractor || canUseLastWorkType || hasLastAttachments));
-  const fieldsRequired = reportMode === 'work' && serviceCenterUsesFields && (!isOtherWorkType || otherUsesFields);
   const showFieldSelection = reportMode === 'work' && serviceCenterUsesFields && (!isOtherWorkType || otherUsesFields);
   const showTractorSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesTractor);
   const showAttachmentSelection = reportMode === 'work' && (!isOtherWorkType || otherUsesAttachments);
@@ -447,7 +443,6 @@ function ReportForm() {
             ? lastPreferences.selectedTractor
             : matchingTractors[0]?.id;
           setSelectedTractor(preferredTractorId);
-          setFuelTractorId(preferredTractorId);
         }
       } else {
         console.error(tractorResponse.reason);
@@ -456,8 +451,9 @@ function ReportForm() {
       if (fieldResponse.status === 'fulfilled') {
         const loadedFields = fieldResponse.value.data as FieldRecord[];
         setFields(loadedFields);
-        if (loadedFields.length > 0) {
-          const firstFieldId = loadedFields[0].id;
+        const firstField = loadedFields.find((field) => field.field_group === fieldGroup);
+        if (firstField) {
+          const firstFieldId = firstField.id;
           setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(loadedFields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
         }
       } else {
@@ -467,7 +463,7 @@ function ReportForm() {
       if (workTypeResponse.status === 'fulfilled') {
         setWorkTypes(loadedWorkTypes);
         if (loadedWorkTypes.length > 0) {
-          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name));
+          const normalWorkTypes = loadedWorkTypes.filter((item) => !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(item.name));
           const preferredWorkTypeId = normalWorkTypes.some((item) => item.id === lastPreferences.selectedWorkType)
             ? lastPreferences.selectedWorkType
             : normalWorkTypes[0]?.id ?? loadedWorkTypes[0].id;
@@ -497,10 +493,9 @@ function ReportForm() {
         setLastUsedReport(lastUsed);
         const matchingTractors = sortTractorsForWork(loadedTractors);
         const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
-        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor', 'Darování krve'].includes(item.name));
+        const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(item.name));
         if (lastTractorIsValid) {
           setSelectedTractor(lastUsed.tractor_id);
-          setFuelTractorId(lastUsed.tractor_id);
         }
         if (lastWorkTypeIsValid) {
           setSelectedWorkType(lastUsed.work_type_id);
@@ -533,10 +528,7 @@ function ReportForm() {
     } else if (selectedTractor && !availableTractors.some((tractor) => tractor.id === selectedTractor) && !isOtherWorkType) {
       setSelectedTractor(firstTractorId);
     }
-    if (!availableTractors.some((tractor) => tractor.id === fuelTractorId)) {
-      setFuelTractorId(firstTractorId);
-    }
-  }, [availableTractors, fuelTractorId, isOtherWorkType, metadataLoading, otherUsesTractor, selectedTractor]);
+  }, [availableTractors, isOtherWorkType, metadataLoading, otherUsesTractor, selectedTractor]);
 
   useEffect(() => {
     if (metadataLoading || fields.length === 0) return;
@@ -552,10 +544,11 @@ function ReportForm() {
     }
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
     if (!hasSelectedField) {
-      const firstFieldId = fields[0].id;
+      const firstFieldId = fields.find((field) => field.field_group === fieldGroup)?.id;
+      if (firstFieldId === undefined) return;
       setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
-  }, [fields, isOtherWorkType, metadataLoading, serviceCenterUsesFields]);
+  }, [fieldGroup, fields, isOtherWorkType, metadataLoading, serviceCenterUsesFields]);
 
   const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextDate = event.target.value;
@@ -563,7 +556,6 @@ function ReportForm() {
     setDate(nextDate);
     setAbsenceStart(nextDate);
     setAbsenceEnd(nextDate);
-    setFuelDate(nextDate);
     setTimeStart(suggestedTimes.start);
     setTimeEnd(suggestedTimes.end);
   };
@@ -580,7 +572,7 @@ function ReportForm() {
     setReportMode(mode);
     setSpecialOptionsOpen(false);
     if (mode !== 'leave') setHalfDayLeave(false);
-    if (mode === 'doctor' || mode === 'blood') setAbsenceEnd(absenceStart);
+    if (mode === 'doctor' || mode === 'blood' || mode === 'sick') setAbsenceEnd(absenceStart);
     const workTypeId = findWorkTypeId(workTypes, mode);
     if (workTypeId !== undefined) setSelectedWorkType(workTypeId);
   };
@@ -596,7 +588,7 @@ function ReportForm() {
 
   const handleAbsenceStartChange = (value: string) => {
     setAbsenceStart(value);
-    if (reportMode === 'doctor' || reportMode === 'blood') {
+    if (reportMode === 'doctor' || reportMode === 'blood' || reportMode === 'sick') {
       setAbsenceEnd(value);
       return;
     }
@@ -692,7 +684,6 @@ function ReportForm() {
           break_hours: 0,
           hours_worked: reportMode === 'doctor' ? doctorHours : reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
           amount_ha: 0,
-          fuel_liters: 0,
           attachments: [],
           notes: extendedNotes
         });
@@ -723,7 +714,7 @@ function ReportForm() {
     }
 
     const selectedFields = showFieldSelection ? fieldEntries.filter((entry) => entry.fieldId) : [];
-    if ((fieldsRequired && selectedFields.length === 0) || !selectedWorkType) {
+    if (!selectedWorkType) {
       showFormMessage('Vyplňte prosím všechny povinné položky.', 'error');
       return;
     }
@@ -778,7 +769,6 @@ function ReportForm() {
         attachment_name: item.attachment_name,
         license_plate: item.license_plate
       })).join('; ') : 'bez přípojného zařízení'}`,
-      fuelEnabled && fuelLiters > 0 ? `Tankování PHM: ${fuelLiters} l dne ${fuelDate}` : '',
       isOtherWorkType && otherWorkNote ? `Poznámka k Ostatní práci: ${otherWorkNote}` : '',
       notes ? `Poznámka: ${notes}` : ''
     ].filter(Boolean).join('\n');
@@ -801,14 +791,6 @@ function ReportForm() {
         break_hours: 0,
         hours_worked: Math.max(0, (Number(timeEnd.slice(0, 2)) + Number(timeEnd.slice(3, 5)) / 60) - (Number(timeStart.slice(0, 2)) + Number(timeStart.slice(3, 5)) / 60)),
         amount_ha: fieldSummary.reduce((sum, item) => sum + Number(item.amount_ha || 0), 0),
-        fuel_liters: 0,
-        fuel_entry: fuelEnabled && fuelLiters > 0 ? {
-          date: fuelDate,
-          tractor_id: fuelTractorId ?? selectedTractor ?? null,
-          user_id: user?.id ?? 1,
-          liters: fuelLiters,
-          note: fuelNote
-        } : undefined,
         attachments: attachmentSummary,
         notes: extendedNotes
       });
@@ -856,7 +838,6 @@ function ReportForm() {
   const handleSelectTractor = (event: ChangeEvent<HTMLSelectElement>) => {
     const tractorId = event.target.value ? Number(event.target.value) : undefined;
     setSelectedTractor(tractorId);
-    setFuelTractorId(tractorId);
     setTractorSearch('');
   };
 
@@ -892,7 +873,8 @@ function ReportForm() {
     }
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
     if (!hasSelectedField && fields.length > 0) {
-      const firstFieldId = fields[0].id;
+      const firstFieldId = fields.find((field) => field.field_group === fieldGroup)?.id;
+      if (firstFieldId === undefined) return;
       setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
   };
@@ -902,7 +884,6 @@ function ReportForm() {
       return;
     }
     setSelectedTractor(lastUsedReport.tractor_id);
-    setFuelTractorId(lastUsedReport.tractor_id);
     showFormMessage('Technika byla převzata z posledního výkazu.', 'success');
   };
   const applyLastUsedAttachments = () => {
@@ -920,7 +901,7 @@ function ReportForm() {
     const selectedFieldIds = fieldEntries
       .filter((entry) => entry.id !== currentEntryId && entry.fieldId !== undefined)
       .map((entry) => entry.fieldId);
-    return fields.filter((field) => !selectedFieldIds.includes(field.id));
+    return fields.filter((field) => field.field_group === fieldGroup && !selectedFieldIds.includes(field.id));
   };
   const getVisibleFields = (entry: FieldEntry) => {
     const availableFields = getAvailableFields(entry.id);
@@ -962,7 +943,13 @@ function ReportForm() {
   };
   const removeFieldEntry = (entryId: number) => {
     if (!window.confirm('Opravdu chcete odebrat tento pozemek z výkazu?')) return;
-    setFieldEntries((entries) => entries.length > 1 ? entries.filter((entry) => entry.id !== entryId) : entries);
+    setFieldEntries((entries) => entries.length > 1
+      ? entries.filter((entry) => entry.id !== entryId)
+      : [{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
+  };
+  const handleFieldGroupChange = (group: 'RSL' | 'MOHE') => {
+    setFieldGroup(group);
+    setFieldEntries([{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }]);
   };
   const updateAttachmentEntry = (entryId: number, changes: Partial<AttachmentEntry>) => {
     setAttachmentEntries((entries) => entries.map((entry) => entry.id === entryId ? { ...entry, ...changes } : entry));
@@ -974,7 +961,8 @@ function ReportForm() {
   const enableOtherFields = (enabled: boolean) => {
     setOtherUsesFields(enabled);
     if (enabled && fields.length > 0 && !fieldEntries.some((entry) => entry.fieldId)) {
-      const firstFieldId = fields[0].id;
+      const firstFieldId = fields.find((field) => field.field_group === fieldGroup)?.id;
+      if (firstFieldId === undefined) return;
       setFieldEntries([{ id: Date.now(), fieldId: firstFieldId, amountHa: getFieldArea(fields, firstFieldId), processedPercent: 100, fieldSearch: '' }]);
     }
     if (!enabled) {
@@ -1121,7 +1109,8 @@ function ReportForm() {
                   ['leave', 'Dovolená'],
                   ['training', 'Školení'],
                   ['doctor', 'Doktor'],
-                  ['blood', 'Darování krve']
+                  ['blood', 'Darování krve'],
+                  ['sick', 'Nemoc']
                 ].map(([mode, label]) => (
                   <button
                     key={mode}
@@ -1155,7 +1144,7 @@ function ReportForm() {
                   <label htmlFor="absenceStart">Od dne</label>
                   <input id="absenceStart" type="date" value={absenceStart} onChange={(event) => handleAbsenceStartChange(event.target.value)} />
                 </div>
-                {!['doctor', 'blood'].includes(reportMode) ? (
+                {!['doctor', 'blood', 'sick'].includes(reportMode) ? (
                   <div className="field-row">
                     <label htmlFor="absenceEnd">Do dne</label>
                     <input id="absenceEnd" type="date" min={absenceStart} value={absenceEnd} onChange={(event) => setAbsenceEnd(event.target.value)} />
@@ -1229,6 +1218,12 @@ function ReportForm() {
             <div className="section-line">
               <h2>Pozemky</h2>
             </div>
+            {serviceCenterUsesFields ? (
+              <div className="segmented-control field-group-selector" aria-label="Oblast pozemků">
+                <button type="button" className={fieldGroup === 'RSL' ? 'active' : ''} onClick={() => handleFieldGroupChange('RSL')}>RSL</button>
+                <button type="button" className={fieldGroup === 'MOHE' ? 'active' : ''} onClick={() => handleFieldGroupChange('MOHE')}>MOHE</button>
+              </div>
+            ) : null}
             {serviceCenterUsesFields && isOtherWorkType ? (
               <label className="toggle-row">
                 <input type="checkbox" checked={otherUsesFields} onChange={(event) => enableOtherFields(event.target.checked)} />
@@ -1278,13 +1273,14 @@ function ReportForm() {
                             id={`field-${entry.id}`}
                             value={entry.fieldId ?? ''}
                             onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                              const fieldId = Number(event.target.value);
+                              const fieldId = event.target.value ? Number(event.target.value) : undefined;
                               updateFieldEntry(entry.id, {
                                 fieldId,
-                                amountHa: calculateProcessedArea(fields, fieldId, entry.processedPercent)
+                                amountHa: fieldId ? calculateProcessedArea(fields, fieldId, entry.processedPercent) : 0
                               });
                             }}
                           >
+                            <option value="">Bez pozemku</option>
                             {metadataLoading && <option value="">Načítám pole...</option>}
                             {!metadataLoading && visibleFields.length === 0 && <option value="" disabled>Žádný pozemek neodpovídá hledání</option>}
                             {visibleFields.map((item) => (
@@ -1314,7 +1310,7 @@ function ReportForm() {
                           <label>Výměra</label>
                           <strong>{entry.amountHa.toFixed(2)} ha</strong>
                         </div>
-                        <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)} disabled={fieldEntries.length === 1}>Odebrat</button>
+                        <button type="button" className="danger repeat-remove" onClick={() => removeFieldEntry(entry.id)}>Odebrat</button>
                       </div>
                     );
                   })}
@@ -1373,7 +1369,6 @@ function ReportForm() {
                           className={selectedTractor === item.id ? 'active' : ''}
                           onClick={() => {
                             setSelectedTractor(item.id);
-                            setFuelTractorId(item.id);
                             setTractorSearch('');
                           }}
                         >
@@ -1400,49 +1395,6 @@ function ReportForm() {
             ) : (
               <p className="field-hint">U typu práce Ostatní není technika povinná.</p>
             )}
-          </section>
-
-          <section className="report-section">
-            <h2>Tankování PHM</h2>
-            <label className="toggle-row">
-              <input type="checkbox" checked={fuelEnabled} onChange={(event) => setFuelEnabled(event.target.checked)} />
-              Dnes proběhlo tankování
-            </label>
-            {fuelEnabled ? (
-              <div className="field-grid">
-                <div className="field-row">
-                  <label htmlFor="fuelDate">Datum tankování</label>
-                  <input id="fuelDate" type="date" value={fuelDate} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelDate(event.target.value)} />
-                </div>
-                <div className="field-row">
-                  <label htmlFor="fuelTractor">Stroj</label>
-                  <select id="fuelTractor" value={fuelTractorId ?? selectedTractor ?? ''} onChange={(event: ChangeEvent<HTMLSelectElement>) => setFuelTractorId(Number(event.target.value))}>
-                    {availableTractors.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field-row field-row--compact">
-                  <label htmlFor="fuelLiters">Natankováno (l)</label>
-                  <input
-                    id="fuelLiters"
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={fuelLiters > 0 ? fuelLiters : ''}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelLiters(event.target.value === '' ? 0 : Number(event.target.value))}
-                  />
-                </div>
-                <div className="field-row">
-                  <label htmlFor="fuelNote">Poznámka k tankování</label>
-                  <input id="fuelNote" value={fuelNote} onChange={(event: ChangeEvent<HTMLInputElement>) => setFuelNote(event.target.value)} />
-                </div>
-              </div>
-            ) : null}
           </section>
 
           <section className="report-section">

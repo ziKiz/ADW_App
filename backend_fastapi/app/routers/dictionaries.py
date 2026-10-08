@@ -17,8 +17,15 @@ def can_view_attachment_code(user: dict) -> bool:
 
 
 @router.get("/fields")
-async def fields(session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
-    result = await session.execute(text("SELECT id, field_code, field_name, quadrant, area, culture, crop, erosion, created_at, created_by, updated_at, updated_by, last_change FROM fields WHERE archived_at IS NULL ORDER BY field_name, field_code"))
+async def fields(field_group: str | None = None, include_archived: bool = False, session: AsyncSession = Depends(get_session), user=Depends(get_current_user)):
+    group = str(field_group or "").strip().upper()
+    can_read_archive = is_elevated_user(user) or normalize_role(user.get("role")) in ATTACHMENT_CODE_ROLES
+    archived_clause = "" if include_archived and can_read_archive else " AND archived_at IS NULL"
+    group_clause = " AND field_group = :field_group" if group in {"RSL", "MOHE"} else ""
+    result = await session.execute(
+        text(f"SELECT id, field_code, field_name, field_group, quadrant, area, culture, crop, erosion, created_at, created_by, updated_at, updated_by, last_change FROM fields WHERE TRUE{archived_clause}{group_clause} ORDER BY field_name, field_code"),
+        {"field_group": group} if group_clause else {},
+    )
     return [dict(row) for row in result.mappings().all()]
 
 
@@ -46,8 +53,8 @@ async def create_dictionary(collection: str, payload: dict, request: Request, se
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     if collection == "fields":
         result = await session.execute(
-            text("INSERT INTO fields(field_code, field_name, area, culture, crop, created_by, updated_by, last_change) VALUES (:field_code, :field_name, :area, :culture, :crop, :actor, :actor, 'Vytvoření záznamu') RETURNING *"),
-            {**payload, "actor": user["full_name"]},
+            text("INSERT INTO fields(field_code, field_name, field_group, area, culture, crop, created_by, updated_by, last_change) VALUES (:field_code, :field_name, :field_group, :area, :culture, :crop, :actor, :actor, 'Vytvoření záznamu') RETURNING *"),
+            {**payload, "field_group": payload.get("field_group") or "RSL", "actor": user["full_name"]},
         )
     elif collection == "tractors":
         result = await session.execute(
@@ -79,7 +86,7 @@ async def update_dictionary(collection: str, item_id: int, payload: dict, reques
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     table = {"fields": "fields", "tractors": "tractors", "attachments": "attachments", "work-types": "work_types"}.get(collection, collection)
     if table == "fields":
-        result = await session.execute(text("UPDATE fields SET field_code=:field_code, field_name=:field_name, area=:area, culture=:culture, crop=:crop, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "id": item_id, "actor": user["full_name"]})
+        result = await session.execute(text("UPDATE fields SET field_code=:field_code, field_name=:field_name, field_group=:field_group, area=:area, culture=:culture, crop=:crop, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "field_group": payload.get("field_group") or "RSL", "id": item_id, "actor": user["full_name"]})
     elif table == "tractors":
         result = await session.execute(text("UPDATE tractors SET tractor_code=:tractor_code, tractor_name=:tractor_name, service_centers=:service_centers, vehicle_type=:vehicle_type, status=:status, updated_by=:actor, last_change='Úprava záznamu' WHERE id=:id RETURNING *"), {**payload, "service_centers": payload.get("service_centers") or [], "id": item_id, "actor": user["full_name"]})
     elif table == "attachments":

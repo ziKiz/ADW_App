@@ -39,6 +39,7 @@ export interface FieldRecord {
   id: number;
   field_code: string;
   field_name: string;
+  field_group?: 'RSL' | 'MOHE';
   quadrant?: string;
   area?: number;
   culture?: string;

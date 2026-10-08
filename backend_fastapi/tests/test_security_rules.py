@@ -54,6 +54,18 @@ class ReportAccessTests(unittest.TestCase):
 
         self.assertFalse(can_access_report(report, user, allow_scoped_review=True))
 
+    def test_shared_center_approver_can_access_routed_report(self):
+        user = {"id": 3, "role": "schvalovatel", "approval_centers": ["Rostlinná výroba"]}
+        report = {
+            "user_id": 8,
+            "service_center": "Rostlinná výroba",
+            "employee_center": "Rostlinná výroba",
+            "primary_approver_id": 9,
+            "task_approver_id": 9,
+        }
+
+        self.assertTrue(can_access_report(report, user, allow_scoped_review=True))
+
 
 class ReportIdentityTests(unittest.TestCase):
     def test_employee_create_ignores_payload_identity(self):
@@ -83,6 +95,9 @@ class ReportTimeValidationTests(unittest.TestCase):
 
 
 class ReportFieldScopeTests(unittest.TestCase):
+    def test_rv_work_report_allows_no_field(self):
+        validate_field_scope({"service_center": "Rostlinná výroba", "field_id": None, "field_entries": []}, True)
+
     def test_rv_work_report_accepts_field(self):
         validate_field_scope({"service_center": "Rostlinná výroba", "field_id": 1, "field_entries": [{"field_id": 1}]}, True)
 
@@ -158,6 +173,42 @@ class ApprovalRoutingTests(unittest.TestCase):
         self.assertEqual(
             approval_action_for_user(self.report, {"id": 12, "role": "schvalovatel"}, "approved"),
             "none",
+        )
+
+    def test_shared_primary_center_approver_can_finalize(self):
+        report = {
+            "status": "pending",
+            "service_center": "Rostlinná výroba",
+            "employee_center": "Rostlinná výroba",
+            "primary_approver_id": 10,
+            "task_approver_id": 10,
+            "primary_approval_status": "pending",
+            "task_approval_status": "not_required",
+        }
+
+        self.assertEqual(
+            approval_action_for_user(
+                report,
+                {"id": 12, "role": "schvalovatel", "approval_centers": ["Rostlinná výroba"]},
+                "approved",
+            ),
+            "primary",
+        )
+
+    def test_shared_task_center_approver_can_confirm_cross_center_work(self):
+        report = {
+            **self.report,
+            "service_center": "Mechanizace",
+            "employee_center": "Rostlinná výroba",
+        }
+
+        self.assertEqual(
+            approval_action_for_user(
+                report,
+                {"id": 12, "role": "schvalovatel", "approval_centers": ["Mechanizace"]},
+                "approved",
+            ),
+            "task",
         )
 
     def test_admin_can_reject_without_confirming_task_first(self):
@@ -266,6 +317,7 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Uživatel", HEADERS)
         self.assertIn("Zaměstnanec", HEADERS)
         self.assertIn("Kód stroje", HEADERS)
+        self.assertNotIn("Tankování PHM (l)", HEADERS)
 
     def test_only_jana_bulickova_has_named_export_exception(self):
         self.assertIn("Jana Bulíčková", APPROVED_VIEWER_NAMES)

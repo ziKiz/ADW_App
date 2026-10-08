@@ -8,6 +8,9 @@ export interface AppUser {
   scope_department?: string;
   manager_username?: string;
   manager_name?: string;
+  position?: string;
+  approval_centers?: string[];
+  default_field_group?: 'RSL' | 'MOHE';
   access_token?: string;
   token_type?: string;
 }
