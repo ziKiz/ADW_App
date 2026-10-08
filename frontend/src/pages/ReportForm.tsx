@@ -195,6 +195,15 @@ function modeWorkTypeName(mode: ReportMode) {
   return '';
 }
 
+function modeSubmitLabel(mode: ReportMode) {
+  if (mode === 'leave') return 'dovolenou';
+  if (mode === 'training') return 'školení';
+  if (mode === 'doctor') return 'doktora';
+  if (mode === 'blood') return 'darování krve';
+  if (mode === 'sick') return 'nemoc';
+  return 'výkaz';
+}
+
 function normalizeSearch(value: string) {
   return value
     .toLocaleLowerCase('cs-CZ')
@@ -377,6 +386,9 @@ function ReportForm() {
   const selectedAbsenceUnits = halfDayLeave && reportMode === 'leave' ? 0.5 : selectedModeDays;
   const doctorEnd = doctorHours === 8 ? '15:00' : addMinutesToTime(doctorStart, 4 * 60);
   const doctorTimeStart = doctorHours === 8 ? defaultStartTime : doctorStart;
+  const isFixedFullDayAbsence = reportMode === 'blood' || reportMode === 'sick';
+  const specialTimeStart = reportMode === 'doctor' ? doctorTimeStart : isFixedFullDayAbsence ? '07:00' : null;
+  const specialTimeEnd = reportMode === 'doctor' ? doctorEnd : isFixedFullDayAbsence ? '15:00' : null;
   const isAbsenceOverBalance = reportMode === 'leave' && selectedAbsenceUnits > vacationBalance.daysRemaining;
   const isLongAbsence = selectedModeDays > 20;
   const availableTractors = useMemo(
@@ -636,6 +648,10 @@ function ReportForm() {
           return;
         }
       }
+      if (isFixedFullDayAbsence && hasTimeOverlap(reports, absenceStart, '07:00', '15:00', user)) {
+        showFormMessage(`V čase 07:00-15:00 už existuje jiný výkaz. Nejprve upravte existující výkaz.`, 'error');
+        return;
+      }
       if (reportMode === 'leave' && halfDayLeave) {
         if (absenceStart !== absenceEnd) {
           showFormMessage('Půldenní dovolená může být zadaná jen na jeden den.', 'error');
@@ -650,6 +666,8 @@ function ReportForm() {
       const title = specialName;
       const submitSummary = reportMode === 'doctor'
         ? `${formatCzechDate(absenceStart)} (${doctorTimeStart}-${doctorEnd}, ${doctorHours} h)`
+        : isFixedFullDayAbsence
+          ? `${formatCzechDate(absenceStart)} (07:00-15:00)`
         : `${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`;
       if (!confirmReportSubmit(`Opravdu chcete uložit ${title.toLocaleLowerCase('cs-CZ')} v rozsahu ${submitSummary}?`)) {
         showFormMessage('Uložení bylo zrušeno.', 'info');
@@ -657,8 +675,8 @@ function ReportForm() {
       }
       const extendedNotes = [
         `Středisko: ${serviceCenter}`,
-        reportMode === 'doctor' ? `Doktor: ${formatCzechDate(absenceStart)} ${doctorTimeStart}-${doctorEnd}` : `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
-        reportMode === 'doctor' ? `Počet hodin: ${doctorHours}` : `Počet pracovních dní: ${selectedAbsenceUnits}`,
+        specialTimeStart && specialTimeEnd ? `${title}: ${formatCzechDate(absenceStart)} ${specialTimeStart}-${specialTimeEnd}` : `${title}: ${formatCzechDate(absenceStart)} až ${formatCzechDate(absenceEnd)}`,
+        specialTimeStart && specialTimeEnd ? `Počet hodin: ${reportMode === 'doctor' ? doctorHours : 8}` : `Počet pracovních dní: ${selectedAbsenceUnits}`,
         reportMode === 'leave' && halfDayLeave ? 'Půldenní dovolená: ano' : '',
         isLongAbsence ? 'Upozornění: nestandardně dlouhé období.' : '',
         isAbsenceOverBalance ? `Upozornění: zadáno více dní dovolené, než je aktuální zůstatek ${vacationBalance.daysRemaining}.` : '',
@@ -679,10 +697,10 @@ function ReportForm() {
           field_entries: [],
           work_type_id: specialWorkType.id,
           date: absenceStart,
-          time_start: reportMode === 'doctor' ? `${doctorTimeStart}:00` : null,
-          time_end: reportMode === 'doctor' ? `${doctorEnd}:00` : null,
+          time_start: specialTimeStart ? `${specialTimeStart}:00` : null,
+          time_end: specialTimeEnd ? `${specialTimeEnd}:00` : null,
           break_hours: 0,
-          hours_worked: reportMode === 'doctor' ? doctorHours : reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
+          hours_worked: specialTimeStart ? (reportMode === 'doctor' ? doctorHours : 8) : reportMode === 'leave' && halfDayLeave ? 4 : selectedModeDays * 8,
           amount_ha: 0,
           attachments: [],
           notes: extendedNotes
@@ -692,15 +710,15 @@ function ReportForm() {
           user_id: user?.id ?? 1,
           employee_name: user?.full_name,
           date: absenceStart,
-          time_start: reportMode === 'doctor' ? `${doctorTimeStart}:00` : undefined,
-          time_end: reportMode === 'doctor' ? `${doctorEnd}:00` : undefined,
+          time_start: specialTimeStart ? `${specialTimeStart}:00` : undefined,
+          time_end: specialTimeEnd ? `${specialTimeEnd}:00` : undefined,
           work_type: specialName,
           created_at: new Date().toISOString()
         };
         setReports((items) => [...items, submittedReport]);
-        if (reportMode === 'doctor') {
-          setTimeStart(doctorEnd);
-          setTimeEnd(addMinutesToTime(doctorEnd, followUpDurationMinutes));
+        if (specialTimeEnd) {
+          setTimeStart(specialTimeEnd);
+          setTimeEnd(addMinutesToTime(specialTimeEnd, followUpDurationMinutes));
         }
         showFormMessage(`${title} byl uložen v rozsahu ${submitSummary}.`, 'success');
         window.alert(`${title} byl vytvořen.`);
@@ -1498,7 +1516,7 @@ function ReportForm() {
           <div className="form-footer">
             {message ? <p className={`form-message form-message--${messageTone}`} role="status" aria-live="polite">{message}</p> : null}
             <button type="submit" className="primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Ukládám...' : reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${reportMode === 'leave' ? 'dovolenou' : reportMode === 'training' ? 'školení' : 'doktora'}`}
+              {isSubmitting ? 'Ukládám...' : reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${modeSubmitLabel(reportMode)}`}
             </button>
           </div>
         </form>

@@ -12,7 +12,13 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
-## 2026-10-08
+## 2026-10-08 (0.3.1)
+
+### Oprava celodenních absencí
+- Nemoc a darování krve se ve formuláři i API vynucují jako interval 07:00-15:00 a účastní se kontroly překryvů.
+- Ukládací tlačítko nyní správně pojmenovává zvolený typ nepřítomnosti.
+
+## 2026-10-08 (0.3.0)
 
 ### Ostré účty a role
 - Přihlašovací údaje byly křížově zkontrolovány proti seznamu platnému od 8. 10. 2026. Opraveno je heslo Zbyňka Pokorného a překlepy v přihlašovacích jménech Rostislava Kabelky a Martiny Skucius.

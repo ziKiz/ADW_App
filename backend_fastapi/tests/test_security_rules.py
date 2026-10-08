@@ -10,7 +10,7 @@ from app.routers.approvals import approval_action_for_user, validate_approval_st
 from app.routers.dictionaries import can_view_attachment_code
 from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, export_period
 from app.config import Settings
-from app.routers.reports import is_timed_report, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
+from app.routers.reports import is_timed_report, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
 from app.seed_production import APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
 
@@ -92,6 +92,22 @@ class ReportTimeValidationTests(unittest.TestCase):
 
     def test_doctor_report_counts_as_timed_report(self):
         self.assertTrue(is_timed_report({"report_kind": "doctor", "time_start": "09:00:00", "time_end": "13:00:00"}))
+
+    def test_sickness_is_forced_to_full_workday(self):
+        start, end, hours = normalize_special_report_schedule("sick", None, None, 0)
+
+        self.assertEqual(start, parse_time_value("07:00:00"))
+        self.assertEqual(end, parse_time_value("15:00:00"))
+        self.assertEqual(hours, 8)
+        self.assertTrue(is_timed_report({"report_kind": "sick"}))
+
+    def test_blood_donation_is_forced_to_full_workday(self):
+        start, end, hours = normalize_special_report_schedule("blood", None, None, 0)
+
+        self.assertEqual(start, parse_time_value("07:00:00"))
+        self.assertEqual(end, parse_time_value("15:00:00"))
+        self.assertEqual(hours, 8)
+        self.assertTrue(is_timed_report({"report_kind": "blood"}))
 
 
 class ReportFieldScopeTests(unittest.TestCase):

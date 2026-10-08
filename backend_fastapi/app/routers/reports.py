@@ -32,12 +32,25 @@ def parse_time_value(value: Any) -> time | None:
     return time.fromisoformat(str(value))
 
 
+def normalize_special_report_schedule(
+    report_kind: Any,
+    time_start: time | None,
+    time_end: time | None,
+    hours_worked: Any,
+) -> tuple[time | None, time | None, Any]:
+    if report_kind in {"blood", "sick"}:
+        return time(7, 0), time(15, 0), 8
+    return time_start, time_end, hours_worked
+
+
 def validate_report_time_order(requires_time_order: bool, time_start: time | None, time_end: time | None) -> None:
     if requires_time_order and time_start and time_end and time_end <= time_start:
         raise HTTPException(status_code=422, detail="Konec práce musí být po začátku.")
 
 
 def is_timed_report(payload: dict[str, Any]) -> bool:
+    if payload.get("report_kind") in {"blood", "sick"}:
+        return True
     return payload.get("report_kind") in (None, "work", "doctor") and payload.get("time_start") and payload.get("time_end")
 
 
@@ -323,6 +336,9 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    time_start, time_end, hours_worked = normalize_special_report_schedule(
+        payload.get("report_kind"), time_start, time_end, payload.get("hours_worked") or 0
+    )
     validate_report_time_order(is_work or is_timed_report(payload), time_start, time_end)
     report_user_id, employee_name = report_identity_for_create(payload, user)
     primary_approver_id, task_approver_id, task_approval_status = await resolve_approval_route(
@@ -365,7 +381,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
             "time_start": time_start,
             "time_end": time_end,
             "break_hours": payload.get("break_hours") or 0,
-            "hours_worked": payload.get("hours_worked") or 0,
+            "hours_worked": hours_worked,
             "amount_ha": payload.get("amount_ha") or 0,
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
@@ -411,6 +427,9 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
+    time_start, time_end, hours_worked = normalize_special_report_schedule(
+        payload.get("report_kind"), time_start, time_end, payload.get("hours_worked") or 0
+    )
     validate_report_time_order(is_work or is_timed_report(payload), time_start, time_end)
     before_dict = dict(before_row)
     report_user_id, employee_name = report_identity_for_update(payload, user, before_dict)
@@ -442,7 +461,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "time_start": time_start,
             "time_end": time_end,
             "break_hours": payload.get("break_hours") or 0,
-            "hours_worked": payload.get("hours_worked") or 0,
+            "hours_worked": hours_worked,
             "amount_ha": payload.get("amount_ha") or 0,
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
