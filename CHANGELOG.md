@@ -12,6 +12,12 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-09 (0.4.1)
+
+### Admin profil Martiny
+- Databázová migrace a produkční seed vedou Martinu Novotnou jako administrátorku se zachovaným schvalováním Mechanizace.
+- Přepnutí do pracovního profilu nadále zobrazuje pouze její vedoucí agendu; admin profil zpřístupňuje správu účtů a ostatní administrátorské části.
+
 ## 2026-10-09 (0.4.0)
 
 ### Vrácení výkazu k opravě

@@ -12,7 +12,7 @@ from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, exp
 from app.config import Settings
 from app.routers.reports import is_timed_report, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
 from app.routers.users import validate_user_payload
-from app.seed_production import APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
+from app.seed_production import ADMIN_USERNAMES, APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
 
 
@@ -368,6 +368,9 @@ class ExportTests(unittest.TestCase):
     def test_jana_bobulova_is_forced_to_standard_employee(self):
         self.assertIn("Jana Bobulová", STANDARD_EMPLOYEE_NAMES)
         self.assertEqual(role_for_level("Podřízený"), "traktorista")
+
+    def test_martina_keeps_admin_profile_after_production_seed(self):
+        self.assertIn("martina.novotna", ADMIN_USERNAMES)
 
 
 class SettingsTests(unittest.TestCase):

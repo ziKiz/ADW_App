@@ -70,6 +70,7 @@ SPECIAL_WORK_TYPES = [
 LEADER_LEVELS = {"Hlavní vedoucí", "Agronom", "Zootechnička", "Vedoucí střediska", "Vedoucí dílen"}
 APPROVED_VIEWER_NAMES = {"Jana Bulíčková"}
 STANDARD_EMPLOYEE_NAMES = {"Jana Bobulová"}
+ADMIN_USERNAMES = {"martina.novotna"}
 JANA_BULICKOVA_PASSWORD_HASH = "$2b$12$h.QFS5mIWGXzNtEdMqmzK.EGvHMrUd0EwnTcwQOvkhnBaWXhXoOuW"
 
 
@@ -107,7 +108,7 @@ def read_users(path: Path) -> list[dict[str, Any]]:
             continue
 
         effective_level = "Podřízený" if full_name in STANDARD_EMPLOYEE_NAMES else level
-        role = "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(effective_level)
+        role = "admin" if username in ADMIN_USERNAMES else "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(effective_level)
         manager_username = None
         manager_name = None
         if effective_level == "Podřízený" and current_center in primary_lead_by_center:
@@ -126,7 +127,7 @@ def read_users(path: Path) -> list[dict[str, Any]]:
             "scope_department": current_center,
             "position": level if full_name in STANDARD_EMPLOYEE_NAMES else "",
             "approval_level": effective_level,
-            "approval_centers": [current_center] if role in {"schvalovatel", "specialista"} else [],
+            "approval_centers": [current_center] if role in {"admin", "schvalovatel", "specialista"} else [],
             "default_field_group": "RSL" if current_center == "Rostlinná výroba" else None,
             "manager_username": manager_username,
             "manager_name": manager_name,
