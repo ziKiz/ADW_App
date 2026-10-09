@@ -163,7 +163,7 @@ Zásadní pravidlo: zaměstnanec má jednoho hlavního vedoucího. Pokud konkré
 
 Pozemky jsou rozdělené do oblastí `RSL` a `MOHE`. Uživatelé RV začínají v oblasti RSL, mohou přepnout na MOHE a pracovní výkaz RV lze podle povahy práce uložit i bez pozemku.
 
-Aktuální backend už používá JWT přihlášení, Alembic migrace, auditní stopu a serverovou kontrolu oprávnění u výkazů. Před ostrým provozem zůstává doplnit produkční integraci Helios a finální správu uživatelských hesel.
+Aktuální backend používá JWT přihlášení, Alembic migrace, auditní stopu, serverovou kontrolu oprávnění u výkazů a administrátorskou správu účtů včetně změny hesla a bezpečné deaktivace. Do budoucna zbývá produkční integrace Helios.
 
 Role `approved_viewer` slouží kontrolorce Janě Bulíčkové pro čtení a export schválených výkazů napříč středisky. Export podporuje filtr roku, měsíce a střediska a neposkytuje této roli přístup k organizaci, číselníkům ani archivu. Jana Bobulová je samostatný běžný zaměstnanecký účet Živočišné výroby.
 

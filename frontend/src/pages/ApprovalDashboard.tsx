@@ -119,6 +119,22 @@ function cleanDefaultNote(value?: string) {
   return value?.trim() === 'Práce proběhla bez závad.' ? '' : value;
 }
 
+function extractWorkerNote(value?: string) {
+  const lines = String(value ?? '').split('\n');
+  const note = lines.find((line) => line.startsWith('Poznámka: '));
+  const otherNote = lines.find((line) => line.startsWith('Poznámka k Ostatní práci: '));
+  return [otherNote?.slice('Poznámka k Ostatní práci: '.length), note?.slice('Poznámka: '.length)]
+    .filter(Boolean)
+    .join(' · ')
+    .trim();
+}
+
+function replaceWorkerNote(value: string | undefined, workerNote: string) {
+  const lines = String(value ?? '').split('\n').filter((line) => line && !line.startsWith('Poznámka: '));
+  if (workerNote.trim()) lines.push(`Poznámka: ${workerNote.trim()}`);
+  return lines.join('\n');
+}
+
 function getFieldArea(fields: FieldRecord[], fieldId?: number) {
   const field = fields.find((item) => item.id === fieldId);
   return Number(field?.area ?? 0);
@@ -243,7 +259,7 @@ function hasSeparateTaskApprover(report: PendingReport) {
 
 function approvalStatusText(status?: string) {
   if (status === 'approved') return 'Schváleno';
-  if (status === 'rejected') return 'Zamítnuto';
+  if (status === 'rejected') return 'Vráceno';
   return 'Čeká';
 }
 
@@ -350,6 +366,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [message, setMessage] = useState('');
+  const [returnComment, setReturnComment] = useState('');
   const user = getUser();
   const requestedReportId = searchParams.get('report');
   const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
@@ -414,12 +431,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     }));
   }, [dateFrom, dateTo, employeeFilter, reports]);
 
-  const handleApproval = async (reportId: number) => {
+  const handleApproval = async (reportId: number, nextStatus: 'approved' | 'rejected' = 'approved', comment = 'Schváleno') => {
     try {
       const response = await client.post(`/approvals/${reportId}`, {
-        status: 'approved',
+        status: nextStatus,
         approver_id: user?.id ?? 2,
-        comment: 'Schváleno'
+        comment
       });
       setMessage(response.data?.message ?? 'Výkaz schválen.');
       loadReports();
@@ -471,6 +488,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         notes: cleanDefaultNote(report.notes)
       });
       setDetailFieldEntries(parseFieldEntries(report, fields));
+      setReturnComment('');
     } catch (error) {
       console.error(error);
       setMessage('Detail výkazu se nepodařilo načíst.');
@@ -501,7 +519,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   const handleDetailNumberChange = (field: 'tractor_id' | 'work_type_id') =>
     (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      updateSelectedReport({ [field]: Number(event.target.value) } as Partial<PendingReport>);
+      updateSelectedReport({ [field]: event.target.value ? Number(event.target.value) : undefined } as Partial<PendingReport>);
     };
 
   const updateDetailFieldEntry = (entryId: number, changes: Partial<EditableFieldEntry>) => {
@@ -610,6 +628,17 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     if (approved) setSelectedReport(null);
   };
 
+  const handleReturnForCorrection = async () => {
+    if (!selectedReport) return;
+    const reason = returnComment.trim();
+    if (!reason) {
+      setMessage('Před vrácením napište zaměstnanci důvod opravy.');
+      return;
+    }
+    const returned = await handleApproval(selectedReport.id, 'rejected', reason);
+    if (returned) setSelectedReport(null);
+  };
+
   return (
     <div className="container">
       <div className="card">
@@ -667,6 +696,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                         <span className="approval-day-time">{displayTime(report)}</span>
                         <strong>{report.work_type}</strong>
                         <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${report.field_name || 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
+                        {extractWorkerNote(report.notes) ? <p className="approval-day-note"><b>Poznámka:</b> {extractWorkerNote(report.notes)}</p> : null}
                       </div>
                       <div className="approval-day-actions">
                         <ApprovalProgress report={report} compact />
@@ -801,7 +831,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <label className="detail-field">
                   Stroj
                   <select value={selectedReport.tractor_id ?? ''} disabled={absence} onChange={handleDetailNumberChange('tractor_id')}>
-                    {absence ? <option value="">Bez stroje</option> : null}
+                    <option value="">Bez techniky</option>
                     {tractors.map((item) => (
                       <option key={item.id} value={item.id}>
                         {item.tractor_code && item.tractor_code !== item.tractor_name ? `${item.tractor_name} (${item.tractor_code})` : item.tractor_name}
@@ -817,10 +847,13 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     disabled
                   />
                 </label>
-                <label className="detail-field detail-grid__wide">Poznámka<textarea rows={4} value={selectedReport.notes ?? ''} onChange={(event) => updateSelectedReport({ notes: event.target.value })} /></label>
+                <label className="detail-field detail-grid__wide">Poznámka pracovníka<textarea rows={3} value={extractWorkerNote(selectedReport.notes)} onChange={(event) => updateSelectedReport({ notes: replaceWorkerNote(selectedReport.notes, event.target.value) })} /></label>
               </div>
               {status === 'pending' && canApproveReports ? (
-                <div className="modal-actions">
+                <div className="approval-return-panel">
+                  <label className="detail-field detail-grid__wide">Důvod vrácení k opravě<textarea rows={3} value={returnComment} onChange={(event) => setReturnComment(event.target.value)} placeholder="Napište zaměstnanci, co má opravit" /></label>
+                  <div className="modal-actions">
+                    <button className="danger" type="button" disabled={!canRunApprovalAction(approvalAction)} onClick={handleReturnForCorrection}>Vrátit k opravě</button>
                   <button
                     className="primary approve-large"
                     type="button"
@@ -829,6 +862,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   >
                     {approvalActionLabel(approvalAction)}
                   </button>
+                  </div>
                 </div>
               ) : status === 'approved' && canEditReport(selectedReport, user) ? (
                 <div className="modal-actions">

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import ReportForm from './pages/ReportForm';
@@ -11,10 +12,13 @@ import DirectorOverview from './pages/DirectorOverview';
 import ArchiveView from './pages/ArchiveView';
 import Login from './pages/Login';
 import BrandHeader from './components/BrandHeader';
-import { getOrCreateDemoUser } from './utils/auth';
+import client, { hasHttpStatus, isLiveMode } from './api/client';
+import { clearUser, getOrCreateDemoUser, saveUser } from './utils/auth';
+import packageJson from '../package.json';
 
 function App() {
   const location = useLocation();
+  const [, setSessionRevision] = useState(0);
   const user = getOrCreateDemoUser();
   const canSeeApprovals = ['admin', 'reditel', 'schvalovatel', 'specialista', 'approved_viewer'].includes(user?.role ?? '');
   const canApprove = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
@@ -22,6 +26,52 @@ function App() {
   const canSeeAdminModules = user?.role === 'admin' || user?.role === 'reditel';
   const canExportReports = canSeeAdminModules || user?.role === 'approved_viewer';
   const canCreateReport = !canSeeApprovals;
+
+  useEffect(() => {
+    if (!isLiveMode || !user?.access_token) return;
+    let cancelled = false;
+    client.get('/auth/me')
+      .then((response) => {
+        if (cancelled) return;
+        saveUser({ ...response.data, access_token: user.access_token, token_type: user.token_type ?? 'bearer' });
+        setSessionRevision((revision) => revision + 1);
+      })
+      .catch((error) => {
+        if (!cancelled && hasHttpStatus(error, [401])) {
+          clearUser();
+          setSessionRevision((revision) => revision + 1);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [user?.access_token]);
+
+  useEffect(() => {
+    if (!isLiveMode) return;
+    let cancelled = false;
+    const checkVersion = async () => {
+      try {
+        const response = await fetch(`/api/health?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok || cancelled) return;
+        const health = await response.json() as { version?: string };
+        if (!health.version || health.version === packageJson.version) return;
+        const reloadKey = `adw-reloaded-for-${health.version}`;
+        if (sessionStorage.getItem(reloadKey) === '1') return;
+        sessionStorage.setItem(reloadKey, '1');
+        window.location.reload();
+      } catch {
+        // Během krátkého restartu serveru zůstane aktuální obrazovka použitelná.
+      }
+    };
+    checkVersion();
+    const intervalId = window.setInterval(checkVersion, 60_000);
+    const handleFocus = () => checkVersion();
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   if (!user && location.pathname !== '/login') {
     return (

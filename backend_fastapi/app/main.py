@@ -7,7 +7,8 @@ from app.config import settings
 from app.routers import approvals, audit, auth, contacts, dictionaries, export, notices, organization, reports, service_schedule, service_tasks, users
 
 
-app = FastAPI(title="ADW Live API", version="0.3.1")
+APP_VERSION = "0.4.0"
+app = FastAPI(title="ADW Live API", version=APP_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,7 +21,7 @@ app.add_middleware(
 
 @app.get("/api/health")
 async def health() -> dict[str, str]:
-    return {"status": "ok", "backend": "fastapi", "mode": settings.app_mode}
+    return {"status": "ok", "backend": "fastapi", "mode": settings.app_mode, "version": APP_VERSION}
 
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

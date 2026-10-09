@@ -12,6 +12,24 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-09 (0.4.0)
+
+### Vrácení výkazu k opravě
+- Vedoucí může čekající výkaz vrátit pracovníkovi s povinným důvodem. Pracovník upraví stejný záznam a znovu jej odešle do původní schvalovací trasy.
+- Vrácení, oprava i opětovné odeslání zůstávají v auditu. Pracovník vidí důvod vrácení na přehledu i ve formuláři opravy.
+
+### Výkazy a schvalování
+- Výkaz lze vytvořit i schválit bez techniky; žádný první stroj se už automaticky nevybírá.
+- Poznámka pracovníka je viditelná v denním přehledu i detailu schvalování a při úpravě se zachovají ostatní strukturované údaje výkazu.
+
+### Správa účtů
+- Administrátor může v Organizaci vytvořit účet, změnit přihlašovací jméno nebo heslo, přiřadit roli, středisko a nadřízeného a účet bezpečně deaktivovat.
+- Účty se nemažou natvrdo, aby zůstala zachována historie výkazů a auditu.
+
+### Aktualizace aplikace
+- Přihlášený klient si obnovuje aktuální profil ze serveru a při rozdílné verzi klienta a backendu se jednou automaticky načte znovu.
+- Vstupní HTML se neposílá z dlouhodobé cache, zatímco verzované statické soubory zůstávají efektivně cachované.
+
 ## 2026-10-08 (0.3.1)
 
 ### Oprava celodenních absencí

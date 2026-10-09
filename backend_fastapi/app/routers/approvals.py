@@ -26,7 +26,7 @@ def approval_action_for_user(report: dict, user: dict, requested_status: str) ->
     can_act_for_primary_center = user_can_review_center(user, report.get("employee_center"))
 
     if separate_task_approval and (user_id == task_id or can_act_for_task_center) and report.get("task_approval_status") == "pending":
-        return "task" if requested_status == "approved" else "task_rejection_forbidden"
+        return "task"
     if (user_id == primary_id or can_act_for_primary_center) and report.get("primary_approval_status") == "pending":
         if requested_status == "approved" and separate_task_approval and report.get("task_approval_status") != "approved":
             return "waiting_for_task"
@@ -67,16 +67,35 @@ async def approve_report(report_id: int, payload: dict, request: Request, sessio
     if report["status"] != "pending":
         raise HTTPException(status_code=409, detail="Schvalovat lze pouze výkaz ve stavu ke schválení.")
     status = validate_approval_status(payload.get("status") or "approved")
+    comment = str(payload.get("comment") or "").strip()
+    if status == "rejected" and not comment:
+        raise HTTPException(status_code=422, detail="Při vrácení výkazu je nutné uvést důvod.")
     action = approval_action_for_user(dict(report), user, status)
-    if action == "task_rejection_forbidden":
-        raise HTTPException(status_code=422, detail="Vedoucí činnosti práci pouze potvrzuje. Finální zamítnutí provádí hlavní vedoucí.")
     if action == "waiting_for_task":
         raise HTTPException(status_code=409, detail="Finální schválení čeká na vedoucího činnosti.")
     if action == "none":
         raise HTTPException(status_code=409, detail="Tuto část výkazu už nemůžete schválit nebo vám není přiřazena.")
 
     approval_role = "task" if action in {"task", "override_task"} else "primary"
-    if approval_role == "task":
+    if status == "rejected":
+        await session.execute(
+            text(
+                """
+                UPDATE reports SET
+                  status = 'rejected',
+                  primary_approval_status = CASE WHEN :approval_role = 'primary' THEN 'rejected' ELSE primary_approval_status END,
+                  task_approval_status = CASE WHEN :approval_role = 'task' THEN 'rejected' ELSE task_approval_status END,
+                  primary_approved_at = CASE WHEN :approval_role = 'primary' THEN NOW() ELSE primary_approved_at END,
+                  task_approved_at = CASE WHEN :approval_role = 'task' THEN NOW() ELSE task_approved_at END,
+                  primary_approved_by = CASE WHEN :approval_role = 'primary' THEN :actor ELSE primary_approved_by END,
+                  task_approved_by = CASE WHEN :approval_role = 'task' THEN :actor ELSE task_approved_by END,
+                  updated_by = :actor
+                WHERE id = :id
+                """
+            ),
+            {"approval_role": approval_role, "actor": user["full_name"], "id": report_id},
+        )
+    elif approval_role == "task":
         await session.execute(
             text(
                 """
@@ -108,9 +127,9 @@ async def approve_report(report_id: int, payload: dict, request: Request, sessio
         )
     await session.execute(
         text("INSERT INTO approvals(report_id, approver_id, status, comment, approval_role) VALUES (:report_id, :approver_id, :status, :comment, :approval_role)"),
-        {"report_id": report_id, "approver_id": user["id"], "status": status, "comment": payload.get("comment"), "approval_role": approval_role},
+        {"report_id": report_id, "approver_id": user["id"], "status": status, "comment": comment, "approval_role": approval_role},
     )
     await write_app_audit(session, "reports", report_id, "approval", json.dumps(dict(report), default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
-    message = "Činnost byla potvrzena a čeká na finální schválení." if approval_role == "task" and status == "approved" else "Výkaz byl finálně schválen." if status == "approved" else "Výkaz byl zamítnut."
+    message = "Činnost byla potvrzena a čeká na finální schválení." if approval_role == "task" and status == "approved" else "Výkaz byl finálně schválen." if status == "approved" else "Výkaz byl vrácen zaměstnanci k opravě."
     return {"message": message, "status": "pending" if approval_role == "task" and status == "approved" else status, "approval_role": approval_role}

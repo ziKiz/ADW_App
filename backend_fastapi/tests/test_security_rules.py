@@ -11,6 +11,7 @@ from app.routers.dictionaries import can_view_attachment_code
 from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, export_period
 from app.config import Settings
 from app.routers.reports import is_timed_report, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
+from app.routers.users import validate_user_payload
 from app.seed_production import APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
 
@@ -151,10 +152,10 @@ class ApprovalRoutingTests(unittest.TestCase):
             "task",
         )
 
-    def test_task_approver_cannot_finally_reject_report(self):
+    def test_task_approver_can_return_report_for_correction(self):
         self.assertEqual(
             approval_action_for_user(self.report, {"id": 11, "role": "schvalovatel"}, "rejected"),
-            "task_rejection_forbidden",
+            "task",
         )
 
     def test_primary_approver_waits_for_task_approver(self):
@@ -308,6 +309,31 @@ class AttachmentVisibilityTests(unittest.TestCase):
 
     def test_approver_can_view_attachment_code(self):
         self.assertTrue(can_view_attachment_code({"role": "schvalovatel"}))
+
+
+class UserPayloadValidationTests(unittest.TestCase):
+    def test_new_account_accepts_username_without_email_format(self):
+        payload = validate_user_payload(
+            {"username": "novy.pracovnik", "full_name": "Nový Pracovník", "password": "2245", "role": "zamestnanec"},
+            creating=True,
+        )
+
+        self.assertEqual(payload["username"], "novy.pracovnik")
+        self.assertEqual(payload["email"], "novy.pracovnik@lesonice.local")
+
+    def test_new_account_requires_four_character_password(self):
+        with self.assertRaises(HTTPException):
+            validate_user_payload(
+                {"username": "novy.pracovnik", "full_name": "Nový Pracovník", "password": "123", "role": "zamestnanec"},
+                creating=True,
+            )
+
+    def test_account_rejects_unknown_role(self):
+        with self.assertRaises(HTTPException):
+            validate_user_payload(
+                {"username": "novy.pracovnik", "full_name": "Nový Pracovník", "password": "2245", "role": "superadmin"},
+                creating=True,
+            )
 
 
 class ExportTests(unittest.TestCase):

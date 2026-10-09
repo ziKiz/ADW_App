@@ -510,6 +510,19 @@ label,
   gap: 16px;
 }
 
+.user-account-editor {
+  display: grid;
+  gap: 16px;
+  margin: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.user-account-editor__grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .time-grid {
   display: grid;
   grid-template-columns: minmax(160px, 190px) 120px 120px;
@@ -1373,6 +1386,22 @@ label,
   gap: 10px;
 }
 
+.approval-day-note {
+  max-width: 720px;
+  margin: 5px 0 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.approval-return-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
 .approval-progress {
   display: grid;
   gap: 8px;
@@ -2164,6 +2193,7 @@ label,
 
   .filter-bar,
   .field-grid,
+  .user-account-editor__grid,
   .time-grid,
   .segmented-control,
   .repeat-row,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, ChangeEvent, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { getUserServiceCenter, normalizeServiceCenter, serviceCenters, vacationBalance } from '../utils/employeeContext';
@@ -64,6 +64,18 @@ interface ReportTimeEntry {
   work_type?: string;
   status?: string;
   created_at?: string;
+  report_number?: string;
+  report_kind?: string;
+  tractor_id?: number | null;
+  field_id?: number | null;
+  field_group?: 'RSL' | 'MOHE';
+  field_entries?: Array<{ field_id?: number; amount_ha?: number; processed_percent?: number }> | string | null;
+  work_type_id?: number;
+  service_center?: string;
+  attachments?: LastUsedReport['attachments'];
+  notes?: string;
+  hours_worked?: number;
+  return_comment?: string;
 }
 
 type ReportMode = 'work' | 'leave' | 'training' | 'doctor' | 'blood' | 'sick';
@@ -302,10 +314,11 @@ function reportTimeRange(report: ReportTimeEntry) {
   return null;
 }
 
-function hasTimeOverlap(reports: ReportTimeEntry[], targetDate: string, start: string, end: string, user: ReturnType<typeof getUser>) {
+function hasTimeOverlap(reports: ReportTimeEntry[], targetDate: string, start: string, end: string, user: ReturnType<typeof getUser>, excludeReportId?: number) {
   const startMinutes = timeToMinutes(start);
   const endMinutes = timeToMinutes(end);
   return reports.some((report) => {
+    if (excludeReportId && Number(report.id) === excludeReportId) return false;
     if (!sameReportDate(report.date, targetDate) || !belongsToCurrentUser(report, user)) return false;
     const range = reportTimeRange(report);
     if (!range) return false;
@@ -337,8 +350,49 @@ function confirmReportSubmit(message: string) {
   return window.confirm(message);
 }
 
+function reportModeFromReport(report: ReportTimeEntry): ReportMode {
+  if (['leave', 'training', 'doctor', 'blood', 'sick'].includes(String(report.report_kind))) return report.report_kind as ReportMode;
+  if (report.work_type === 'Dovolená') return 'leave';
+  if (report.work_type === 'Školení') return 'training';
+  if (report.work_type === 'Doktor') return 'doctor';
+  if (report.work_type === 'Darování krve') return 'blood';
+  if (report.work_type === 'Nemoc') return 'sick';
+  return 'work';
+}
+
+function extractWorkerNote(value?: string) {
+  const lines = String(value ?? '').split('\n');
+  const note = lines.find((line) => line.startsWith('Poznámka: '));
+  return note ? note.slice('Poznámka: '.length).trim() : '';
+}
+
+function extractOtherWorkNote(value?: string) {
+  const line = String(value ?? '').split('\n').find((item) => item.startsWith('Poznámka k Ostatní práci: '));
+  return line ? line.slice('Poznámka k Ostatní práci: '.length).trim() : '';
+}
+
+function parseEditableFieldEntries(report: ReportTimeEntry, fields: FieldRecord[]): FieldEntry[] {
+  let entries: Array<{ field_id?: number; amount_ha?: number; processed_percent?: number }> = [];
+  if (Array.isArray(report.field_entries)) entries = report.field_entries;
+  if (typeof report.field_entries === 'string' && report.field_entries.trim()) {
+    try { entries = JSON.parse(report.field_entries); } catch { entries = []; }
+  }
+  const parsed = entries.filter((entry) => entry.field_id).map((entry, index) => ({
+    id: Date.now() + index,
+    fieldId: Number(entry.field_id),
+    amountHa: Number(entry.amount_ha ?? getFieldArea(fields, Number(entry.field_id))),
+    processedPercent: Number(entry.processed_percent ?? 100),
+    fieldSearch: ''
+  }));
+  if (parsed.length) return parsed;
+  if (report.field_id) return [{ id: Date.now(), fieldId: report.field_id, amountHa: getFieldArea(fields, report.field_id), processedPercent: 100, fieldSearch: '' }];
+  return [{ id: Date.now(), fieldId: undefined, amountHa: 0, processedPercent: 100, fieldSearch: '' }];
+}
+
 function ReportForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editReportId = Number(searchParams.get('edit') || 0) || null;
   const user = getUser();
   const lastPreferences = useMemo(getLastReportPreferences, []);
   const initialServiceCenter = serviceCenters.includes(lastPreferences.serviceCenter ?? '')
@@ -380,6 +434,7 @@ function ReportForm() {
   const [otherUsesFields, setOtherUsesFields] = useState(false);
   const [otherUsesTractor, setOtherUsesTractor] = useState(false);
   const [otherUsesAttachments, setOtherUsesAttachments] = useState(false);
+  const [editingReport, setEditingReport] = useState<ReportTimeEntry | null>(null);
   const isOtherWorkType = workTypes.some((item) => item.id === selectedWorkType && item.name === 'Ostatní');
   const serviceCenterUsesFields = normalizeServiceCenter(serviceCenter) === 'Rostlinná výroba';
   const selectedModeDays = countWeekdaysInclusive(absenceStart, absenceEnd);
@@ -434,13 +489,14 @@ function ReportForm() {
   useEffect(() => {
     const loadMetadata = async () => {
       setMetadataLoading(true);
-      const [tractorResponse, fieldResponse, workTypeResponse, attachmentResponse, reportResponse, lastUsedResponse] = await Promise.allSettled([
+      const [tractorResponse, fieldResponse, workTypeResponse, attachmentResponse, reportResponse, lastUsedResponse, editResponse] = await Promise.allSettled([
         client.get('/tractors'),
         client.get('/fields'),
         client.get('/work-types'),
         client.get('/attachments'),
         client.get('/reports'),
-        client.get('/reports/last-used')
+        client.get('/reports/last-used'),
+        editReportId ? client.get(`/reports/${editReportId}`) : Promise.resolve({ data: null })
       ]);
       const loadedTractors = tractorResponse.status === 'fulfilled' ? tractorResponse.value.data as Tractor[] : [];
       const loadedWorkTypes = workTypeResponse.status === 'fulfilled' ? workTypeResponse.value.data as WorkType[] : [];
@@ -449,13 +505,7 @@ function ReportForm() {
 
       if (tractorResponse.status === 'fulfilled') {
         setTractors(loadedTractors);
-        if (loadedTractors.length > 0) {
-          const matchingTractors = sortTractorsForWork(loadedTractors);
-          const preferredTractorId = matchingTractors.some((tractor) => tractor.id === lastPreferences.selectedTractor)
-            ? lastPreferences.selectedTractor
-            : matchingTractors[0]?.id;
-          setSelectedTractor(preferredTractorId);
-        }
+        setSelectedTractor(undefined);
       } else {
         console.error(tractorResponse.reason);
       }
@@ -503,18 +553,48 @@ function ReportForm() {
 
       if (lastUsed) {
         setLastUsedReport(lastUsed);
-        const matchingTractors = sortTractorsForWork(loadedTractors);
-        const lastTractorIsValid = lastUsed.tractor_id && matchingTractors.some((tractor) => tractor.id === lastUsed.tractor_id);
         const lastWorkTypeIsValid = lastUsed.work_type_id && loadedWorkTypes.some((item) => item.id === lastUsed.work_type_id && !['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'].includes(item.name));
-        if (lastTractorIsValid) {
-          setSelectedTractor(lastUsed.tractor_id);
-        }
         if (lastWorkTypeIsValid) {
           setSelectedWorkType(lastUsed.work_type_id);
         }
         setAttachmentEntries(buildAttachmentEntries(normalizeAttachmentIdsFromReport(lastUsed.attachments, loadedAttachments)));
       } else if (lastUsedResponse.status === 'rejected') {
         console.error(lastUsedResponse.reason);
+      }
+
+      if (editReportId) {
+        if (editResponse.status !== 'fulfilled' || !editResponse.value.data || editResponse.value.data.status !== 'rejected') {
+          showFormMessage('Vrácený výkaz se nepodařilo otevřít. Obnovte přehled a zkuste to znovu.', 'error');
+        } else {
+          const report = editResponse.value.data as ReportTimeEntry;
+          const mode = reportModeFromReport(report);
+          setEditingReport(report);
+          setReportMode(mode);
+          setDate(String(report.date ?? '').slice(0, 10));
+          setAbsenceStart(String(report.date ?? '').slice(0, 10));
+          setAbsenceEnd(String(report.date ?? '').slice(0, 10));
+          setTimeStart(normalizeClockTime(report.time_start) || defaultStartTime);
+          setTimeEnd(normalizeClockTime(report.time_end) || '15:00');
+          setServiceCenter(report.service_center || initialServiceCenter);
+          setSelectedWorkType(report.work_type_id);
+          setSelectedTractor(report.tractor_id ?? undefined);
+          setFieldGroup(report.field_group === 'MOHE' ? 'MOHE' : 'RSL');
+          setFieldEntries(parseEditableFieldEntries(report, fieldResponse.status === 'fulfilled' ? fieldResponse.value.data as FieldRecord[] : []));
+          setAttachmentEntries(buildAttachmentEntries(normalizeAttachmentIdsFromReport(report.attachments, loadedAttachments)));
+          if (mode === 'work') setNotes(extractWorkerNote(report.notes));
+          else setAbsenceNote(extractWorkerNote(report.notes));
+          if (report.work_type === 'Ostatní') {
+            setOtherUsesFields(Boolean(report.field_id || parseEditableFieldEntries(report, fieldResponse.status === 'fulfilled' ? fieldResponse.value.data as FieldRecord[] : []).some((entry) => entry.fieldId)));
+            setOtherUsesTractor(Boolean(report.tractor_id));
+            setOtherUsesAttachments(normalizeAttachmentIdsFromReport(report.attachments, loadedAttachments).length > 0);
+            setOtherWorkNote(extractOtherWorkNote(report.notes));
+          }
+          if (mode === 'doctor') {
+            setDoctorStart(normalizeClockTime(report.time_start) || defaultStartTime);
+            setDoctorHours(Number(report.hours_worked) === 8 ? 8 : 4);
+          }
+          if (mode !== 'work') setSpecialOptionsOpen(true);
+        }
       }
 
       if (
@@ -530,15 +610,14 @@ function ReportForm() {
       setMetadataLoading(false);
     };
     loadMetadata();
-  }, []);
+  }, [editReportId]);
 
   useEffect(() => {
     if (metadataLoading) return;
-    const firstTractorId = availableTractors[0]?.id;
     if (isOtherWorkType && !otherUsesTractor) {
       setSelectedTractor(undefined);
     } else if (selectedTractor && !availableTractors.some((tractor) => tractor.id === selectedTractor) && !isOtherWorkType) {
-      setSelectedTractor(firstTractorId);
+      setSelectedTractor(undefined);
     }
   }, [availableTractors, isOtherWorkType, metadataLoading, otherUsesTractor, selectedTractor]);
 
@@ -643,12 +722,12 @@ function ReportForm() {
           showFormMessage('Konec návštěvy doktora musí být po začátku.', 'error');
           return;
         }
-        if (hasTimeOverlap(reports, absenceStart, doctorTimeStart, doctorEnd, user)) {
+        if (hasTimeOverlap(reports, absenceStart, doctorTimeStart, doctorEnd, user, editingReport?.id)) {
           showFormMessage('V zadaném čase už existuje jiný výkaz. Upravte prosím čas doktora nebo navazující práce.', 'error');
           return;
         }
       }
-      if (isFixedFullDayAbsence && hasTimeOverlap(reports, absenceStart, '07:00', '15:00', user)) {
+      if (isFixedFullDayAbsence && hasTimeOverlap(reports, absenceStart, '07:00', '15:00', user, editingReport?.id)) {
         showFormMessage(`V čase 07:00-15:00 už existuje jiný výkaz. Nejprve upravte existující výkaz.`, 'error');
         return;
       }
@@ -686,7 +765,7 @@ function ReportForm() {
       try {
         setIsSubmitting(true);
         showFormMessage(`Ukládám ${title.toLocaleLowerCase('cs-CZ')}...`, 'info');
-        const response = await client.post('/reports', {
+        const specialPayload = {
           report_number: `RPT-${Date.now()}`,
           report_kind: reportMode,
           tractor_id: null,
@@ -704,7 +783,10 @@ function ReportForm() {
           amount_ha: 0,
           attachments: [],
           notes: extendedNotes
-        });
+        };
+        const response = editingReport?.id
+          ? await client.put(`/reports/${editingReport.id}`, specialPayload)
+          : await client.post('/reports', specialPayload);
         const submittedReport: ReportTimeEntry = {
           id: response.data?.id,
           user_id: user?.id ?? 1,
@@ -720,8 +802,9 @@ function ReportForm() {
           setTimeStart(specialTimeEnd);
           setTimeEnd(addMinutesToTime(specialTimeEnd, followUpDurationMinutes));
         }
-        showFormMessage(`${title} byl uložen v rozsahu ${submitSummary}.`, 'success');
-        window.alert(`${title} byl vytvořen.`);
+        showFormMessage(editingReport ? 'Výkaz byl opraven a znovu odeslán ke schválení.' : `${title} byl uložen v rozsahu ${submitSummary}.`, 'success');
+        window.alert(editingReport ? 'Výkaz byl opraven a znovu odeslán.' : `${title} byl vytvořen.`);
+        if (editingReport) navigate('/dashboard');
       } catch (error) {
         console.error(error);
         showFormMessage(`${title} se nepodařilo uložit. Zkontrolujte datum a zkuste to znovu.`, 'error');
@@ -742,7 +825,7 @@ function ReportForm() {
       showFormMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`, 'error');
       return;
     }
-    if (hasTimeOverlap(reports, date, timeStart, timeEnd, user)) {
+    if (hasTimeOverlap(reports, date, timeStart, timeEnd, user, editingReport?.id)) {
       showFormMessage('V zadaném čase už existuje jiný výkaz. Výkaz se znovu neuložil.', 'error');
       return;
     }
@@ -794,7 +877,7 @@ function ReportForm() {
     try {
       setIsSubmitting(true);
       showFormMessage('Ukládám pracovní výkaz...', 'info');
-      const response = await client.post('/reports', {
+      const workPayload = {
         report_number: `RPT-${Date.now()}`,
         tractor_id: showTractorSelection ? selectedTractor ?? null : null,
         user_id: user?.id ?? 1,
@@ -811,7 +894,10 @@ function ReportForm() {
         amount_ha: fieldSummary.reduce((sum, item) => sum + Number(item.amount_ha || 0), 0),
         attachments: attachmentSummary,
         notes: extendedNotes
-      });
+      };
+      const response = editingReport?.id
+        ? await client.put(`/reports/${editingReport.id}`, workPayload)
+        : await client.post('/reports', workPayload);
       const nextStart = normalizeClockTime(timeEnd);
       const nextEnd = addMinutesToTime(nextStart, followUpDurationMinutes);
       const submittedReport: ReportTimeEntry = {
@@ -843,8 +929,9 @@ function ReportForm() {
         selectedWorkType,
         attachmentIds: showAttachmentSelection ? attachmentEntries.map((entry) => entry.attachmentId).filter((id): id is number => Boolean(id)) : []
       });
-      showFormMessage(`Výkaz byl uložen. Další práce navazuje od ${nextStart}.`, 'success');
-      window.alert('Výkaz byl vytvořen.');
+      showFormMessage(editingReport ? 'Výkaz byl opraven a znovu odeslán ke schválení.' : `Výkaz byl uložen. Další práce navazuje od ${nextStart}.`, 'success');
+      window.alert(editingReport ? 'Výkaz byl opraven a znovu odeslán.' : 'Výkaz byl vytvořen.');
+      if (editingReport) navigate('/dashboard');
     } catch (error) {
       console.error(error);
       showFormMessage('Výkaz se nepodařilo uložit. Pokud už v tomto čase výkaz existuje, upravte prosím čas práce.', 'error');
@@ -886,9 +973,7 @@ function ReportForm() {
     setOtherUsesFields(false);
     setOtherUsesTractor(false);
     setOtherUsesAttachments(false);
-    if (!availableTractors.some((tractor) => tractor.id === selectedTractor)) {
-      setSelectedTractor(availableTractors[0]?.id);
-    }
+    if (!availableTractors.some((tractor) => tractor.id === selectedTractor)) setSelectedTractor(undefined);
     const hasSelectedField = fieldEntries.some((entry) => entry.fieldId);
     if (!hasSelectedField && fields.length > 0) {
       const firstFieldId = fields.find((field) => field.field_group === fieldGroup)?.id;
@@ -1012,9 +1097,14 @@ function ReportForm() {
           <button className="mobile-back-button" type="button" aria-label="Zpět" onClick={() => navigate(-1)}>‹</button>
           <div>
             <p className="eyebrow">Výkazy</p>
-            <h1 className="page-title">Nový pracovní výkaz</h1>
+            <h1 className="page-title">{editingReport ? 'Oprava vráceného výkazu' : 'Nový pracovní výkaz'}</h1>
           </div>
         </div>
+        {editingReport?.return_comment ? (
+          <div className="absence-warning" role="alert">
+            <strong>Důvod vrácení:</strong> {editingReport.return_comment}
+          </div>
+        ) : null}
         <div className="report-summary-strip">
           <span>{formatCzechDate(date)}</span>
           <strong>{totalArea.toFixed(2)} ha</strong>
@@ -1516,7 +1606,7 @@ function ReportForm() {
           <div className="form-footer">
             {message ? <p className={`form-message form-message--${messageTone}`} role="status" aria-live="polite">{message}</p> : null}
             <button type="submit" className="primary" disabled={isSubmitting}>
-              {isSubmitting ? 'Ukládám...' : reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${modeSubmitLabel(reportMode)}`}
+              {isSubmitting ? 'Ukládám...' : editingReport ? 'Opravit a znovu odeslat' : reportMode === 'work' ? 'Uložit a odeslat' : `Uložit ${modeSubmitLabel(reportMode)}`}
             </button>
           </div>
         </form>

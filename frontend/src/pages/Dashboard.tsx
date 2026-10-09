@@ -21,6 +21,9 @@ interface ReportSummary {
   tractor_name: string;
   field_name: string;
   work_type: string;
+  return_comment?: string;
+  returned_by?: string;
+  returned_at?: string;
 }
 
 interface AuditEntry {
@@ -137,6 +140,13 @@ function displayReportTime(report: ReportSummary) {
   const start = formatTime(report.time_start);
   const end = formatTime(report.time_end);
   return start && end ? `${start}-${end}` : '-';
+}
+
+function reportStatusLabel(status: string) {
+  if (status === 'pending') return 'Ke schválení';
+  if (status === 'approved') return 'Schváleno';
+  if (status === 'rejected') return 'Vráceno k opravě';
+  return status;
 }
 
 function displayReportPerformance(report: ReportSummary) {
@@ -436,7 +446,9 @@ function Dashboard() {
                         <td className="mobile-hide" data-label="Pozemek">{isAbsenceReport(report) ? '-' : report.field_name}</td>
                         <td className="mobile-hide" data-label="Stroj">{isAbsenceReport(report) ? '-' : report.tractor_name}</td>
                         <td data-label="Výkon">{displayReportPerformance(report)}</td>
-                        <td data-label="Detail"><button className="edit-action" type="button" onClick={() => setSelectedUserReport(report)}>Detail</button></td>
+                        <td data-label="Detail">
+                          {report.status === 'rejected' ? <Link className="edit-action" to={`/report?edit=${report.id}`}>Opravit</Link> : <button className="edit-action" type="button" onClick={() => setSelectedUserReport(report)}>Detail</button>}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -458,12 +470,20 @@ function Dashboard() {
                   <div><span>Datum</span><strong>{formatDate(selectedUserReport.date)}</strong></div>
                   <div><span>Činnost</span><strong>{selectedUserReport.work_type}</strong></div>
                   <div><span>Čas</span><strong>{displayReportTime(selectedUserReport)}</strong></div>
-                  <div><span>Stav</span><strong>{selectedUserReport.status}</strong></div>
+                  <div><span>Stav</span><strong>{reportStatusLabel(selectedUserReport.status)}</strong></div>
                   <div><span>Pozemek</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.field_name}</strong></div>
                   <div><span>Stroj</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.tractor_name}</strong></div>
                   <div><span>Výkon</span><strong>{displayReportPerformance(selectedUserReport)}</strong></div>
                   <div className="readonly-detail-grid__wide"><span>Poznámka</span><p>{selectedUserReport.notes || '-'}</p></div>
+                  {selectedUserReport.status === 'rejected' ? (
+                    <div className="readonly-detail-grid__wide"><span>Důvod vrácení</span><p>{selectedUserReport.return_comment || 'Důvod nebyl uveden.'}</p></div>
+                  ) : null}
                 </div>
+                {selectedUserReport.status === 'rejected' ? (
+                  <div className="modal-actions">
+                    <Link className="primary approve-large" to={`/report?edit=${selectedUserReport.id}`}>Opravit a znovu odeslat</Link>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}

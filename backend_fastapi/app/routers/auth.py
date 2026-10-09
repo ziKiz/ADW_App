@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.security import create_access_token, verify_password
+from app.security import create_access_token, get_current_user, verify_password
 
 router = APIRouter()
+
+
+@router.get("/me")
+async def current_user(user=Depends(get_current_user)):
+    return user
 
 
 class LoginInput(BaseModel):

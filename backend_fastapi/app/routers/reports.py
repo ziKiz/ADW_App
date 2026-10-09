@@ -213,6 +213,8 @@ def report_select(where: str = "") -> str:
         r.task_approver_id, task_approver.full_name AS task_approver_name,
         r.primary_approval_status, r.task_approval_status,
         r.primary_approved_at, r.task_approved_at, r.primary_approved_by, r.task_approved_by,
+        latest_return.comment AS return_comment, latest_return.created_at AS returned_at,
+        return_user.full_name AS returned_by,
         t.tractor_name, f.field_name, f.field_group, w.name AS work_type,
         COALESCE(employee.scope_department, employee.department_name) AS employee_center,
         r.tractor_id, r.field_id, r.work_type_id
@@ -223,6 +225,14 @@ def report_select(where: str = "") -> str:
       LEFT JOIN work_types w ON r.work_type_id = w.id
       LEFT JOIN users primary_approver ON r.primary_approver_id = primary_approver.id
       LEFT JOIN users task_approver ON r.task_approver_id = task_approver.id
+      LEFT JOIN LATERAL (
+        SELECT a.comment, a.created_at, a.approver_id
+        FROM approvals a
+        WHERE a.report_id = r.id AND a.status = 'rejected'
+        ORDER BY a.created_at DESC, a.id DESC
+        LIMIT 1
+      ) latest_return ON TRUE
+      LEFT JOIN users return_user ON latest_return.approver_id = return_user.id
       WHERE r.archived_at IS NULL {where}
     """
 
@@ -418,7 +428,8 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
         raise HTTPException(status_code=404, detail="Výkaz nenalezen")
     if not can_access_report(before_row, user, allow_scoped_review=True):
         raise HTTPException(status_code=403, detail="Nemáte oprávnění upravit tento výkaz.")
-    if before_row.get("status") != "pending" and not (
+    owner_resubmission = before_row.get("status") == "rejected" and int(before_row.get("user_id") or 0) == int(user.get("id") or 0)
+    if before_row.get("status") != "pending" and not owner_resubmission and not (
         is_elevated_user(user) or normalize_role(user.get("role")) in {"schvalovatel", "specialista"}
     ):
         raise HTTPException(status_code=409, detail="Schválený výkaz může upravit pouze vedoucí nebo administrátor.")
@@ -443,7 +454,20 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
               service_center = :service_center, field_id = :field_id, field_entries = CAST(:field_entries AS jsonb),
               work_type_id = :work_type_id, date = :date, time_start = :time_start, time_end = :time_end,
               break_hours = :break_hours, hours_worked = :hours_worked, amount_ha = :amount_ha,
-              half_day_leave = :half_day_leave, attachments = CAST(:attachments AS jsonb), notes = :notes, updated_by = :actor
+              half_day_leave = :half_day_leave, attachments = CAST(:attachments AS jsonb), notes = :notes,
+              status = CASE WHEN :owner_resubmission THEN 'pending' ELSE status END,
+              primary_approval_status = CASE WHEN :owner_resubmission THEN 'pending' ELSE primary_approval_status END,
+              task_approval_status = CASE
+                WHEN :owner_resubmission AND task_approver_id IS DISTINCT FROM primary_approver_id THEN 'pending'
+                WHEN :owner_resubmission THEN 'not_required'
+                ELSE task_approval_status
+              END,
+              primary_approved_at = CASE WHEN :owner_resubmission THEN NULL ELSE primary_approved_at END,
+              task_approved_at = CASE WHEN :owner_resubmission THEN NULL ELSE task_approved_at END,
+              primary_approved_by = CASE WHEN :owner_resubmission THEN NULL ELSE primary_approved_by END,
+              task_approved_by = CASE WHEN :owner_resubmission THEN NULL ELSE task_approved_by END,
+              submitted_at = CASE WHEN :owner_resubmission THEN NOW() ELSE submitted_at END,
+              updated_by = :actor
             WHERE id = :id
             """
         ),
@@ -467,8 +491,9 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),
             "actor": user["full_name"],
+            "owner_resubmission": owner_resubmission,
         },
     )
-    await write_app_audit(session, "reports", report_id, "save", json.dumps(before_dict, default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
+    await write_app_audit(session, "reports", report_id, "resubmit" if owner_resubmission else "save", json.dumps(before_dict, default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
-    return {"id": report_id, "message": "Výkaz byl uložen."}
+    return {"id": report_id, "message": "Výkaz byl opraven a znovu odeslán ke schválení." if owner_resubmission else "Výkaz byl uložen."}
