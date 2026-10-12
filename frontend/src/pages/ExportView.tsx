@@ -19,7 +19,7 @@ function ExportView() {
     setExporting(true);
     setStatus('');
     try {
-      const response = await client.get('/export/csv', {
+      const response = await client.get('/export/xlsx', {
         responseType: 'blob',
         params: { center, year: Number(year), month: month === 'all' ? undefined : Number(month) }
       });
@@ -28,7 +28,7 @@ function ExportView() {
       link.href = url;
       const disposition = String(response.headers['content-disposition'] ?? '');
       const serverFilename = disposition.match(/filename="?([^";]+)"?/i)?.[1];
-      link.setAttribute('download', serverFilename ?? `adw_schvalene_${year}_${month}_${center}.csv`);
+      link.setAttribute('download', serverFilename ?? `adw_vykazy_${year}_${month}_${center}.zip`);
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -50,14 +50,13 @@ function ExportView() {
             <h1 className="page-title">Export schválených výkazů</h1>
           </div>
           <button type="button" className="primary" onClick={handleExport} disabled={exporting}>
-            {exporting ? 'Připravuji...' : 'Stáhnout CSV'}
+            {exporting ? 'Připravuji...' : 'Stáhnout sešity ZIP'}
           </button>
         </div>
         <div className="filter-bar">
           <label>
             Měsíc
             <select value={month} onChange={(event) => setMonth(event.target.value)}>
-              <option value="all">Celý rok</option>
               {months.map((item, index) => <option key={item} value={index + 1}>{item}</option>)}
             </select>
           </label>
@@ -75,6 +74,7 @@ function ExportView() {
             </select>
           </label>
         </div>
+        <p className="field-hint">Každý zaměstnanec dostane vlastní Excel sešit. Jednotlivé listy odpovídají dnům vybraného měsíce.</p>
         {status && <p className="form-message">{status}</p>}
       </div>
     </div>

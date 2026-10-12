@@ -12,6 +12,30 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-12 (0.5.0)
+
+### Výkazy a pozemky
+- Pozemky se už nenabízejí u činností, které s nimi nesouvisejí, ani u nového typu `Jiné`; stejné pravidlo vynucuje také backend.
+- Typ `Práce s nakladačem` je přejmenovaný na `Práce s nakladačem, destou` bez ztráty vazby historických výkazů.
+- Typ `Jiné` má vlastní povinný popis uložený odděleně od běžné poznámky a zobrazený při schvalování i exportu.
+- Pracovníci a schvalovatelé vidí u pozemků název a výměru v hektarech; podle výměry lze také vyhledávat a DPB zůstává pouze v administraci.
+- Vrácené výkazy mají na přehledu pracovníka samostatný seznam s přímým otevřením opravy.
+
+### Čas a školení
+- Školení používá datum a čas od-do z horní části formuláře; duplicitní období od-do a počet pracovních dní byly odstraněné.
+- Frontend i backend odmítnou denní součet nad 24 hodin s konkrétním vysvětlením.
+- Neúplný pracovní den pod 8 hodin se připomene při odeslání a zůstává viditelný v upozorněních pracovníka, dokud není doplněný.
+
+### Schvalování a administrace
+- Opraven klientský filtr, který Karlu Trnkovi skrýval výkazy Mechanizace, přestože mu je backend správně zpřístupnil.
+- Administrátor může výkaz z detailu bezpečně odstranit; záznam se archivuje a zůstává dohledatelný v auditu.
+- Mobilní nabídka admin účtu obsahuje přímé vstupy ke správě uživatelů, přihlášení, pozemků a strojů.
+- Účet `martina.skucius` je přejmenovaný na Martin Skucius a dostává opravené heslo podle platného přihlašovacího seznamu; přihlašovací jméno zůstává stejné.
+
+### Export
+- Měsíční export vytváří ZIP s jedním Excel sešitem pro každého zaměstnance a jedním listem pro každý den vybraného měsíce.
+- Název sešitu obsahuje jméno zaměstnance a měsíc s rokem; více činností stejného dne zůstává společně na jednom listu a výkaz zachovává všechny zadané pozemky.
+
 ## 2026-10-09 (0.4.1)
 
 ### Admin profil Martiny

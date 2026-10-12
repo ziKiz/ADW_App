@@ -22,6 +22,7 @@ interface ReportSummary {
   field_name: string;
   work_type: string;
   return_comment?: string;
+  custom_work_description?: string;
   returned_by?: string;
   returned_at?: string;
 }
@@ -136,9 +137,10 @@ function isScopedApprovalRole(role?: string) {
 }
 
 function displayReportTime(report: ReportSummary) {
-  if (isAbsenceReport(report)) return 'celý den';
   const start = formatTime(report.time_start);
   const end = formatTime(report.time_end);
+  if (report.work_type === 'Školení' && start && end) return `${start}-${end}`;
+  if (isAbsenceReport(report)) return 'celý den';
   return start && end ? `${start}-${end}` : '-';
 }
 
@@ -235,8 +237,14 @@ function Dashboard() {
   const userReports = useMemo(() => userAllReports.slice(0, 10), [userAllReports]);
   const userReportDates = useMemo(() => new Set(userAllReports.map((report) => String(report.date).slice(0, 10))), [userAllReports]);
   const missingWeekdays = useMemo(() => getPreviousWeekdays(7).filter((day) => !userReportDates.has(day)), [userReportDates]);
+  const incompleteWeekdays = useMemo(() => getPreviousWeekdays(7).filter((day) => {
+    const dayReports = userAllReports.filter((report) => String(report.date).slice(0, 10) === day && report.status !== 'rejected');
+    if (dayReports.length === 0) return false;
+    const hours = dayReports.reduce((sum, report) => sum + (calculateHours(report.time_start, report.time_end) || asNumber(report.hours_worked)), 0);
+    return hours > 0 && hours < 8;
+  }), [userAllReports]);
   const returnedReports = useMemo(() => userAllReports.filter((report) => report.status === 'rejected'), [userAllReports]);
-  const needsAttentionCount = missingWeekdays.length + returnedReports.length;
+  const needsAttentionCount = missingWeekdays.length + incompleteWeekdays.length + returnedReports.length;
   const absencesToday = useMemo(() => {
     const today = toIsoDate(new Date());
     return visibleReports
@@ -407,6 +415,7 @@ function Dashboard() {
                 {needsAttentionCount
                   ? [
                       missingWeekdays.length ? `Chybí výkazy: ${missingWeekdays.map(formatDate).join(', ')}` : '',
+                      incompleteWeekdays.length ? `Neúplné pracovní dny: ${incompleteWeekdays.map(formatDate).join(', ')}` : '',
                       returnedReports.length ? `Vráceno k úpravě: ${returnedReports.length}` : ''
                     ].filter(Boolean).join(' · ')
                   : 'Za poslední všední dny nechybí žádný výkaz a nic není vráceno k úpravě.'}
@@ -414,6 +423,20 @@ function Dashboard() {
             </div>
             <strong>{needsAttentionCount}</strong>
           </section>
+          {returnedReports.length ? (
+            <section className="approval-small-panel returned-report-panel">
+              <h2>Vrácené výkazy k opravě</h2>
+              <div className="mini-list">
+                {returnedReports.map((report) => (
+                  <span key={report.id}>
+                    <b>{formatDate(report.date)} · {report.work_type}</b>
+                    {report.return_comment || 'Vedoucí požaduje opravu výkazu.'}
+                    <Link className="edit-action" to={`/report?edit=${report.id}`}>Otevřít a opravit</Link>
+                  </span>
+                ))}
+              </div>
+            </section>
+          ) : null}
           {NoticePanel}
           {ServicePanel}
 
@@ -475,6 +498,7 @@ function Dashboard() {
                   <div><span>Stroj</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.tractor_name}</strong></div>
                   <div><span>Výkon</span><strong>{displayReportPerformance(selectedUserReport)}</strong></div>
                   <div className="readonly-detail-grid__wide"><span>Poznámka</span><p>{selectedUserReport.notes || '-'}</p></div>
+                  {selectedUserReport.custom_work_description ? <div className="readonly-detail-grid__wide"><span>Popis jiné práce</span><p>{selectedUserReport.custom_work_description}</p></div> : null}
                   {selectedUserReport.status === 'rejected' ? (
                     <div className="readonly-detail-grid__wide"><span>Důvod vrácení</span><p>{selectedUserReport.return_comment || 'Důvod nebyl uveden.'}</p></div>
                   ) : null}

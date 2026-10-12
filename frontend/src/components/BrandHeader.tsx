@@ -125,6 +125,12 @@ function BrandHeader() {
         <button className="logout-button" type="button" onClick={handleLogout}>Odhlásit se</button>
         {mobileAccountOpen ? (
           <div className="mobile-account-menu" role="menu">
+            {canSeeAdminModules ? (
+              <>
+                <button type="button" role="menuitem" onClick={() => { setMobileAccountOpen(false); navigate('/users'); }}>Uživatelé a přihlášení</button>
+                <button type="button" role="menuitem" onClick={() => { setMobileAccountOpen(false); navigate('/dictionaries'); }}>Pozemky a stroje</button>
+              </>
+            ) : null}
             {canUseProfileSwitch ? (
               <button type="button" role="menuitem" onClick={handleProfileToggle}>
                 {profileModeState === 'admin' ? 'Pracovní profil' : 'Admin profil'}

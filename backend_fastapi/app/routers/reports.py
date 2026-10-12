@@ -10,10 +10,29 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit import set_audit_context, write_app_audit
 from app.db import get_session
-from app.security import APPROVED_VIEWER_ROLES, APPROVER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role, user_approval_centers
+from app.security import APPROVED_VIEWER_ROLES, APPROVER_ROLES, can_access_report, get_current_user, is_elevated_user, normalize_role, require_roles, user_approval_centers
 
 router = APIRouter()
 FIELD_SERVICE_CENTER = "Rostlinná výroba"
+NO_FIELD_WORK_TYPES = {
+    "montáž",
+    "demontáž",
+    "oprava",
+    "údržba",
+    "práce s nakladačem",
+    "práce s nakladačem, destou",
+    "krmení",
+    "nahrnování",
+    "dusání",
+    "rozvoz minimlékarna",
+    "odkrývání silážních jam",
+    "zakrývání silážních jam",
+    "úklid",
+    "práce bps",
+    "čištění stroje",
+    "čistění stroje",
+    "jiné",
+}
 
 
 def parse_date_value(value: Any) -> date | None:
@@ -51,7 +70,7 @@ def validate_report_time_order(requires_time_order: bool, time_start: time | Non
 def is_timed_report(payload: dict[str, Any]) -> bool:
     if payload.get("report_kind") in {"blood", "sick"}:
         return True
-    return payload.get("report_kind") in (None, "work", "doctor") and payload.get("time_start") and payload.get("time_end")
+    return payload.get("report_kind") in (None, "work", "doctor", "training") and payload.get("time_start") and payload.get("time_end")
 
 
 def normalize_service_center(value: Any) -> str:
@@ -157,6 +176,30 @@ def validate_field_scope(payload: dict[str, Any], is_work: bool) -> None:
         raise HTTPException(status_code=422, detail="Pozemky lze ukládat pouze pro středisko RV.")
 
 
+def work_type_allows_fields(work_type_name: Any) -> bool:
+    return str(work_type_name or "").strip().casefold() not in NO_FIELD_WORK_TYPES
+
+
+def validate_work_type_fields(payload: dict[str, Any], work_type_name: Any, is_work: bool) -> None:
+    if not is_work or work_type_allows_fields(work_type_name):
+        return
+    field_entries = payload.get("field_entries") or []
+    has_entries = (isinstance(field_entries, list) and bool(field_entries)) or (isinstance(field_entries, str) and bool(field_entries.strip()))
+    if payload.get("field_id") or has_entries:
+        raise HTTPException(status_code=422, detail="Pro zvolený typ práce se pozemek nevybírá.")
+
+
+def normalize_custom_work_description(work_type_name: Any, value: Any) -> str | None:
+    description = str(value or "").strip()
+    if str(work_type_name or "").strip().casefold() == "jiné":
+        if not description:
+            raise HTTPException(status_code=422, detail="U typu práce Jiné stručně popište vykonanou práci.")
+        if len(description) > 1000:
+            raise HTTPException(status_code=422, detail="Popis jiné práce může mít nejvýše 1000 znaků.")
+        return description
+    return None
+
+
 async def ensure_no_time_overlap(
     session: AsyncSession,
     user_id: Any,
@@ -204,11 +247,52 @@ async def ensure_no_time_overlap(
         raise HTTPException(status_code=409, detail="V zadaném čase už existuje jiný výkaz.")
 
 
+async def ensure_daily_hours_limit(
+    session: AsyncSession,
+    user_id: Any,
+    report_date: date | None,
+    time_start: time | None,
+    time_end: time | None,
+    *,
+    exclude_report_id: int | None = None,
+) -> None:
+    if not user_id or not report_date or not time_start or not time_end:
+        return
+    candidate_minutes = (time_end.hour * 60 + time_end.minute) - (time_start.hour * 60 + time_start.minute)
+    if candidate_minutes <= 0:
+        return
+    params: dict[str, Any] = {"user_id": user_id, "date": report_date}
+    exclude_clause = ""
+    if exclude_report_id is not None:
+        exclude_clause = "AND id <> :exclude_report_id"
+        params["exclude_report_id"] = exclude_report_id
+    existing_minutes = await session.scalar(
+        text(
+            f"""
+            SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (time_end - time_start)) / 60), 0)
+            FROM reports
+            WHERE archived_at IS NULL
+              AND user_id = :user_id
+              AND date = :date
+              AND time_start IS NOT NULL
+              AND time_end IS NOT NULL
+              {exclude_clause}
+            """
+        ),
+        params,
+    )
+    if float(existing_minutes or 0) + candidate_minutes > 24 * 60:
+        raise HTTPException(
+            status_code=422,
+            detail="Součet výkazů pro tento den přesahuje 24 hodin. Zkontrolujte prosím dosavadní výkazy a zadané časy.",
+        )
+
+
 def report_select(where: str = "") -> str:
     return f"""
       SELECT r.id, r.report_number, r.report_kind, r.user_id, r.employee_name, r.service_center,
         r.date, r.time_start, r.time_end, r.break_hours, r.hours_worked, r.amount_ha,
-        r.notes, r.status, r.field_entries, r.attachments,
+        r.notes, r.custom_work_description, r.status, r.field_entries, r.attachments,
         r.primary_approver_id, primary_approver.full_name AS primary_approver_name,
         r.task_approver_id, task_approver.full_name AS task_approver_name,
         r.primary_approval_status, r.task_approval_status,
@@ -343,6 +427,14 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     is_work = payload.get("report_kind") in (None, "work")
     validate_field_scope(payload, is_work)
+    work_type_name = await session.scalar(
+        text("SELECT name FROM work_types WHERE id = :id AND archived_at IS NULL"),
+        {"id": payload.get("work_type_id")},
+    )
+    if not work_type_name:
+        raise HTTPException(status_code=422, detail="Vyberte platný typ práce.")
+    validate_work_type_fields(payload, work_type_name, is_work)
+    custom_work_description = normalize_custom_work_description(work_type_name, payload.get("custom_work_description"))
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
@@ -359,19 +451,20 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     )
     if is_timed_report(payload):
         await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end)
+        await ensure_daily_hours_limit(session, report_user_id, report_date, time_start, time_end)
     result = await session.execute(
         text(
             """
             INSERT INTO reports(
               report_number, report_kind, tractor_id, user_id, employee_name, service_center, field_id, field_entries,
               work_type_id, date, time_start, time_end, break_hours, hours_worked, amount_ha, fuel_liters,
-              half_day_leave, attachments, notes, status, submitted_at, created_by, updated_by
+              half_day_leave, attachments, notes, custom_work_description, status, submitted_at, created_by, updated_by
               , primary_approver_id, task_approver_id, primary_approval_status, task_approval_status
             )
             VALUES (
               :report_number, :report_kind, :tractor_id, :user_id, :employee_name, :service_center, :field_id, CAST(:field_entries AS jsonb),
               :work_type_id, :date, :time_start, :time_end, :break_hours, :hours_worked, :amount_ha, 0,
-              :half_day_leave, CAST(:attachments AS jsonb), :notes, 'pending', NOW(), :actor, :actor
+              :half_day_leave, CAST(:attachments AS jsonb), :notes, :custom_work_description, 'pending', NOW(), :actor, :actor
               , :primary_approver_id, :task_approver_id, 'pending', :task_approval_status
             )
             RETURNING id
@@ -396,6 +489,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),
+            "custom_work_description": custom_work_description,
             "actor": user["full_name"],
             "primary_approver_id": primary_approver_id,
             "task_approver_id": task_approver_id,
@@ -435,6 +529,14 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
         raise HTTPException(status_code=409, detail="Schválený výkaz může upravit pouze vedoucí nebo administrátor.")
     is_work = payload.get("report_kind") in (None, "work")
     validate_field_scope(payload, is_work)
+    work_type_name = await session.scalar(
+        text("SELECT name FROM work_types WHERE id = :id AND archived_at IS NULL"),
+        {"id": payload.get("work_type_id")},
+    )
+    if not work_type_name:
+        raise HTTPException(status_code=422, detail="Vyberte platný typ práce.")
+    validate_work_type_fields(payload, work_type_name, is_work)
+    custom_work_description = normalize_custom_work_description(work_type_name, payload.get("custom_work_description"))
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
     time_end = parse_time_value(payload.get("time_end"))
@@ -446,6 +548,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     report_user_id, employee_name = report_identity_for_update(payload, user, before_dict)
     if is_timed_report(payload):
         await ensure_no_time_overlap(session, report_user_id, report_date, time_start, time_end, exclude_report_id=report_id)
+        await ensure_daily_hours_limit(session, report_user_id, report_date, time_start, time_end, exclude_report_id=report_id)
     await session.execute(
         text(
             """
@@ -455,6 +558,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
               work_type_id = :work_type_id, date = :date, time_start = :time_start, time_end = :time_end,
               break_hours = :break_hours, hours_worked = :hours_worked, amount_ha = :amount_ha,
               half_day_leave = :half_day_leave, attachments = CAST(:attachments AS jsonb), notes = :notes,
+              custom_work_description = :custom_work_description,
               status = CASE WHEN :owner_resubmission THEN 'pending' ELSE status END,
               primary_approval_status = CASE WHEN :owner_resubmission THEN 'pending' ELSE primary_approval_status END,
               task_approval_status = CASE
@@ -490,6 +594,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),
+            "custom_work_description": custom_work_description,
             "actor": user["full_name"],
             "owner_resubmission": owner_resubmission,
         },
@@ -497,3 +602,43 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     await write_app_audit(session, "reports", report_id, "resubmit" if owner_resubmission else "save", json.dumps(before_dict, default=str), json.dumps(payload), user, request.headers.get("x-request-id"))
     await session.commit()
     return {"id": report_id, "message": "Výkaz byl opraven a znovu odeslán ke schválení." if owner_resubmission else "Výkaz byl uložen."}
+
+
+@router.delete("/{report_id}")
+async def archive_report(
+    report_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    user=Depends(require_roles("admin")),
+):
+    await set_audit_context(session, user, request.headers.get("x-request-id"))
+    before_row = (
+        await session.execute(
+            text("SELECT * FROM reports WHERE id = :id AND archived_at IS NULL FOR UPDATE"),
+            {"id": report_id},
+        )
+    ).mappings().first()
+    if before_row is None:
+        raise HTTPException(status_code=404, detail="Výkaz nenalezen")
+    await session.execute(
+        text(
+            """
+            UPDATE reports
+            SET archived_at = NOW(), archived_by = :actor, updated_by = :actor
+            WHERE id = :id
+            """
+        ),
+        {"id": report_id, "actor": user["full_name"]},
+    )
+    await write_app_audit(
+        session,
+        "reports",
+        report_id,
+        "archive",
+        json.dumps(dict(before_row), default=str),
+        json.dumps({"archived_by": user["full_name"]}),
+        user,
+        request.headers.get("x-request-id"),
+    )
+    await session.commit()
+    return {"message": "Výkaz byl odstraněn z aktivní evidence a zůstal zachován v archivu."}

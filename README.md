@@ -167,6 +167,8 @@ Aktuální backend používá JWT přihlášení, Alembic migrace, auditní stop
 
 Role `approved_viewer` slouží kontrolorce Janě Bulíčkové pro čtení a export schválených výkazů napříč středisky. Export podporuje filtr roku, měsíce a střediska a neposkytuje této roli přístup k organizaci, číselníkům ani archivu. Jana Bobulová je samostatný běžný zaměstnanecký účet Živočišné výroby.
 
+Měsíční export se stahuje jako ZIP. Každý zaměstnanec má vlastní `.xlsx` sešit a každý kalendářní den vybraného měsíce vlastní list, na kterém mohou být všechny jeho činnosti daného dne.
+
 ## Poznámky
 
 - `frontend` používá `localStorage` pro uchování přihlášeného uživatele.

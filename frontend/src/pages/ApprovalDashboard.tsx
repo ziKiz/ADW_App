@@ -26,6 +26,7 @@ interface PendingReport {
   field_entries?: FieldEntrySummary[] | string | null;
   attachments?: Array<AttachmentSummary | string> | string | null;
   notes?: string;
+  custom_work_description?: string;
   status: string;
   primary_approver_id?: number;
   primary_approver_name?: string;
@@ -103,15 +104,21 @@ function isEndAfterStart(start: string, end: string) {
 }
 
 const absenceWorkTypes = ['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'];
+const noFieldWorkTypes = new Set([
+  'Montáž', 'Demontáž', 'Oprava', 'Údržba', 'Práce s nakladačem', 'Práce s nakladačem, destou',
+  'Krmení', 'Nahrnování', 'Dusání', 'Rozvoz Minimlékarna', 'Odkrývání silážních jam',
+  'Zakrývání silážních jam', 'Úklid', 'Práce BPS', 'Čištění stroje', 'Čistění stroje', 'Jiné'
+].map((name) => name.toLocaleLowerCase('cs-CZ')));
 
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
   return report ? absenceWorkTypes.includes(report.work_type) : false;
 }
 
 function displayTime(report: PendingReport) {
-  if (isAbsenceReport(report)) return 'celý den';
   const start = normalizeTime(report.time_start);
   const end = normalizeTime(report.time_end);
+  if (report.work_type === 'Školení' && start && end) return `${start}-${end} h`;
+  if (isAbsenceReport(report)) return 'celý den';
   return start && end ? `${start}-${end} h` : '-';
 }
 
@@ -149,7 +156,8 @@ function normalizeSearch(value: string) {
 }
 
 function fieldSearchText(field: FieldRecord) {
-  return normalizeSearch(`${field.field_name} ${field.field_code} ${field.quadrant ?? ''} ${field.crop ?? ''}`);
+  const area = Number(field.area ?? 0).toFixed(2);
+  return normalizeSearch(`${field.field_name} ${area} ${area.replace('.', ',')}`);
 }
 
 function parseFieldEntries(report: PendingReport, fields: FieldRecord[]): EditableFieldEntry[] {
@@ -204,17 +212,6 @@ function formatAttachmentForApproval(attachment: AttachmentSummary | string) {
   const name = String(attachment.attachment_name ?? attachment.name ?? '').trim();
   const plate = String(attachment.license_plate ?? '').trim();
   return [code, name, plate].filter(Boolean).join(' · ');
-}
-
-function getReportCenter(report: Pick<PendingReport, 'service_center' | 'notes'>) {
-  const explicitCenter = String(report.service_center ?? '').trim();
-  if (explicitCenter) return explicitCenter;
-  const match = String(report.notes ?? '').match(/Středisko:\s*([^\n]+)/);
-  return match?.[1]?.trim() ?? 'Rostlinná výroba';
-}
-
-function isScopedApprovalRole(role?: string) {
-  return ['schvalovatel', 'specialista'].includes(String(role ?? '').toLocaleLowerCase('cs'));
 }
 
 function isHalfDayLeave(report: Pick<PendingReport, 'work_type' | 'hours_worked'> & { notes?: string }) {
@@ -370,6 +367,9 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const user = getUser();
   const requestedReportId = searchParams.get('report');
   const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
+  const canDeleteReports = user?.role === 'admin';
+  const selectedWorkTypeName = workTypes.find((item) => item.id === selectedReport?.work_type_id)?.name ?? selectedReport?.work_type ?? '';
+  const selectedWorkTypeAllowsFields = !noFieldWorkTypes.has(selectedWorkTypeName.toLocaleLowerCase('cs-CZ'));
 
   const loadReports = async () => {
     try {
@@ -377,19 +377,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         client.get('/reports', { params: { status } }),
         client.get('/reports')
       ]);
-      const filterForScope = (items: PendingReport[]) => {
-        if (!isScopedApprovalRole(user?.role)) return items;
-        const scope = user?.scope_department || user?.department_name;
-        return items.filter((report) => (
-          Number(report.user_id) === Number(user?.id) ||
-          report.employee_name === user?.full_name ||
-          Number(report.primary_approver_id) === Number(user?.id) ||
-          Number(report.task_approver_id) === Number(user?.id) ||
-          (!report.primary_approver_id && !report.task_approver_id && getReportCenter(report) === scope)
-        ));
-      };
-      setReports(filterForScope(response.data as PendingReport[]));
-      setAllReports(filterForScope(allResponse.data as PendingReport[]));
+      setReports(response.data as PendingReport[]);
+      setAllReports(allResponse.data as PendingReport[]);
     } catch (error) {
       console.error(error);
     }
@@ -564,16 +553,20 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const saveReportDetail = async () => {
     if (!selectedReport) return false;
     const absence = isAbsenceReport(selectedReport);
-    const keepsTime = workTypeKind(selectedReport) === 'doctor';
+    const keepsTime = ['doctor', 'training'].includes(workTypeKind(selectedReport));
     const timeStart = normalizeTime(selectedReport.time_start);
     const timeEnd = normalizeTime(selectedReport.time_end);
-    if (!absence && !isEndAfterStart(timeStart, timeEnd)) {
+    if ((!absence || keepsTime) && !isEndAfterStart(timeStart, timeEnd)) {
       const nextEnd = addMinutesToTime(timeStart, 60);
       updateSelectedReport({ time_end: nextEnd });
       setMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`);
       return false;
     }
-    const selectedFields = absence ? [] : detailFieldEntries.filter((entry) => entry.field_id);
+    if (selectedWorkTypeName === 'Jiné' && !selectedReport.custom_work_description?.trim()) {
+      setMessage('U typu práce Jiné je nutné vyplnit popis práce.');
+      return false;
+    }
+    const selectedFields = absence || !selectedWorkTypeAllowsFields ? [] : detailFieldEntries.filter((entry) => entry.field_id);
     const fieldSummary = selectedFields.map((entry, index) => {
       const field = fields.find((item) => item.id === entry.field_id);
       return {
@@ -600,10 +593,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         time_start: (absence && !keepsTime) || !timeStart ? null : `${timeStart}:00`,
         time_end: (absence && !keepsTime) || !timeEnd ? null : `${timeEnd}:00`,
         break_hours: 0,
-        hours_worked: absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
+        hours_worked: keepsTime ? calculateHours(timeStart, timeEnd) : absence ? Number(selectedReport.hours_worked ?? 8) : calculateHours(timeStart, timeEnd),
         amount_ha: totalArea,
         attachments: selectedReport.attachments ?? [],
-        notes: selectedReport.notes ?? ''
+        notes: selectedReport.notes ?? '',
+        custom_work_description: selectedWorkTypeName === 'Jiné' ? selectedReport.custom_work_description?.trim() : null
       });
       setMessage('Výkaz byl uložen.');
       loadReports();
@@ -637,6 +631,20 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     }
     const returned = await handleApproval(selectedReport.id, 'rejected', reason);
     if (returned) setSelectedReport(null);
+  };
+
+  const handleDeleteReport = async () => {
+    if (!selectedReport || !canDeleteReports) return;
+    if (!window.confirm(`Opravdu chcete odstranit výkaz ${selectedReport.report_number}? Výkaz zůstane dohledatelný v archivu.`)) return;
+    try {
+      const response = await client.delete(`/reports/${selectedReport.id}`);
+      setMessage(response.data?.message ?? 'Výkaz byl odstraněn.');
+      setSelectedReport(null);
+      await loadReports();
+    } catch (error) {
+      console.error(error);
+      setMessage('Výkaz se nepodařilo odstranit.');
+    }
   };
 
   return (
@@ -696,6 +704,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                         <span className="approval-day-time">{displayTime(report)}</span>
                         <strong>{report.work_type}</strong>
                         <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${report.field_name || 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
+                        {report.custom_work_description ? <p className="approval-day-note"><b>Popis:</b> {report.custom_work_description}</p> : null}
                         {extractWorkerNote(report.notes) ? <p className="approval-day-note"><b>Poznámka:</b> {extractWorkerNote(report.notes)}</p> : null}
                       </div>
                       <div className="approval-day-actions">
@@ -715,7 +724,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         {selectedReport ? (
           (() => {
             const absence = isAbsenceReport(selectedReport);
-            const keepsEditableTime = workTypeKind(selectedReport) === 'doctor';
+            const keepsEditableTime = ['doctor', 'training'].includes(workTypeKind(selectedReport));
             const approvalAction = approvalActionForViewer(selectedReport, user);
             return (
           <div className="modal-backdrop" role="presentation">
@@ -742,10 +751,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <div className="detail-field detail-grid__wide approval-fields-editor">
                   <div className="section-line">
                     <h3>Pozemky</h3>
-                    <button type="button" className="secondary" disabled={absence || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
+                    <button type="button" className="secondary" disabled={absence || !selectedWorkTypeAllowsFields || getAvailableDetailFields(-1).length === 0} onClick={addDetailFieldEntry}>Přidat pole</button>
                   </div>
-                  {absence ? (
-                    <p className="field-hint">Dovolená, školení, doktor, darování krve a nemoc pozemky nepotřebují.</p>
+                  {absence || !selectedWorkTypeAllowsFields ? (
+                    <p className="field-hint">Pro tento typ výkazu se pozemek nevybírá.</p>
                   ) : (
                     <div className="repeat-list">
                       {detailFieldEntries.length === 0 ? (
@@ -761,7 +770,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                               <input
                                 id={`approval-field-search-${entry.id}`}
                                 type="search"
-                                placeholder="Název nebo kód pole"
+                                placeholder="Název nebo výměra v ha"
                                 value={entry.field_search}
                                 onChange={(event) => updateDetailFieldEntry(entry.id, { field_search: event.target.value })}
                               />
@@ -798,7 +807,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                                 }}
                               >
                                 {visibleFields.length === 0 ? <option value="" disabled>Žádný pozemek neodpovídá hledání</option> : null}
-                                {visibleFields.map((item) => <option key={item.id} value={item.id}>{item.field_name} ({item.field_code})</option>)}
+                                {visibleFields.map((item) => <option key={item.id} value={item.id}>{item.field_name} · {Number(item.area ?? 0).toFixed(2)} ha</option>)}
                               </select>
                             </div>
                             <div className="field-row field-row--compact">
@@ -848,12 +857,16 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   />
                 </label>
                 <label className="detail-field detail-grid__wide">Poznámka pracovníka<textarea rows={3} value={extractWorkerNote(selectedReport.notes)} onChange={(event) => updateSelectedReport({ notes: replaceWorkerNote(selectedReport.notes, event.target.value) })} /></label>
+                {selectedWorkTypeName === 'Jiné' ? (
+                  <label className="detail-field detail-grid__wide">Popis jiné práce<textarea rows={3} maxLength={1000} value={selectedReport.custom_work_description ?? ''} onChange={(event) => updateSelectedReport({ custom_work_description: event.target.value })} /></label>
+                ) : null}
               </div>
               {status === 'pending' && canApproveReports ? (
                 <div className="approval-return-panel">
                   <label className="detail-field detail-grid__wide">Důvod vrácení k opravě<textarea rows={3} value={returnComment} onChange={(event) => setReturnComment(event.target.value)} placeholder="Napište zaměstnanci, co má opravit" /></label>
                   <div className="modal-actions">
                     <button className="danger" type="button" disabled={!canRunApprovalAction(approvalAction)} onClick={handleReturnForCorrection}>Vrátit k opravě</button>
+                    {canDeleteReports ? <button className="danger" type="button" onClick={handleDeleteReport}>Odstranit výkaz</button> : null}
                   <button
                     className="primary approve-large"
                     type="button"
@@ -866,6 +879,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 </div>
               ) : status === 'approved' && canEditReport(selectedReport, user) ? (
                 <div className="modal-actions">
+                  {canDeleteReports ? <button className="danger" type="button" onClick={handleDeleteReport}>Odstranit výkaz</button> : null}
                   <button className="primary approve-large" type="button" onClick={saveReportDetail}>Uložit změny</button>
                 </div>
               ) : null}

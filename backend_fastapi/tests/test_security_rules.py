@@ -8,9 +8,9 @@ from fastapi import HTTPException
 
 from app.routers.approvals import approval_action_for_user, validate_approval_status
 from app.routers.dictionaries import can_view_attachment_code
-from app.routers.export import EXPORT_ROLES, HEADERS, cell, export_filename, export_period
+from app.routers.export import EXPORT_ROLES, HEADERS, build_employee_workbook, cell, export_filename, export_period, workbook_filename, workbook_fields
 from app.config import Settings
-from app.routers.reports import is_timed_report, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order
+from app.routers.reports import is_timed_report, normalize_custom_work_description, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order, validate_work_type_fields, work_type_allows_fields
 from app.routers.users import validate_user_payload
 from app.seed_production import ADMIN_USERNAMES, APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
@@ -94,6 +94,9 @@ class ReportTimeValidationTests(unittest.TestCase):
     def test_doctor_report_counts_as_timed_report(self):
         self.assertTrue(is_timed_report({"report_kind": "doctor", "time_start": "09:00:00", "time_end": "13:00:00"}))
 
+    def test_training_report_counts_as_timed_report(self):
+        self.assertTrue(is_timed_report({"report_kind": "training", "time_start": "07:00:00", "time_end": "09:00:00"}))
+
     def test_sickness_is_forced_to_full_workday(self):
         start, end, hours = normalize_special_report_schedule("sick", None, None, 0)
 
@@ -124,6 +127,21 @@ class ReportFieldScopeTests(unittest.TestCase):
 
     def test_non_work_report_ignores_field_scope(self):
         validate_field_scope({"service_center": "Mechanizace", "field_id": 1, "field_entries": [{"field_id": 1}]}, False)
+
+    def test_non_field_work_type_rejects_field(self):
+        self.assertFalse(work_type_allows_fields("Montáž"))
+        with self.assertRaises(HTTPException):
+            validate_work_type_fields({"field_id": 1, "field_entries": [{"field_id": 1}]}, "Montáž", True)
+
+    def test_agronomic_work_type_accepts_field(self):
+        self.assertTrue(work_type_allows_fields("Setí"))
+        validate_work_type_fields({"field_id": 1, "field_entries": [{"field_id": 1}]}, "Setí", True)
+
+    def test_other_work_requires_dedicated_description(self):
+        with self.assertRaises(HTTPException):
+            normalize_custom_work_description("Jiné", "")
+        self.assertEqual(normalize_custom_work_description("Jiné", "Oprava branky"), "Oprava branky")
+        self.assertIsNone(normalize_custom_work_description("Setí", "nemá se uložit"))
 
 
 class ApprovalStatusTests(unittest.TestCase):
@@ -351,6 +369,24 @@ class ExportTests(unittest.TestCase):
 
     def test_export_filename_is_stable_ascii(self):
         self.assertEqual(export_filename(2026, 10, "Živočišná výroba"), "adw_schvalene_2026_10_zivocisna_vyroba.csv")
+
+    def test_employee_workbook_filename_is_safe(self):
+        self.assertEqual(workbook_filename("Jan Novák", 2026, 10), "Jan.Novak.10-2026.xlsx")
+
+    def test_employee_workbook_keeps_all_report_fields(self):
+        self.assertEqual(
+            workbook_fields({"field_entries": [{"field_name": "Bahna 2", "amount_ha": 3.22}, {"field_name": "Alpy 1", "amount_ha": 1.5}]}),
+            "Bahna 2 (3.22 ha); Alpy 1 (1.5 ha)",
+        )
+
+    def test_employee_workbook_has_one_sheet_per_day(self):
+        content = build_employee_workbook("Jan Novák", [], 2026, 2)
+        self.assertTrue(content.startswith(b"PK"))
+        from openpyxl import load_workbook
+        from io import BytesIO
+        workbook = load_workbook(BytesIO(content), read_only=True)
+        self.assertEqual(len(workbook.sheetnames), 28)
+        self.assertEqual(workbook.sheetnames[0], "01.02.2026")
 
     def test_csv_cell_neutralizes_spreadsheet_formula(self):
         self.assertEqual(cell("=2+2"), '"\'=2+2"')

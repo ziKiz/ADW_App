@@ -34,7 +34,7 @@ WORK_TYPES = [
     "Demontáž",
     "Oprava",
     "Údržba",
-    "Práce s nakladačem",
+    "Práce s nakladačem, destou",
     "Krmení",
     "Aplikace hnojiv",
     "Aplikace digestátu",
@@ -57,6 +57,7 @@ WORK_TYPES = [
     "Práce BPS",
     "Čištění stroje",
     "Kypření",
+    "Jiné",
 ]
 
 SPECIAL_WORK_TYPES = [
@@ -106,6 +107,8 @@ def read_users(path: Path) -> list[dict[str, Any]]:
         password = str(raw_password or "").strip()
         if not full_name or not username or not password:
             continue
+        if username == "martina.skucius":
+            full_name = "Martin Skucius"
 
         effective_level = "Podřízený" if full_name in STANDARD_EMPLOYEE_NAMES else level
         role = "admin" if username in ADMIN_USERNAMES else "approved_viewer" if full_name in APPROVED_VIEWER_NAMES else role_for_level(effective_level)

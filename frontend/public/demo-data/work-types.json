@@ -33,8 +33,8 @@
   },
   {
     "id": 5,
-    "name": "Práce s nakladačem",
-    "description": "Práce s nakladačem",
+    "name": "Práce s nakladačem, destou",
+    "description": "Práce s nakladačem, destou",
     "created_by": "Systém",
     "updated_by": "Systém",
     "last_change": "Vytvoření záznamu"
@@ -246,6 +246,14 @@
     "created_by": "Systém",
     "updated_by": "Systém",
     "last_change": "Doplnění činnosti 8. 10. 2026"
+  },
+  {
+    "id": 28,
+    "name": "Jiné",
+    "description": "Jiná práce s povinným vlastním popisem",
+    "created_by": "Systém",
+    "updated_by": "Systém",
+    "last_change": "Doplnění činnosti 12. 10. 2026"
   },
   {
     "id": 105,
