@@ -12,6 +12,12 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-12 (0.5.1)
+
+### Informace o aplikaci
+- Datum platnosti databáze v hlavičce a uživatelském menu odpovídá aktuálnímu provoznímu stavu 12. 10. 2026.
+- Verze aplikace je zvýšená na `0.5.1`, aby klient spolehlivě poznal a načetl toto vydání.
+
 ## 2026-10-12 (0.5.0)
 
 ### Výkazy a pozemky
