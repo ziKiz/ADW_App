@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { serviceCenters } from '../utils/employeeContext';
@@ -63,6 +63,7 @@ function UsersView() {
   const [editedUser, setEditedUser] = useState<UserRecord | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState('');
+  const editorRef = useRef<HTMLDivElement>(null);
   const user = getUser();
   const canEditOrganization = user?.role === 'admin' || user?.role === 'reditel';
 
@@ -71,6 +72,15 @@ function UsersView() {
       .then((response) => setUsers(response.data as UserRecord[]))
       .catch((error) => console.error(error));
   }, []);
+
+  useEffect(() => {
+    if (!editedUser) return;
+    const frameId = window.requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      editorRef.current?.querySelector<HTMLInputElement>('input:not([type="checkbox"])')?.focus();
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, [editedUser?.id, isCreating]);
 
   const departments = useMemo(() => [...new Set(users.map((user) => user.department_name).filter(Boolean))].sort(), [users]);
   const filteredUsers = users.filter((user) => {
@@ -129,7 +139,7 @@ function UsersView() {
         <p className="table-hint">Účty se deaktivují, nemažou. Historie výkazů a změn tak zůstává zachována.</p>
         {message ? <p className="form-message" role="status">{message}</p> : null}
         {editedUser ? (
-          <div className="user-account-editor">
+          <div className="user-account-editor" ref={editorRef} tabIndex={-1}>
             <div className="section-line">
               <h2>{isCreating ? 'Nový uživatel' : `Upravit účet: ${editedUser.full_name}`}</h2>
             </div>

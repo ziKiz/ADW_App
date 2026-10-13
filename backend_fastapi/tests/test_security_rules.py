@@ -10,7 +10,7 @@ from app.routers.approvals import approval_action_for_user, validate_approval_st
 from app.routers.dictionaries import can_view_attachment_code
 from app.routers.export import EXPORT_ROLES, HEADERS, build_employee_workbook, cell, export_filename, export_period, workbook_filename, workbook_fields
 from app.config import Settings
-from app.routers.reports import is_timed_report, normalize_custom_work_description, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order, validate_work_type_fields, work_type_allows_fields
+from app.routers.reports import is_timed_report, normalize_custom_work_description, normalized_report_fields, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order, validate_work_type_fields, work_type_allows_fields
 from app.routers.users import validate_user_payload
 from app.seed_production import ADMIN_USERNAMES, APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
@@ -137,6 +137,31 @@ class ReportFieldScopeTests(unittest.TestCase):
         self.assertTrue(work_type_allows_fields("Setí"))
         validate_work_type_fields({"field_id": 1, "field_entries": [{"field_id": 1}]}, "Setí", True)
 
+    def test_old_inconsistent_no_field_data_is_normalized_before_storage(self):
+        payload = {
+            "service_center": "Rostlinná výroba",
+            "field_id": 3,
+            "field_entries": [{"field_id": 3, "amount_ha": 3.22}],
+            "amount_ha": 3.22,
+        }
+
+        self.assertEqual(normalized_report_fields(payload, "Montáž", True), (None, [], None))
+
+    def test_field_work_keeps_selected_field_data(self):
+        payload = {
+            "service_center": "Rostlinná výroba",
+            "field_id": 3,
+            "field_entries": [{"field_id": 3, "amount_ha": 3.22}],
+            "amount_ha": 3.22,
+        }
+
+        self.assertEqual(normalized_report_fields(payload, "Setí", True), (3, payload["field_entries"], 3.22))
+
+    def test_field_capable_work_without_selected_field_has_no_area(self):
+        payload = {"service_center": "Rostlinná výroba", "field_id": None, "field_entries": [], "amount_ha": 0}
+
+        self.assertEqual(normalized_report_fields(payload, "Setí", True), (None, [], None))
+
     def test_other_work_requires_dedicated_description(self):
         with self.assertRaises(HTTPException):
             normalize_custom_work_description("Jiné", "")
@@ -180,6 +205,24 @@ class ApprovalRoutingTests(unittest.TestCase):
         self.assertEqual(
             approval_action_for_user(self.report, {"id": 10, "role": "schvalovatel"}, "approved"),
             "waiting_for_task",
+        )
+
+    def test_primary_approver_can_return_before_task_approval(self):
+        self.assertEqual(
+            approval_action_for_user(self.report, {"id": 10, "role": "schvalovatel"}, "rejected"),
+            "primary",
+        )
+
+    def test_shared_primary_center_approver_can_return_before_task_approval(self):
+        report = {**self.report, "service_center": "BPS", "employee_center": "Mechanizace"}
+
+        self.assertEqual(
+            approval_action_for_user(
+                report,
+                {"id": 12, "role": "schvalovatel", "approval_centers": ["Mechanizace"]},
+                "rejected",
+            ),
+            "primary",
         )
 
     def test_primary_approver_can_finalize_after_task_approval(self):

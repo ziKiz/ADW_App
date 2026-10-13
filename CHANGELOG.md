@@ -12,6 +12,23 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-13 (0.5.2)
+
+### Konzistence pozemků a hektarů
+- Auditovaná migrace odstraní pozemky a výměru ze tří historických výkazů typu `Montáž`, které obsahovaly stará nekonzistentní data.
+- Databázový trigger a backendová normalizace zajišťují, že činnosti bez pozemku nemohou mít `field_id`, seznam pozemků ani výměru hektarů.
+- Přehled pracovníka i vedoucího u činností bez pozemku nezobrazují údaj `0 ha` ani historickou výměru.
+
+### Schvalování a načítání
+- Oprávnění pro finální schválení a vrácení k opravě se vyhodnocují odděleně. Hlavní vedoucí může výkaz vrátit, i když ještě čeká na potvrzení vedoucího činnosti.
+- Povinný důvod vrácení a chyby detailu se zobrazují přímo v otevřeném dialogu.
+- Seznam i detail výkazů mají vlastní načítací stav a ochranu proti přepsání novějšího požadavku starší odpovědí.
+
+### Správa uživatelů a testy
+- Kliknutí `Upravit` přesune editor uživatelského účtu do viditelné části stránky a zaměří první pole.
+- Regresní testy pokrývají normalizaci historických dat, vrácení před potvrzením vedoucího činnosti a viditelné otevření editoru uživatele.
+- Verze aplikace i datum platnosti databáze jsou aktualizované na 13. 10. 2026.
+
 ## 2026-10-12 (0.5.1)
 
 ### Informace o aplikaci

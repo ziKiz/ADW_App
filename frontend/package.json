@@ -1,12 +1,13 @@
 {
   "name": "adw-frontend",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:regression": "node ../scripts/check-ui-regressions.mjs"
   },
   "dependencies": {
     "axios": "^1.6.4",

@@ -5,6 +5,7 @@ import { getUser } from '../utils/auth';
 import { getUserServiceCenter } from '../utils/employeeContext';
 import { formatCzechDate, formatCzechDateTime } from '../utils/format';
 import { NoticeItem, ServiceTask } from '../utils/localPanels';
+import { reportHasFieldPerformance, workTypeAllowsFields } from '../utils/reportFields';
 
 interface ReportSummary {
   id: number;
@@ -152,8 +153,13 @@ function reportStatusLabel(status: string) {
 }
 
 function displayReportPerformance(report: ReportSummary) {
-  if (isAbsenceReport(report)) return '-';
+  if (isAbsenceReport(report) || !reportHasFieldPerformance(report)) return '-';
   return `${asNumber(report.amount_ha).toFixed(1)} ha`;
+}
+
+function displayReportField(report: ReportSummary) {
+  if (isAbsenceReport(report) || !workTypeAllowsFields(report.work_type)) return '-';
+  return report.field_name || '-';
 }
 
 function canReadAudit(role?: string) {
@@ -466,7 +472,7 @@ function Dashboard() {
                         <td data-label="Datum">{formatDate(report.date)}</td>
                         <td data-label="Činnost">{report.work_type}</td>
                         <td className="mobile-hide" data-label="Čas">{displayReportTime(report)}</td>
-                        <td className="mobile-hide" data-label="Pozemek">{isAbsenceReport(report) ? '-' : report.field_name}</td>
+                        <td className="mobile-hide" data-label="Pozemek">{displayReportField(report)}</td>
                         <td className="mobile-hide" data-label="Stroj">{isAbsenceReport(report) ? '-' : report.tractor_name}</td>
                         <td data-label="Výkon">{displayReportPerformance(report)}</td>
                         <td data-label="Detail">
@@ -494,7 +500,7 @@ function Dashboard() {
                   <div><span>Činnost</span><strong>{selectedUserReport.work_type}</strong></div>
                   <div><span>Čas</span><strong>{displayReportTime(selectedUserReport)}</strong></div>
                   <div><span>Stav</span><strong>{reportStatusLabel(selectedUserReport.status)}</strong></div>
-                  <div><span>Pozemek</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.field_name}</strong></div>
+                  <div><span>Pozemek</span><strong>{displayReportField(selectedUserReport)}</strong></div>
                   <div><span>Stroj</span><strong>{isAbsenceReport(selectedUserReport) ? '-' : selectedUserReport.tractor_name}</strong></div>
                   <div><span>Výkon</span><strong>{displayReportPerformance(selectedUserReport)}</strong></div>
                   <div className="readonly-detail-grid__wide"><span>Poznámka</span><p>{selectedUserReport.notes || '-'}</p></div>
@@ -578,9 +584,9 @@ function Dashboard() {
                         <td data-label="Datum">{formatDate(report.date)}</td>
                         <td data-label="Činnost">{report.work_type}</td>
                         <td className="mobile-hide" data-label="Čas">{formatTime(report.time_start)}-{formatTime(report.time_end)}</td>
-                        <td className="mobile-hide" data-label="Pozemek">{report.field_name}</td>
+                        <td className="mobile-hide" data-label="Pozemek">{displayReportField(report)}</td>
                         <td className="mobile-hide" data-label="Stroj">{report.tractor_name}</td>
-                        <td className="mobile-hide" data-label="Výkon">{isAbsenceReport(report) ? '-' : `${asNumber(report.amount_ha).toFixed(1)} ha`}</td>
+                        <td className="mobile-hide" data-label="Výkon">{displayReportPerformance(report)}</td>
                         <td data-label="Akce"><Link className="edit-action" to={`/approvals?report=${report.id}`}>Otevřít</Link></td>
                       </tr>
                     );

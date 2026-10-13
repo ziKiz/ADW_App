@@ -1,9 +1,10 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { FieldRecord, Tractor, WorkType } from '../types';
 import { formatCzechDate } from '../utils/format';
+import { workTypeAllowsFields } from '../utils/reportFields';
 
 interface PendingReport {
   id: number;
@@ -104,12 +105,6 @@ function isEndAfterStart(start: string, end: string) {
 }
 
 const absenceWorkTypes = ['Dovolená', 'Školení', 'Doktor', 'Darování krve', 'Nemoc'];
-const noFieldWorkTypes = new Set([
-  'Montáž', 'Demontáž', 'Oprava', 'Údržba', 'Práce s nakladačem', 'Práce s nakladačem, destou',
-  'Krmení', 'Nahrnování', 'Dusání', 'Rozvoz Minimlékarna', 'Odkrývání silážních jam',
-  'Zakrývání silážních jam', 'Úklid', 'Práce BPS', 'Čištění stroje', 'Čistění stroje', 'Jiné'
-].map((name) => name.toLocaleLowerCase('cs-CZ')));
-
 function isAbsenceReport(report?: Pick<PendingReport, 'work_type'> | null) {
   return report ? absenceWorkTypes.includes(report.work_type) : false;
 }
@@ -264,7 +259,11 @@ function approvalStatusClass(status?: string) {
   return status === 'approved' ? 'status-green' : status === 'rejected' ? 'status-red' : 'status-orange';
 }
 
-function approvalActionForViewer(report: PendingReport, user: ReturnType<typeof getUser>): ApprovalAction {
+function approvalActionForViewer(
+  report: PendingReport,
+  user: ReturnType<typeof getUser>,
+  requestedStatus: 'approved' | 'rejected' = 'approved'
+): ApprovalAction {
   if (!user || report.status !== 'pending') return 'none';
   const userId = Number(user.id);
   const separate = hasSeparateTaskApprover(report);
@@ -276,11 +275,12 @@ function approvalActionForViewer(report: PendingReport, user: ReturnType<typeof 
   if (separate && (Number(report.task_approver_id) === userId || canActForTaskCenter) && report.task_approval_status === 'pending') return 'task';
   if (separate && (Number(report.task_approver_id) === userId || canActForTaskCenter) && report.task_approval_status === 'approved') return 'waiting_primary';
   if ((Number(report.primary_approver_id) === userId || canActForPrimaryCenter) && report.primary_approval_status !== 'approved') {
-    return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'primary';
+    return requestedStatus === 'approved' && separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'primary';
   }
   if (['admin', 'reditel'].includes(user.role)) {
+    if (requestedStatus === 'rejected' && report.primary_approval_status !== 'approved') return 'override_primary';
     if (separate && report.task_approval_status === 'pending') return 'override_task';
-    if (report.primary_approval_status !== 'approved') return separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'override_primary';
+    if (report.primary_approval_status !== 'approved') return requestedStatus === 'approved' && separate && report.task_approval_status !== 'approved' ? 'waiting_task' : 'override_primary';
   }
   return 'none';
 }
@@ -364,23 +364,36 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const [dateTo, setDateTo] = useState('');
   const [message, setMessage] = useState('');
   const [returnComment, setReturnComment] = useState('');
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportsError, setReportsError] = useState('');
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailMessage, setDetailMessage] = useState('');
+  const reportLoadRevision = useRef(0);
+  const detailLoadRevision = useRef(0);
   const user = getUser();
   const requestedReportId = searchParams.get('report');
   const canApproveReports = ['admin', 'reditel', 'schvalovatel', 'specialista'].includes(user?.role ?? '');
   const canDeleteReports = user?.role === 'admin';
   const selectedWorkTypeName = workTypes.find((item) => item.id === selectedReport?.work_type_id)?.name ?? selectedReport?.work_type ?? '';
-  const selectedWorkTypeAllowsFields = !noFieldWorkTypes.has(selectedWorkTypeName.toLocaleLowerCase('cs-CZ'));
+  const selectedWorkTypeAllowsFields = workTypeAllowsFields(selectedWorkTypeName);
 
   const loadReports = async () => {
+    const revision = ++reportLoadRevision.current;
+    setReportsLoading(true);
+    setReportsError('');
     try {
       const [response, allResponse] = await Promise.all([
         client.get('/reports', { params: { status } }),
         client.get('/reports')
       ]);
+      if (revision !== reportLoadRevision.current) return;
       setReports(response.data as PendingReport[]);
       setAllReports(allResponse.data as PendingReport[]);
     } catch (error) {
       console.error(error);
+      if (revision === reportLoadRevision.current) setReportsError('Výkazy se nepodařilo načíst. Zkuste načtení zopakovat.');
+    } finally {
+      if (revision === reportLoadRevision.current) setReportsLoading(false);
     }
   };
 
@@ -404,8 +417,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
 
   useEffect(() => {
     if (!requestedReportId || fields.length === 0) return;
-    openReportDetail(Number(requestedReportId));
-    setSearchParams({}, { replace: true });
+    void openReportDetail(Number(requestedReportId)).finally(() => setSearchParams({}, { replace: true }));
   }, [fields.length, requestedReportId, setSearchParams]);
 
   useEffect(() => {
@@ -432,7 +444,8 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
       return true;
     } catch (error) {
       console.error(error);
-      setMessage('Chyba při aktualizaci výkazu.');
+      const detail = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      setDetailMessage(detail || 'Chyba při aktualizaci výkazu.');
       return false;
     }
   };
@@ -441,7 +454,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     .sort((first, second) => first.localeCompare(second, 'cs'));
 
   const dayGroups = useMemo(() => {
-    const groups = new Map<string, { key: string; employee: string; date: string; reports: PendingReport[]; hours: number; hectares: number }>();
+    const groups = new Map<string, { key: string; employee: string; date: string; reports: PendingReport[]; hours: number; hectares: number; hasFieldPerformance: boolean }>();
     for (const report of filteredReports) {
       const key = reportDayKey(report);
       const existing = groups.get(key) ?? {
@@ -450,11 +463,15 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         date: String(report.date).slice(0, 10),
         reports: [],
         hours: 0,
-        hectares: 0
+        hectares: 0,
+        hasFieldPerformance: false
       };
       existing.reports.push(report);
       existing.hours += reportMinutes(report);
-      existing.hectares += Number(report.amount_ha ?? 0);
+      if (workTypeAllowsFields(report.work_type) && Boolean(report.field_name)) {
+        existing.hectares += Number(report.amount_ha ?? 0);
+        existing.hasFieldPerformance = true;
+      }
       groups.set(key, existing);
     }
     return [...groups.values()]
@@ -466,9 +483,14 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   }, [filteredReports]);
 
   const openReportDetail = async (reportId: number) => {
+    const revision = ++detailLoadRevision.current;
+    setSelectedReport(null);
+    setDetailLoading(true);
+    setDetailMessage('');
     try {
       const response = await client.get(`/reports/${reportId}`);
       const report = response.data as PendingReport;
+      if (revision !== detailLoadRevision.current) return;
       setSelectedReport({
         ...report,
         date: report.date.slice(0, 10),
@@ -480,8 +502,20 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
       setReturnComment('');
     } catch (error) {
       console.error(error);
-      setMessage('Detail výkazu se nepodařilo načíst.');
+      if (revision === detailLoadRevision.current) {
+        setDetailMessage('Detail výkazu se nepodařilo načíst.');
+        setMessage('Detail výkazu se nepodařilo načíst.');
+      }
+    } finally {
+      if (revision === detailLoadRevision.current) setDetailLoading(false);
     }
+  };
+
+  const closeReportDetail = () => {
+    detailLoadRevision.current += 1;
+    setDetailLoading(false);
+    setDetailMessage('');
+    setSelectedReport(null);
   };
 
   const updateSelectedReport = (changes: Partial<PendingReport>) => {
@@ -559,11 +593,11 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     if ((!absence || keepsTime) && !isEndAfterStart(timeStart, timeEnd)) {
       const nextEnd = addMinutesToTime(timeStart, 60);
       updateSelectedReport({ time_end: nextEnd });
-      setMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`);
+      setDetailMessage(`Konec práce musí být po začátku. Nastavil jsem konec na ${nextEnd}.`);
       return false;
     }
     if (selectedWorkTypeName === 'Jiné' && !selectedReport.custom_work_description?.trim()) {
-      setMessage('U typu práce Jiné je nutné vyplnit popis práce.');
+      setDetailMessage('U typu práce Jiné je nutné vyplnit popis práce.');
       return false;
     }
     const selectedFields = absence || !selectedWorkTypeAllowsFields ? [] : detailFieldEntries.filter((entry) => entry.field_id);
@@ -600,11 +634,12 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
         custom_work_description: selectedWorkTypeName === 'Jiné' ? selectedReport.custom_work_description?.trim() : null
       });
       setMessage('Výkaz byl uložen.');
+      setDetailMessage('');
       loadReports();
       return true;
     } catch (error) {
       console.error(error);
-      setMessage('Výkaz se nepodařilo uložit.');
+      setDetailMessage('Výkaz se nepodařilo uložit.');
       return false;
     }
   };
@@ -612,7 +647,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
   const handleDetailApproval = async () => {
     if (!selectedReport) return;
     if (isHalfDayLeave(selectedReport) && !hasCompanionWorkReport(allReports, selectedReport)) {
-      setMessage('Půldenní dovolenou nelze schválit bez pracovní činnosti ve stejný den.');
+      setDetailMessage('Půldenní dovolenou nelze schválit bez pracovní činnosti ve stejný den.');
       return;
     }
     const saved = await saveReportDetail();
@@ -626,9 +661,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
     if (!selectedReport) return;
     const reason = returnComment.trim();
     if (!reason) {
-      setMessage('Před vrácením napište zaměstnanci důvod opravy.');
+      setDetailMessage('Před vrácením napište zaměstnanci důvod opravy.');
       return;
     }
+    setDetailMessage('');
     const returned = await handleApproval(selectedReport.id, 'rejected', reason);
     if (returned) setSelectedReport(null);
   };
@@ -680,7 +716,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
           </label>
         </div>
         {message && <p className="form-message">{message}</p>}
-        {dayGroups.length === 0 ? (
+        {reportsError ? <p className="form-message form-message--error" role="alert">{reportsError} <button type="button" className="secondary" onClick={() => void loadReports()}>Načíst znovu</button></p> : null}
+        {reportsLoading ? (
+          <p className="empty-state" role="status">Načítám výkazy…</p>
+        ) : dayGroups.length === 0 ? (
           <p className="empty-state">{statusMeta[status].empty}</p>
         ) : (
           <div className="approval-day-list">
@@ -692,25 +731,26 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                     <span>{formatDate(group.date)} · {group.reports.length} položky · {formatHours(group.hours)}</span>
                   </div>
                   <div className="approval-day-totals">
-                    <span>{group.hectares.toFixed(2)} ha</span>
+                    {group.hasFieldPerformance ? <span>{group.hectares.toFixed(2)} ha</span> : null}
                   </div>
                 </div>
                 <div className="approval-day-timeline">
                   {group.reports.map((report) => {
-                    const reportAction = approvalActionForViewer(report, user);
+                    const approveAction = approvalActionForViewer(report, user, 'approved');
+                    const returnAction = approvalActionForViewer(report, user, 'rejected');
                     return (
                     <article key={report.id} className="approval-day-item">
                       <div>
                         <span className="approval-day-time">{displayTime(report)}</span>
                         <strong>{report.work_type}</strong>
-                        <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${report.field_name || 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
+                        <small>{isAbsenceReport(report) ? 'Bez pozemku a techniky' : `${workTypeAllowsFields(report.work_type) ? report.field_name || 'Bez pozemku' : 'Bez pozemku'} · ${report.tractor_name || 'Bez techniky'}`}</small>
                         {report.custom_work_description ? <p className="approval-day-note"><b>Popis:</b> {report.custom_work_description}</p> : null}
                         {extractWorkerNote(report.notes) ? <p className="approval-day-note"><b>Poznámka:</b> {extractWorkerNote(report.notes)}</p> : null}
                       </div>
                       <div className="approval-day-actions">
                         <ApprovalProgress report={report} compact />
                         <button className="edit-action" type="button" onClick={() => openReportDetail(report.id)}>
-                          {report.status === 'pending' && canRunApprovalAction(reportAction) ? 'Vyřešit' : 'Detail'}
+                          {report.status === 'pending' && (canRunApprovalAction(approveAction) || canRunApprovalAction(returnAction)) ? 'Vyřešit' : 'Detail'}
                         </button>
                       </div>
                     </article>
@@ -721,11 +761,25 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
             ))}
           </div>
         )}
-        {selectedReport ? (
+        {detailLoading ? (
+          <div className="modal-backdrop" role="presentation">
+            <div className="modal-panel approval-detail-modal approval-detail-modal--loading" role="dialog" aria-modal="true" aria-labelledby="reportLoadingTitle">
+              <div className="modal-heading">
+                <div>
+                  <p className="eyebrow">Detail výkazu</p>
+                  <h2 id="reportLoadingTitle">Načítám…</h2>
+                </div>
+                <button className="icon-action view" type="button" aria-label="Zavřít" onClick={closeReportDetail}>×</button>
+              </div>
+              <p className="empty-state" role="status">Načítám detail výkazu…</p>
+            </div>
+          </div>
+        ) : selectedReport ? (
           (() => {
             const absence = isAbsenceReport(selectedReport);
             const keepsEditableTime = ['doctor', 'training'].includes(workTypeKind(selectedReport));
-            const approvalAction = approvalActionForViewer(selectedReport, user);
+            const approvalAction = approvalActionForViewer(selectedReport, user, 'approved');
+            const returnAction = approvalActionForViewer(selectedReport, user, 'rejected');
             return (
           <div className="modal-backdrop" role="presentation">
             <div className="modal-panel approval-detail-modal" role="dialog" aria-modal="true" aria-labelledby="reportDetailTitle">
@@ -734,9 +788,10 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                   <p className="eyebrow">Detail výkazu</p>
                   <h2 id="reportDetailTitle">{selectedReport.report_number}</h2>
                 </div>
-                <button className="icon-action view" type="button" aria-label="Zavřít" onClick={() => setSelectedReport(null)}>×</button>
+                <button className="icon-action view" type="button" aria-label="Zavřít" onClick={closeReportDetail}>×</button>
               </div>
               <ApprovalProgress report={selectedReport} />
+              {detailMessage ? <p className="form-message form-message--error" role="alert">{detailMessage}</p> : null}
               <div className="detail-grid">
                 <label className="detail-field">Zaměstnanec<input value={selectedReport.employee_name ?? ''} disabled /></label>
                 <label className="detail-field">Datum<input type="date" value={selectedReport.date} onChange={(event) => updateSelectedReport({ date: event.target.value })} /></label>
@@ -865,7 +920,7 @@ function ApprovalDashboard({ status = 'pending' }: ApprovalDashboardProps) {
                 <div className="approval-return-panel">
                   <label className="detail-field detail-grid__wide">Důvod vrácení k opravě<textarea rows={3} value={returnComment} onChange={(event) => setReturnComment(event.target.value)} placeholder="Napište zaměstnanci, co má opravit" /></label>
                   <div className="modal-actions">
-                    <button className="danger" type="button" disabled={!canRunApprovalAction(approvalAction)} onClick={handleReturnForCorrection}>Vrátit k opravě</button>
+                    <button className="danger" type="button" disabled={!canRunApprovalAction(returnAction)} onClick={handleReturnForCorrection}>Vrátit k opravě</button>
                     {canDeleteReports ? <button className="danger" type="button" onClick={handleDeleteReport}>Odstranit výkaz</button> : null}
                   <button
                     className="primary approve-large"

@@ -189,6 +189,21 @@ def validate_work_type_fields(payload: dict[str, Any], work_type_name: Any, is_w
         raise HTTPException(status_code=422, detail="Pro zvolený typ práce se pozemek nevybírá.")
 
 
+def normalized_report_fields(payload: dict[str, Any], work_type_name: Any, is_work: bool) -> tuple[Any, list[Any], Any]:
+    field_entries = payload.get("field_entries") or []
+    stores_fields = (
+        is_work
+        and normalize_service_center(payload.get("service_center")) == normalize_service_center(FIELD_SERVICE_CENTER)
+        and work_type_allows_fields(work_type_name)
+    )
+    if not stores_fields:
+        return None, [], None
+    normalized_entries = field_entries if isinstance(field_entries, list) else []
+    field_id = payload.get("field_id")
+    amount_ha = (payload.get("amount_ha") or 0) if field_id or normalized_entries else None
+    return field_id, normalized_entries, amount_ha
+
+
 def normalize_custom_work_description(work_type_name: Any, value: Any) -> str | None:
     description = str(value or "").strip()
     if str(work_type_name or "").strip().casefold() == "jiné":
@@ -434,6 +449,7 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
     if not work_type_name:
         raise HTTPException(status_code=422, detail="Vyberte platný typ práce.")
     validate_work_type_fields(payload, work_type_name, is_work)
+    field_id, field_entries, amount_ha = normalized_report_fields(payload, work_type_name, is_work)
     custom_work_description = normalize_custom_work_description(work_type_name, payload.get("custom_work_description"))
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
@@ -477,15 +493,15 @@ async def create_report(payload: dict[str, Any], request: Request, session: Asyn
             "user_id": report_user_id,
             "employee_name": employee_name,
             "service_center": payload.get("service_center"),
-            "field_id": payload.get("field_id") if is_work else None,
-            "field_entries": json.dumps(payload.get("field_entries") or []),
+            "field_id": field_id,
+            "field_entries": json.dumps(field_entries),
             "work_type_id": payload.get("work_type_id"),
             "date": report_date,
             "time_start": time_start,
             "time_end": time_end,
             "break_hours": payload.get("break_hours") or 0,
             "hours_worked": hours_worked,
-            "amount_ha": payload.get("amount_ha") or 0,
+            "amount_ha": amount_ha,
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),
@@ -536,6 +552,7 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
     if not work_type_name:
         raise HTTPException(status_code=422, detail="Vyberte platný typ práce.")
     validate_work_type_fields(payload, work_type_name, is_work)
+    field_id, field_entries, amount_ha = normalized_report_fields(payload, work_type_name, is_work)
     custom_work_description = normalize_custom_work_description(work_type_name, payload.get("custom_work_description"))
     report_date = parse_date_value(payload.get("date"))
     time_start = parse_time_value(payload.get("time_start"))
@@ -582,15 +599,15 @@ async def update_report(report_id: int, payload: dict[str, Any], request: Reques
             "user_id": report_user_id,
             "employee_name": employee_name,
             "service_center": payload.get("service_center"),
-            "field_id": payload.get("field_id") if is_work else None,
-            "field_entries": json.dumps(payload.get("field_entries") or []),
+            "field_id": field_id,
+            "field_entries": json.dumps(field_entries),
             "work_type_id": payload.get("work_type_id"),
             "date": report_date,
             "time_start": time_start,
             "time_end": time_end,
             "break_hours": payload.get("break_hours") or 0,
             "hours_worked": hours_worked,
-            "amount_ha": payload.get("amount_ha") or 0,
+            "amount_ha": amount_ha,
             "half_day_leave": "Půldenní dovolená" in str(payload.get("notes") or ""),
             "attachments": json.dumps(payload.get("attachments") or []),
             "notes": payload.get("notes"),

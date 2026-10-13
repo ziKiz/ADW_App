@@ -4,6 +4,7 @@ import client from '../api/client';
 import { getUser } from '../utils/auth';
 import { getUserServiceCenter, normalizeServiceCenter, serviceCenters, vacationBalance } from '../utils/employeeContext';
 import { formatCzechDate as formatSharedCzechDate } from '../utils/format';
+import { workTypeAllowsFields as workTypeNameAllowsFields } from '../utils/reportFields';
 import { AttachmentDevice, FieldRecord, Tractor, WorkType } from '../types';
 
 function getLocalTodayDate() {
@@ -88,11 +89,6 @@ const followUpDurationMinutes = 60;
 const lastReportPreferencesKey = 'adw_last_report_preferences';
 const noTractorLabel = 'Bez techniky';
 const noAttachmentLabel = 'Bez přípojného zařízení';
-const noFieldWorkTypes = new Set([
-  'Montáž', 'Demontáž', 'Oprava', 'Údržba', 'Práce s nakladačem', 'Práce s nakladačem, destou',
-  'Krmení', 'Nahrnování', 'Dusání', 'Rozvoz Minimlékarna', 'Odkrývání silážních jam',
-  'Zakrývání silážních jam', 'Úklid', 'Práce BPS', 'Čištění stroje', 'Čistění stroje', 'Jiné'
-].map((name) => name.toLocaleLowerCase('cs-CZ')));
 
 function normalizeClockTime(value?: string) {
   return value ? value.slice(0, 5) : '';
@@ -266,7 +262,7 @@ function isOtherWorkTypeId(workTypes: WorkType[], workTypeId?: number) {
 
 function workTypeAllowsFields(workTypes: WorkType[], workTypeId?: number) {
   const name = workTypes.find((item) => item.id === workTypeId)?.name;
-  return Boolean(name && !noFieldWorkTypes.has(name.toLocaleLowerCase('cs-CZ')));
+  return workTypeNameAllowsFields(name);
 }
 
 function timedMinutesForDate(reports: ReportTimeEntry[], targetDate: string, user: ReturnType<typeof getUser>, excludeReportId?: number) {
