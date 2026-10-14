@@ -11,7 +11,7 @@ from app.routers.dictionaries import can_view_attachment_code
 from app.routers.export import EXPORT_ROLES, HEADERS, build_employee_workbook, cell, export_filename, export_period, workbook_filename, workbook_fields
 from app.config import Settings
 from app.routers.reports import is_timed_report, normalize_custom_work_description, normalized_report_fields, normalize_special_report_schedule, parse_time_value, report_identity_for_create, report_identity_for_update, resolve_approval_route, validate_field_scope, validate_report_time_order, validate_work_type_fields, work_type_allows_fields
-from app.routers.users import validate_user_payload
+from app.routers.users import validate_password_change_permission, validate_user_payload
 from app.seed_production import ADMIN_USERNAMES, APPROVED_VIEWER_NAMES, STANDARD_EMPLOYEE_NAMES, role_for_level
 from app.security import can_access_report, is_elevated_user
 
@@ -395,6 +395,14 @@ class UserPayloadValidationTests(unittest.TestCase):
                 {"username": "novy.pracovnik", "full_name": "Nový Pracovník", "password": "2245", "role": "superadmin"},
                 creating=True,
             )
+
+    def test_admin_can_change_existing_user_password(self):
+        validate_password_change_permission({"role": "admin"}, "2245", creating=False)
+
+    def test_non_admin_cannot_change_existing_user_password(self):
+        with self.assertRaises(HTTPException) as context:
+            validate_password_change_permission({"role": "reditel"}, "2245", creating=False)
+        self.assertEqual(context.exception.status_code, 403)
 
 
 class ExportTests(unittest.TestCase):

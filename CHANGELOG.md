@@ -12,6 +12,15 @@ Formát:
 - Které části aplikace se to týká.
 ```
 
+## 2026-10-14 (0.5.3)
+
+### Správa přihlášení
+- Administrátor má v detailu uživatele samostatnou sekci pro nastavení nového hesla a může zadávanou hodnotu dočasně zobrazit nebo skrýt.
+- Aplikace výslovně vysvětluje, že současné heslo nelze kvůli bezpečnému hashování zpětně zobrazit; API nadále heslo ani hash nevrací.
+- Migrace odstraní hashe hesel ze starších auditních JSONů a databázový audit je už do nových záznamů neukládá.
+- Backend dovoluje změnit heslo existujícího uživatele pouze roli administrátora a změna zůstává v auditní stopě účtu.
+- Doplněny regresní testy oprávnění i zobrazení ovládání hesla.
+
 ## 2026-10-13 (0.5.2)
 
 ### Konzistence pozemků a hektarů

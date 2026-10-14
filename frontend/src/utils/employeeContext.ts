@@ -7,7 +7,7 @@ export const vacationBalance = {
   validTo: '2026-06-26'
 };
 
-export const appDataValidity = '2026-10-13';
+export const appDataValidity = '2026-10-14';
 
 export function normalizeServiceCenter(value?: string) {
   if (value === 'Bioplynová stanice') return 'BPS';

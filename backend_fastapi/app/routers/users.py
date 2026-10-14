@@ -15,6 +15,11 @@ router = APIRouter()
 ALLOWED_USER_ROLES = {"admin", "reditel", "schvalovatel", "specialista", "traktorista", "zamestnanec", "approved_viewer"}
 
 
+def validate_password_change_permission(actor: dict, password: str, *, creating: bool) -> None:
+    if password and not creating and str(actor.get("role") or "").strip().lower() != "admin":
+        raise HTTPException(status_code=403, detail="Heslo uživatele může změnit pouze administrátor.")
+
+
 def validate_user_payload(payload: dict, *, creating: bool) -> dict:
     username = str(payload.get("username") or "").strip().lower()
     full_name = str(payload.get("full_name") or "").strip()
@@ -79,6 +84,7 @@ async def list_users(session: AsyncSession = Depends(get_session), user=Depends(
 async def create_user(payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     payload = validate_user_payload(payload, creating=True)
+    validate_password_change_permission(user, payload["password"], creating=True)
     manager_username, manager_name = await manager_values(session, payload.get("manager_username"))
     approval_centers = [payload["scope_department"]] if payload["role"] in {"schvalovatel", "specialista"} and payload.get("scope_department") else []
     params = {
@@ -113,6 +119,7 @@ async def create_user(payload: dict, request: Request, session: AsyncSession = D
 async def update_user(user_id: int, payload: dict, request: Request, session: AsyncSession = Depends(get_session), user=Depends(require_roles("admin", "reditel"))):
     await set_audit_context(session, user, request.headers.get("x-request-id"))
     payload = validate_user_payload(payload, creating=False)
+    validate_password_change_permission(user, payload["password"], creating=False)
     manager_username, manager_name = await manager_values(session, payload.get("manager_username"))
     approval_centers = [payload["scope_department"]] if payload["role"] in {"schvalovatel", "specialista"} and payload.get("scope_department") else []
     params = {

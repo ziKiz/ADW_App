@@ -11,6 +11,8 @@ const usersView = read('frontend/src/pages/UsersView.tsx');
 includes(usersView, 'editorRef.current?.scrollIntoView', 'Editor uživatele se po kliknutí Upravit neposune do viditelné části.');
 includes(usersView, "querySelector<HTMLInputElement>('input:not([type=\"checkbox\"])')?.focus()", 'Editor uživatele po otevření nezíská fokus.');
 includes(usersView, 'ref={editorRef}', 'Editor uživatele není připojený k viditelnému ref elementu.');
+includes(usersView, "type={showPassword ? 'text' : 'password'}", 'Admin nemůže bezpečně zobrazit zadávané nové heslo.');
+includes(usersView, 'Současné heslo nelze z bezpečnostních důvodů zobrazit.', 'Správa hesla nevysvětluje, že původní heslo nelze obnovit.');
 
 const approvals = read('frontend/src/pages/ApprovalDashboard.tsx');
 includes(approvals, "requestedStatus: 'approved' | 'rejected'", 'Schválení a vrácení nemají oddělené vyhodnocení oprávnění.');

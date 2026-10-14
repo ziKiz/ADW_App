@@ -63,9 +63,11 @@ function UsersView() {
   const [editedUser, setEditedUser] = useState<UserRecord | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const user = getUser();
   const canEditOrganization = user?.role === 'admin' || user?.role === 'reditel';
+  const canManagePasswords = user?.role === 'admin';
 
   useEffect(() => {
     client.get('/users')
@@ -89,17 +91,20 @@ function UsersView() {
 
   const startEdit = (item: UserRecord) => {
     setIsCreating(false);
+    setShowPassword(false);
     setEditedUser({ ...item, password: '' });
   };
 
   const startCreate = () => {
     setIsCreating(true);
+    setShowPassword(false);
     setEditedUser(emptyUser());
     setMessage('');
   };
 
   const cancelEdit = () => {
     setIsCreating(false);
+    setShowPassword(false);
     setEditedUser(null);
   };
 
@@ -146,13 +151,37 @@ function UsersView() {
             <div className="field-grid user-account-editor__grid">
               <label className="field-row">Jméno<input value={editedUser.full_name} onChange={(event) => updateEdited({ full_name: event.target.value })} /></label>
               <label className="field-row">Přihlašovací jméno<input autoCapitalize="none" value={editedUser.username} onChange={(event) => updateEdited({ username: event.target.value.toLowerCase() })} /></label>
-              <label className="field-row">{isCreating ? 'Heslo' : 'Nové heslo (nepovinné)'}<input type="password" autoComplete="new-password" value={editedUser.password ?? ''} onChange={(event) => updateEdited({ password: event.target.value })} /></label>
               <label className="field-row">E-mail<input type="email" placeholder="doplní se automaticky" value={editedUser.email ?? ''} onChange={(event) => updateEdited({ email: event.target.value })} /></label>
               <label className="field-row">Středisko<select value={editedUser.department_name ?? ''} onChange={(event) => updateEdited({ department_name: event.target.value, scope_department: event.target.value })}>{serviceCenters.map((center) => <option key={center} value={center}>{center}</option>)}</select></label>
               <label className="field-row">Pozice<input value={editedUser.position ?? ''} onChange={(event) => updateEdited({ position: event.target.value })} /></label>
               <label className="field-row">Oprávnění<select value={editedUser.role} onChange={(event) => updateEdited({ role: event.target.value })}>{roleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
               <label className="field-row">Nadřízený<select value={editedUser.manager_username ?? ''} onChange={(event) => updateEdited({ manager_username: event.target.value || undefined })}><option value="">Bez nadřízeného</option>{users.filter((item) => item.active && item.id !== editedUser.id).map((item) => <option key={item.id} value={item.username}>{item.full_name}</option>)}</select></label>
             </div>
+            {isCreating || canManagePasswords ? (
+              <section className="account-password-panel" aria-labelledby="accountPasswordHeading">
+                <div>
+                  <h3 id="accountPasswordHeading">Přístup do aplikace</h3>
+                  <p>{isCreating ? 'Zadejte počáteční heslo uživatele.' : 'Současné heslo nelze z bezpečnostních důvodů zobrazit. Zadejte nové heslo jen tehdy, když ho chcete změnit.'}</p>
+                </div>
+                <div className="field-row account-password-field">
+                  <label htmlFor="managed-user-password">{isCreating ? 'Heslo' : 'Nastavit nové heslo'}</label>
+                  <span className="password-input-row">
+                    <input
+                      id="managed-user-password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      minLength={4}
+                      placeholder={isCreating ? 'Alespoň 4 znaky' : 'Ponechte prázdné beze změny'}
+                      value={editedUser.password ?? ''}
+                      onChange={(event) => updateEdited({ password: event.target.value })}
+                    />
+                    <button type="button" className="secondary password-visibility-button" onClick={() => setShowPassword((visible) => !visible)}>
+                      {showPassword ? 'Skrýt' : 'Zobrazit'}
+                    </button>
+                  </span>
+                </div>
+              </section>
+            ) : null}
             <label className="toggle-row"><input type="checkbox" checked={editedUser.active} onChange={(event) => updateEdited({ active: event.target.checked })} />Aktivní účet</label>
             <div className="modal-actions">
               <button type="button" className="secondary" onClick={cancelEdit}>Zrušit</button>

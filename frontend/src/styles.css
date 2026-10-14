@@ -528,6 +528,37 @@ label,
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.account-password-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(320px, 2fr);
+  gap: 24px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--adw-green-soft);
+}
+
+.account-password-panel h3,
+.account-password-panel p {
+  margin: 0;
+}
+
+.account-password-panel p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.password-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.password-visibility-button {
+  min-width: 96px;
+}
+
 .time-grid {
   display: grid;
   grid-template-columns: minmax(160px, 190px) 120px 120px;
@@ -2199,6 +2230,7 @@ label,
   .filter-bar,
   .field-grid,
   .user-account-editor__grid,
+  .account-password-panel,
   .time-grid,
   .segmented-control,
   .repeat-row,
